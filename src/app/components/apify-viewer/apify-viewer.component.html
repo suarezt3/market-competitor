@@ -1,56 +1,144 @@
 <!-- src/app/components/apify-viewer/apify-viewer.component.html -->
 <div class="dashboard-layout">
 
-  <!-- PANEL LATERAL (MODERNIZADO Y CON OMNICANAL RESTAURADO) -->
+  <!-- PANEL LATERAL ENTERPRISE REDISEÑADO -->
   <aside class="sidebar-controls">
+    <!-- CABECERA CORPORATIVA DE MARCA -->
     <div class="brand-header">
-      <h2>Market Intelligence</h2>
-      <p>Análisis de Competencia LATAM</p>
+      <div class="brand-logo-badge">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#4f46e5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 17L12 22L22 17" stroke="#4f46e5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 12L12 17L22 12" stroke="#4f46e5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="brand-info">
+        <div class="brand-title-row">
+          <h2>Market Intelligence</h2>
+          <span class="enterprise-tag">PRO</span>
+        </div>
+        <p>Competitive Intelligence LATAM</p>
+      </div>
     </div>
 
-    <!-- UX: Control de Mercado (Necesario para el Omnicanal) -->
-    <div class="control-group fade-in" style="margin-top: 1.5rem;">
-      <label style="font-size: 0.8rem; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.5px;">Mercado a Analizar</label>
-      <select [(ngModel)]="selectedCountry" class="form-input" style="width: 100%; margin-top: 0.5rem; padding: 0.6rem; border-radius: 0.5rem; border: 1px solid #cbd5e1; outline: none; cursor: pointer;">
-        <option value="Colombia">🇨🇴 Colombia</option>
-        <option value="México">🇲🇽 México</option>
-      </select>
+    <!-- SECCIÓN DE NAVEGACIÓN VERTICAL UNIFICADA -->
+    <div class="sidebar-nav-section">
+      <div class="nav-section-header">
+        <span class="nav-section-title">Canales & Ecosistema</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <!-- Ítem Ecosistema Omnicanal -->
+        <button type="button"
+                (click)="handleNavSelection('omnicanal')"
+                [class.active]="isChannelActive('omnicanal')"
+                class="nav-item nav-item-omni"
+                [attr.aria-current]="isChannelActive('omnicanal') ? 'page' : null">
+          <div class="nav-item-icon omni-icon-bg">
+            <img src="/assets/icons/omnichannel.svg" referrerpolicy="no-referrer" alt="Omnicanal">
+          </div>
+          <div class="nav-item-content">
+            <span class="nav-item-title">Visión Ecosistema</span>
+            <span class="nav-item-desc">Todos los canales</span>
+          </div>
+          <span class="nav-item-badge omni-badge">{{ getChannelBadge('omnicanal') }}</span>
+        </button>
+
+        <div class="nav-divider"></div>
+
+        <!-- Canales Individuales -->
+        <button type="button"
+                (click)="handleNavSelection('instagram')"
+                [class.active]="isChannelActive('instagram')"
+                class="nav-item nav-item-instagram"
+                [attr.aria-current]="isChannelActive('instagram') ? 'page' : null">
+          <div class="nav-item-icon">
+            <img src="/assets/icons/instagram.svg" referrerpolicy="no-referrer" alt="Instagram">
+          </div>
+          <div class="nav-item-content">
+            <span class="nav-item-title">Instagram</span>
+            <span class="nav-item-desc">Reels & Posts</span>
+          </div>
+          <span class="nav-item-badge">{{ getChannelBadge('instagram') }}</span>
+        </button>
+
+        <button type="button"
+                (click)="handleNavSelection('facebook')"
+                [class.active]="isChannelActive('facebook')"
+                class="nav-item nav-item-facebook"
+                [attr.aria-current]="isChannelActive('facebook') ? 'page' : null">
+          <div class="nav-item-icon">
+            <img src="/assets/icons/facebook.svg" referrerpolicy="no-referrer" alt="Facebook">
+          </div>
+          <div class="nav-item-content">
+            <span class="nav-item-title">Facebook</span>
+            <span class="nav-item-desc">Feed & Páginas</span>
+          </div>
+          <span class="nav-item-badge">{{ getChannelBadge('facebook') }}</span>
+        </button>
+
+        <button type="button"
+                (click)="handleNavSelection('tiktok')"
+                [class.active]="isChannelActive('tiktok')"
+                class="nav-item nav-item-tiktok"
+                [attr.aria-current]="isChannelActive('tiktok') ? 'page' : null">
+          <div class="nav-item-icon">
+            <img src="/assets/icons/tiktok.svg" referrerpolicy="no-referrer" alt="TikTok">
+          </div>
+          <div class="nav-item-content">
+            <span class="nav-item-title">TikTok</span>
+            <span class="nav-item-desc">Viral Video</span>
+          </div>
+          <span class="nav-item-badge">{{ getChannelBadge('tiktok') }}</span>
+        </button>
+
+        <button type="button"
+                (click)="handleNavSelection('youtube')"
+                [class.active]="isChannelActive('youtube')"
+                class="nav-item nav-item-youtube"
+                [attr.aria-current]="isChannelActive('youtube') ? 'page' : null">
+          <div class="nav-item-icon">
+            <img src="/assets/icons/youtube.svg" referrerpolicy="no-referrer" alt="YouTube">
+          </div>
+          <div class="nav-item-content">
+            <span class="nav-item-title">YouTube</span>
+            <span class="nav-item-desc">Videos & Shorts</span>
+          </div>
+          <span class="nav-item-badge">{{ getChannelBadge('youtube') }}</span>
+        </button>
+      </nav>
     </div>
 
-    <!-- BOTÓN OMNICANAL -->
-    <button (click)="fetchOmnichannelData()" [disabled]="isLoading()" class="btn-block fade-in"
-            style="margin-top: 1rem; background-color: #0f172a; color: white; padding: 0.875rem 1rem; border-radius: 0.5rem; border: none; font-weight: 600; font-size: 0.875rem; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 0.5rem; transition: transform 0.1s ease, opacity 0.2s;">
-      @if (isLoading()) {
-        <span class="spinner-small"></span> Consolidando...
-      } @else {
-        <span>🌐 Visión Ecosistema (Omnicanal)</span>
-      }
-    </button>
-    <small class="help-text fade-in" style="text-align: center; display: block; margin-top: 0.5rem; color: #64748b; font-size: 0.75rem;">
-      Cruza los historiales recientes de todas las plataformas para {{ selectedCountry() }}.
-    </small>
+    <!-- PIE DEL PANEL LATERAL: BARRA COMPACTA DE ESTADO Y SINCRONIZACIÓN -->
+    <div class="sidebar-footer">
+      <div class="sidebar-status-card">
+        <div class="status-indicator-group">
+          <div class="pulse-indicator-dot">
+            <span class="pulse-core"></span>
+            <span class="pulse-ring"></span>
+          </div>
+          <div class="status-text-block">
+            <span class="status-headline">Nube Sincronizada</span>
+            <span class="status-subline">Pipelines automáticos</span>
+          </div>
+        </div>
 
-    <hr style="border: 0; border-top: 1px dashed #cbd5e1; margin: 2rem 0 1.5rem 0;">
-
-    <!-- UX: Tarjeta informativa sobre el nuevo flujo automatizado -->
-    <div class="info-card fade-in" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.75rem; padding: 1.25rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-      <h4 style="margin: 0 0 0.5rem 0; font-size: 0.95rem; color: #0f172a; display: flex; align-items: center; gap: 0.5rem;">
-        <span>🤖</span> Automatización Activa
-      </h4>
-      <p style="font-size: 0.85rem; color: #475569; line-height: 1.5; margin: 0;">
-        Los datos estratégicos se actualizan automáticamente en segundo plano.
-        <br><br>
-        Selecciona un reporte en la tabla para análisis individual por red.
-      </p>
+        <button type="button"
+                (click)="loadHistory()"
+                [disabled]="isLoading()"
+                class="sync-compact-btn"
+                title="Sincronizar historial con Apify Cloud">
+          @if (isLoading()) {
+            <span class="spinner-small-dark"></span>
+          } @else {
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+            </svg>
+          }
+          <span>{{ isLoading() ? 'Actualizando' : 'Sincronizar' }}</span>
+        </button>
+      </div>
     </div>
-
-    <button (click)="loadHistory()" [disabled]="isLoading()" class="btn-primary btn-block fade-in" style="margin-top: 1rem; display: flex; justify-content: center; align-items: center; gap: 0.5rem; font-weight: 600; padding: 0.875rem;">
-      @if (isLoading()) {
-        <span class="spinner-small"></span> Sincronizando Nube...
-      } @else {
-        <span>🔄 Sincronizar Historial</span>
-      }
-    </button>
   </aside>
 
   <!-- ÁREA PRINCIPAL (RESULTADOS) -->
@@ -75,7 +163,7 @@
       </div>
 
       <div class="fade-in">
-       <app-apify-runs-table [runsList]="runsList()" (runSelected)="loadSpecificRun($event.runId, $event.actorInternalId)" (countryChanged)="onRunCountryChanged($event)"></app-apify-runs-table>
+       <app-apify-runs-table [runsList]="runsList()" [isAdmin]="true" (runSelected)="loadSpecificRun($event.runId, $event.actorInternalId)" (countryChanged)="onRunCountryChanged($event)"></app-apify-runs-table>
       </div>
     }
 
@@ -84,23 +172,42 @@
 
       <div class="results-header fade-in enterprise-header" style="margin-top: 2rem;">
         <div>
-          <h3 class="network-title">
-            <span class="network-icon">
-              {{ loadedNetwork() === 'omnicanal' ? '🌐' : loadedNetwork() === 'tiktok' ? '🎵' : loadedNetwork() === 'instagram' ? '📸' : loadedNetwork() === 'youtube' ? '▶️' : '👍' }}
+          <h3 class="network-title" style="display: flex; align-items: center; gap: 0.6rem;">
+            <img [src]="getNetworkIcon(gridNetworkFilter() !== 'ALL' && loadedNetwork() === 'omnicanal' ? gridNetworkFilter() : loadedNetwork())" referrerpolicy="no-referrer"
+                 style="width: 28px; height: 28px; object-fit: contain; flex-shrink: 0;"
+                 [alt]="loadedNetwork()">
+            <span>
+              @if (loadedNetwork() === 'omnicanal') {
+                @if (gridNetworkFilter() === 'ALL') {
+                  Visión Consolidada del Ecosistema Digital
+                } @else {
+                  Ecosistema Digital: {{ getNetworkLabel(gridNetworkFilter()) }}
+                }
+              } @else {
+                Insights de Mercado en {{ loadedNetwork() | titlecase }}
+              }
             </span>
-            {{ loadedNetwork() === 'omnicanal' ? 'Visión Consolidada del Ecosistema Digital' : 'Insights de Mercado en ' + (loadedNetwork() | titlecase) }}
           </h3>
-          <p class="subtitle">
-            Se consolidaron <strong>{{ filteredData().length }} registros</strong>.
+          <p class="subtitle" style="display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+            @if (loadedNetwork() === 'omnicanal' && gridNetworkFilter() !== 'ALL') {
+              <span>Mostrando <strong>{{ filteredData().length }} registros</strong> filtrados por {{ getNetworkLabel(gridNetworkFilter()) }} (de {{ omnichannelStats()?.total || data().length }} totales)</span>
+              <button type="button"
+                      (click)="gridNetworkFilter.set('ALL')"
+                      style="background: #e0e7ff; color: #4338ca; border: 1px solid #c7d2fe; padding: 0.25rem 0.65rem; border-radius: 9999px; font-size: 0.72rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem; transition: all 0.15s ease;">
+                <span>✕</span> Ver todas las plataformas
+              </button>
+            } @else {
+              <span>Se consolidaron <strong>{{ filteredData().length }} registros</strong>.</span>
+            }
 
             @if (loadedCountry()) {
-              <span class="date-badge" style="margin-left: 0.5rem; background-color: #f3f4f6; color: #374151; border: 1px solid #e5e7eb;">
+              <span class="date-badge" style="background-color: #f3f4f6; color: #374151; border: 1px solid #e5e7eb;">
                 📍 Mercado: {{ loadedCountry() }}
               </span>
             }
 
             @if (dynamicDateRange()) {
-              <span class="date-badge" style="margin-left: 0.5rem;">
+              <span class="date-badge">
                 🗓️ Temporalidad: {{ dynamicDateRange() }}
               </span>
             }
@@ -108,40 +215,271 @@
         </div>
       </div>
 
-      <!-- BARRA DE FILTRADO LOCAL (Fechas y Métricas Globales) -->
-      <div class="local-filters-card fade-in" style="background: #ffffff; padding: 1.2rem; border-radius: 0.75rem; border: 1px solid #e5e7eb; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);">
-
-        <div style="display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;">
-          <div style="display: flex; align-items: center; gap: 0.75rem;">
-            <div style="width: 32px; height: 32px; border-radius: 8px; background: #eff6ff; display: flex; align-items: center; justify-content: center; color: #3b82f6;">
-              📅
+      <!-- DESGLOSE DE REDES (MODO OMNICANAL) -->
+      @if (loadedNetwork() === 'omnicanal' && omnichannelStats(); as stats) {
+        <div class="omnichannel-summary-banner fade-in" style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
+          <div (click)="gridNetworkFilter.set(gridNetworkFilter() === 'instagram' ? 'ALL' : 'instagram')"
+               [style.border-color]="gridNetworkFilter() === 'instagram' ? '#ec4899' : '#e2e8f0'"
+               [style.box-shadow]="gridNetworkFilter() === 'instagram' ? '0 0 0 2px #ec4899' : '0 1px 3px rgba(0,0,0,0.05)'"
+               [title]="gridNetworkFilter() === 'instagram' ? 'Filtrando todo el dashboard por Instagram (Clic para quitar)' : 'Filtrar todo el dashboard por Instagram'"
+               style="flex: 1; min-width: 140px; background: #ffffff; border: 1px solid; border-radius: 0.5rem; padding: 0.75rem 1rem; display: flex; align-items: center; gap: 0.75rem; cursor: pointer; transition: all 0.15s ease;">
+            <div style="width: 40px; height: 40px; border-radius: 10px; background: #fdf2f8; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <img src="/assets/icons/instagram.svg" referrerpolicy="no-referrer" style="width: 26px; height: 26px; object-fit: contain;" alt="Instagram">
             </div>
-            <h4 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: #111827;">Segmentar Fechas:</h4>
+            <div>
+              <div style="font-size: 0.75rem; color: #64748b; font-weight: 600; text-transform: uppercase;">Instagram</div>
+              <div style="font-size: 1.15rem; font-weight: 800; color: #0f172a;">{{ stats.instagram | number }}</div>
+            </div>
           </div>
 
-          <div style="display: flex; align-items: center; gap: 1rem;">
-            <div style="display: flex; align-items: center; gap: 0.5rem; background: #f9fafb; padding: 0.25rem 0.5rem; border-radius: 0.5rem; border: 1px solid #e5e7eb;">
-              <label style="font-size: 0.8rem; font-weight: 600; color: #4b5563; margin: 0;">Desde:</label>
-              <input type="date" [ngModel]="filterStartDate()" (ngModelChange)="onStartDateChange($event)"
-                     style="border: none; background: transparent; font-size: 0.85rem; outline: none; cursor: pointer; color: #111827;">
+          <div (click)="gridNetworkFilter.set(gridNetworkFilter() === 'facebook' ? 'ALL' : 'facebook')"
+               [style.border-color]="gridNetworkFilter() === 'facebook' ? '#3b82f6' : '#e2e8f0'"
+               [style.box-shadow]="gridNetworkFilter() === 'facebook' ? '0 0 0 2px #3b82f6' : '0 1px 3px rgba(0,0,0,0.05)'"
+               [title]="gridNetworkFilter() === 'facebook' ? 'Filtrando todo el dashboard por Facebook (Clic para quitar)' : 'Filtrar todo el dashboard por Facebook'"
+               style="flex: 1; min-width: 140px; background: #ffffff; border: 1px solid; border-radius: 0.5rem; padding: 0.75rem 1rem; display: flex; align-items: center; gap: 0.75rem; cursor: pointer; transition: all 0.15s ease;">
+            <div style="width: 40px; height: 40px; border-radius: 10px; background: #eff6ff; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <img src="/assets/icons/facebook.svg" referrerpolicy="no-referrer" style="width: 26px; height: 26px; object-fit: contain;" alt="Facebook">
             </div>
+            <div>
+              <div style="font-size: 0.75rem; color: #64748b; font-weight: 600; text-transform: uppercase;">Facebook</div>
+              <div style="font-size: 1.15rem; font-weight: 800; color: #0f172a;">{{ stats.facebook | number }}</div>
+            </div>
+          </div>
 
-            <span style="color: #9ca3af; font-weight: bold;">→</span>
+          <div (click)="gridNetworkFilter.set(gridNetworkFilter() === 'tiktok' ? 'ALL' : 'tiktok')"
+               [style.border-color]="gridNetworkFilter() === 'tiktok' ? '#0f172a' : '#e2e8f0'"
+               [style.box-shadow]="gridNetworkFilter() === 'tiktok' ? '0 0 0 2px #0f172a' : '0 1px 3px rgba(0,0,0,0.05)'"
+               [title]="gridNetworkFilter() === 'tiktok' ? 'Filtrando todo el dashboard por TikTok (Clic para quitar)' : 'Filtrar todo el dashboard por TikTok'"
+               style="flex: 1; min-width: 140px; background: #ffffff; border: 1px solid; border-radius: 0.5rem; padding: 0.75rem 1rem; display: flex; align-items: center; gap: 0.75rem; cursor: pointer; transition: all 0.15s ease;">
+            <div style="width: 40px; height: 40px; border-radius: 10px; background: #0f172a; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <img src="/assets/icons/tiktok.svg" referrerpolicy="no-referrer" style="width: 26px; height: 26px; object-fit: contain;" alt="TikTok">
+            </div>
+            <div>
+              <div style="font-size: 0.75rem; color: #64748b; font-weight: 600; text-transform: uppercase;">TikTok</div>
+              <div style="font-size: 1.15rem; font-weight: 800; color: #0f172a;">{{ stats.tiktok | number }}</div>
+            </div>
+          </div>
 
-            <div style="display: flex; align-items: center; gap: 0.5rem; background: #f9fafb; padding: 0.25rem 0.5rem; border-radius: 0.5rem; border: 1px solid #e5e7eb;">
-              <label style="font-size: 0.8rem; font-weight: 600; color: #4b5563; margin: 0;">Hasta:</label>
-              <input type="date" [ngModel]="filterEndDate()" (ngModelChange)="onEndDateChange($event)"
-                     style="border: none; background: transparent; font-size: 0.85rem; outline: none; cursor: pointer; color: #111827;">
+          <div (click)="gridNetworkFilter.set(gridNetworkFilter() === 'youtube' ? 'ALL' : 'youtube')"
+               [style.border-color]="gridNetworkFilter() === 'youtube' ? '#ef4444' : '#e2e8f0'"
+               [style.box-shadow]="gridNetworkFilter() === 'youtube' ? '0 0 0 2px #ef4444' : '0 1px 3px rgba(0,0,0,0.05)'"
+               [title]="gridNetworkFilter() === 'youtube' ? 'Filtrando todo el dashboard por YouTube (Clic para quitar)' : 'Filtrar todo el dashboard por YouTube'"
+               style="flex: 1; min-width: 140px; background: #ffffff; border: 1px solid; border-radius: 0.5rem; padding: 0.75rem 1rem; display: flex; align-items: center; gap: 0.75rem; cursor: pointer; transition: all 0.15s ease;">
+            <div style="width: 40px; height: 40px; border-radius: 10px; background: #fef2f2; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <img src="/assets/icons/youtube.svg" referrerpolicy="no-referrer" style="width: 26px; height: 26px; object-fit: contain;" alt="YouTube">
+            </div>
+            <div>
+              <div style="font-size: 0.75rem; color: #64748b; font-weight: 600; text-transform: uppercase;">YouTube</div>
+              <div style="font-size: 1.15rem; font-weight: 800; color: #0f172a;">{{ stats.youtube | number }}</div>
             </div>
           </div>
         </div>
+      }
 
-        <div class="filters-panel" style="margin: 0; padding: 0; border: none; background: transparent; box-shadow: none;">
-          <button class="filter-pill" [class.active]="selectedMetric() === 'total'" (click)="applyFilter('total')">📈 Total</button>
-          <button class="filter-pill" [class.active]="selectedMetric() === 'views'" (click)="applyFilter('views')">👁️ Vistas</button>
-          <button class="filter-pill" [class.active]="selectedMetric() === 'likes'" (click)="applyFilter('likes')">❤️ Likes</button>
-          <button class="filter-pill" [class.active]="selectedMetric() === 'comments'" (click)="applyFilter('comments')">💬 Comentarios</button>
+      <!-- MATRIZ DE CRUCE ECOSISTEMA OMNICANAL -->
+      @if (loadedNetwork() === 'omnicanal' && omnichannelMatrix().length > 0) {
+        <div class="omnichannel-matrix-card fade-in" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 2rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.5rem;">
+            <div>
+              <h4 style="margin: 0; font-size: 1.15rem; color: #0f172a; font-weight: 700;">📊 Matriz de Cruce Ecosistema Omnicanal</h4>
+              <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem; color: #64748b;">Consolidado cruzado de marcas compitiendo en Instagram, Facebook, TikTok y YouTube.</p>
+            </div>
+            <span style="font-size: 0.75rem; background: #f1f5f9; color: #334155; padding: 0.35rem 0.75rem; border-radius: 9999px; font-weight: 600;">
+              {{ omnichannelMatrix().length }} marcas comparadas
+            </span>
+          </div>
+
+          <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem;">
+              <thead>
+                <tr style="border-bottom: 2px solid #e2e8f0; color: #475569; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">
+                  <th style="padding: 0.75rem 1rem;">Marca</th>
+                  <th style="padding: 0.75rem 1rem; text-align: center;">Presencia en Redes</th>
+                  <th style="padding: 0.75rem 1rem; text-align: right;">Comunidad Total</th>
+                  <th style="padding: 0.75rem 1rem; text-align: right;">Vistas Totales</th>
+                  <th style="padding: 0.75rem 1rem; text-align: right;">Engagement Total</th>
+                  <th style="padding: 0.75rem 1rem; text-align: center;">Publicaciones</th>
+                  <th style="padding: 0.75rem 1rem; text-align: center;">Red Principal</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of omnichannelMatrix(); track item.brand) {
+                  <tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 0.85rem 1rem;">
+                      <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        @if (item.logoUrl) {
+                          <img [src]="item.logoUrl" referrerpolicy="no-referrer"
+                               style="width: 36px; height: 36px; border-radius: 8px; object-fit: contain; background: #ffffff; padding: 2px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.06); flex-shrink: 0;"
+                               [alt]="item.brand">
+                        } @else if (item.avatar) {
+                          <img [src]="item.avatar" referrerpolicy="no-referrer"
+                               style="width: 36px; height: 36px; border-radius: 8px; object-fit: cover; border: 1px solid #e2e8f0; flex-shrink: 0;"
+                               [alt]="item.brand">
+                        } @else {
+                          <div style="width: 36px; height: 36px; border-radius: 8px; background: #e2e8f0; display: flex; align-items: center; justify-content: center; font-weight: 700; color: #475569; font-size: 0.85rem; flex-shrink: 0;">
+                            {{ item.brand.charAt(0) }}
+                          </div>
+                        }
+                        <div>
+                          <div style="font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 0.4rem;">
+                            <span [style.background-color]="item.color" style="width: 8px; height: 8px; border-radius: 50%; display: inline-block;"></span>
+                            {{ item.brand }}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td style="padding: 0.85rem 1rem; text-align: center;">
+                      <div style="display: inline-flex; gap: 0.45rem; align-items: center; justify-content: center;">
+                        <span [title]="item.platforms.instagram ? 'Instagram Activo (' + item.postsCount.instagram + ' posts)' : 'Sin presencia en Instagram'"
+                              [style.opacity]="item.platforms.instagram ? '1' : '0.22'"
+                              [style.filter]="item.platforms.instagram ? 'none' : 'grayscale(100%)'"
+                              [style.border-color]="item.platforms.instagram ? '#fbcfe8' : '#e2e8f0'"
+                              style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 6px; background: #ffffff; padding: 2px; border: 1px solid; box-shadow: 0 1px 2px rgba(0,0,0,0.04); transition: transform 0.15s ease;">
+                          <img src="/assets/icons/instagram.svg" referrerpolicy="no-referrer" style="width: 18px; height: 18px; object-fit: contain;" alt="Instagram">
+                        </span>
+                        <span [title]="item.platforms.facebook ? 'Facebook Activo (' + item.postsCount.facebook + ' posts)' : 'Sin presencia en Facebook'"
+                              [style.opacity]="item.platforms.facebook ? '1' : '0.22'"
+                              [style.filter]="item.platforms.facebook ? 'none' : 'grayscale(100%)'"
+                              [style.border-color]="item.platforms.facebook ? '#bfdbfe' : '#e2e8f0'"
+                              style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 6px; background: #ffffff; padding: 2px; border: 1px solid; box-shadow: 0 1px 2px rgba(0,0,0,0.04); transition: transform 0.15s ease;">
+                          <img src="/assets/icons/facebook.svg" referrerpolicy="no-referrer" style="width: 18px; height: 18px; object-fit: contain;" alt="Facebook">
+                        </span>
+                        <span [title]="item.platforms.tiktok ? 'TikTok Activo (' + item.postsCount.tiktok + ' posts)' : 'Sin presencia en TikTok'"
+                              [style.opacity]="item.platforms.tiktok ? '1' : '0.22'"
+                              [style.filter]="item.platforms.tiktok ? 'none' : 'grayscale(100%)'"
+                              [style.border-color]="item.platforms.tiktok ? '#cbd5e1' : '#e2e8f0'"
+                              style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 6px; background: #ffffff; padding: 2px; border: 1px solid; box-shadow: 0 1px 2px rgba(0,0,0,0.04); transition: transform 0.15s ease;">
+                          <img src="/assets/icons/tiktok.svg" referrerpolicy="no-referrer" style="width: 18px; height: 18px; object-fit: contain;" alt="TikTok">
+                        </span>
+                        <span [title]="item.platforms.youtube ? 'YouTube Activo (' + item.postsCount.youtube + ' videos)' : 'Sin presencia en YouTube'"
+                              [style.opacity]="item.platforms.youtube ? '1' : '0.22'"
+                              [style.filter]="item.platforms.youtube ? 'none' : 'grayscale(100%)'"
+                              [style.border-color]="item.platforms.youtube ? '#fecdd3' : '#e2e8f0'"
+                              style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 6px; background: #ffffff; padding: 2px; border: 1px solid; box-shadow: 0 1px 2px rgba(0,0,0,0.04); transition: transform 0.15s ease;">
+                          <img src="/assets/icons/youtube.svg" referrerpolicy="no-referrer" style="width: 18px; height: 18px; object-fit: contain;" alt="YouTube">
+                        </span>
+                      </div>
+                    </td>
+                    <td style="padding: 0.85rem 1rem; text-align: right; font-weight: 600; color: #1e293b;">
+                      {{ item.followersStr }}
+                    </td>
+                    <td style="padding: 0.85rem 1rem; text-align: right; font-weight: 600; color: #1e293b;">
+                      {{ item.viewsStr }}
+                    </td>
+                    <td style="padding: 0.85rem 1rem; text-align: right; font-weight: 700; color: #0284c7;">
+                      {{ item.engagementStr }}
+                    </td>
+                    <td style="padding: 0.85rem 1rem; text-align: center;">
+                      <span style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 0.2rem 0.5rem; border-radius: 0.375rem; font-weight: 700; color: #334155; font-size: 0.8rem;">
+                        {{ item.postsStr }}
+                      </span>
+                    </td>
+                    <td style="padding: 0.85rem 1rem; text-align: center;">
+                      <span style="display: inline-flex; align-items: center; gap: 0.35rem; background: #f8fafc; border: 1px solid #e2e8f0; padding: 0.25rem 0.6rem; border-radius: 9999px; font-weight: 700; font-size: 0.8rem; color: #334155;">
+                        <img [src]="getNetworkIcon(item.topPlatform)" referrerpolicy="no-referrer"
+                             style="width: 15px; height: 15px; object-fit: contain;" [alt]="item.topPlatform">
+                        {{ item.topPlatform }}
+                      </span>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
         </div>
+      }
+
+      <!-- BARRA DE FILTRADO LOCAL REDISEÑADA (Calendario Empresarial + Control Segmentado) -->
+      <div class="enterprise-analytics-toolbar fade-in">
+
+        <!-- LADO IZQUIERDO: SELECTOR DE FECHAS DESPLEGABLE -->
+        <div class="toolbar-date-section">
+          <div class="toolbar-section-label">
+            <svg class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+            <span>Segmentar Fechas:</span>
+          </div>
+
+          <app-date-range-picker
+            [startDate]="filterStartDate()"
+            [endDate]="filterEndDate()"
+            (rangeChange)="onDateRangeChange($event)"
+            (clear)="clearDateFilter()">
+          </app-date-range-picker>
+        </div>
+
+        <!-- LADO DERECHO: CONTROL SEGMENTADO DE MÉTRICAS ENTERPRISE -->
+        <div class="toolbar-metrics-section">
+          <div class="toolbar-section-label">
+            <svg class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+              <polyline points="2 17 12 22 22 17"></polyline>
+              <polyline points="2 12 12 17 22 12"></polyline>
+            </svg>
+            <span>Métrica Principal:</span>
+          </div>
+
+          <div class="metric-segmented-control" role="group" aria-label="Seleccionar métrica para el análisis">
+            <!-- TOTAL -->
+            <button
+              type="button"
+              (click)="applyFilter('total')"
+              class="metric-segment-btn"
+              [class.active]="selectedMetric() === 'total'"
+              title="Métricas consolidadas (Vistas, Likes y Comentarios)">
+              <svg class="segment-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                <polyline points="16 7 22 7 22 13"></polyline>
+              </svg>
+              <span class="segment-label">Total</span>
+            </button>
+
+            <!-- VISTAS -->
+            <button
+              type="button"
+              (click)="applyFilter('views')"
+              class="metric-segment-btn"
+              [class.active]="selectedMetric() === 'views'"
+              title="Alcance y reproducciones de video">
+              <svg class="segment-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+              <span class="segment-label">Vistas</span>
+            </button>
+
+            <!-- LIKES -->
+            <button
+              type="button"
+              (click)="applyFilter('likes')"
+              class="metric-segment-btn"
+              [class.active]="selectedMetric() === 'likes'"
+              title="Me gusta y reacciones">
+              <svg class="segment-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+              </svg>
+              <span class="segment-label">Likes</span>
+            </button>
+
+            <!-- COMENTARIOS -->
+            <button
+              type="button"
+              (click)="applyFilter('comments')"
+              class="metric-segment-btn"
+              [class.active]="selectedMetric() === 'comments'"
+              title="Comentarios de la comunidad">
+              <svg class="segment-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+              </svg>
+              <span class="segment-label">Comentarios</span>
+            </button>
+          </div>
+        </div>
+
       </div>
 
       <!-- GRÁFICAS -->
@@ -176,15 +514,19 @@
             @for (comp of competitorsKpi(); track comp.name) {
               <div class="kpi-card" style="display: flex; align-items: center; gap: 1rem; padding: 0.75rem 1rem; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 0.5rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
 
-                @if (comp.avatar) {
+                @if (comp.logoUrl) {
+                  <img [src]="comp.logoUrl" referrerpolicy="no-referrer"
+                       style="width: 48px; height: 48px; border-radius: 10px; object-fit: contain; background: #ffffff; padding: 2px; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0,0,0,0.06); flex-shrink: 0;"
+                       [alt]="comp.name">
+                } @else if (comp.avatar) {
                   <img #avatarImg [src]="comp.avatar" referrerpolicy="no-referrer"
                        (error)="avatarImg.style.display='none'; fallbackAvatar.style.display='flex'"
-                       style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 1px solid #e5e7eb;" alt="Logo">
-                  <div #fallbackAvatar style="display: none; width: 44px; height: 44px; border-radius: 50%; background: #e0e7ff; align-items: center; justify-content: center; font-size: 1.1rem; color: #4338ca; font-weight: bold;">
+                       style="width: 48px; height: 48px; border-radius: 10px; object-fit: cover; border: 1px solid #e5e7eb; flex-shrink: 0;" alt="Logo">
+                  <div #fallbackAvatar style="display: none; width: 48px; height: 48px; border-radius: 10px; background: #e0e7ff; align-items: center; justify-content: center; font-size: 1.1rem; color: #4338ca; font-weight: bold; flex-shrink: 0;">
                     {{ comp.name.charAt(0) | uppercase }}
                   </div>
                 } @else {
-                  <div style="width: 44px; height: 44px; border-radius: 50%; background: #e0e7ff; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; color: #4338ca; font-weight: bold;">
+                  <div style="width: 48px; height: 48px; border-radius: 10px; background: #e0e7ff; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; color: #4338ca; font-weight: bold; flex-shrink: 0;">
                     {{ comp.name.charAt(0) | uppercase }}
                   </div>
                 }
@@ -223,8 +565,8 @@
           </div>
         }
 
-        @if (chartOptions() && loadedNetwork() !== 'omnicanal') {
-          <div class="chart-card" style="min-height: 380px;">
+        @if (chartOptions()) {
+          <div class="chart-card" style="min-height: 380px;" [style.grid-column]="loadedNetwork() === 'omnicanal' ? '1 / -1' : 'auto'">
             <div echarts [options]="chartOptions()!" style="height: 100%; width: 100%;"></div>
           </div>
         }
@@ -242,82 +584,475 @@
         }
       </div>
 
-      <!-- CENTRO DE CONTROL DEL GRID CON LOGICA UX CONDICIONAL -->
-      <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 2.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
-
-        <h4 class="section-title fade-in" style="margin: 0; padding-bottom: 0; color: #111827; font-size: 1.25rem;">Desglose de Contenido</h4>
-
-        <div class="grid-controls fade-in" style="display: flex; align-items: center; gap: 1.5rem; background: linear-gradient(to right, #ffffff, #f8fafc); padding: 0.75rem 1.25rem; border-radius: 0.75rem; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
-
-          <!-- FILTRO DE COMPETIDOR -->
-          <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <span style="font-size: 1.2rem;">🏢</span>
-            <div style="display: flex; flex-direction: column;">
-              <label style="font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Competidor</label>
-              <select [(ngModel)]="gridBrandFilter" style="border: none; background: transparent; font-size: 0.9rem; font-weight: 600; color: #0f172a; cursor: pointer; outline: none; padding: 0; min-width: 120px;">
-                <option value="ALL">🌟 Todos</option>
-                @for (brand of availableBrands(); track brand) {
-                  <option [value]="brand">{{ brand }}</option>
-                }
-              </select>
-            </div>
-          </div>
-
-          <!-- FILTRO DE PLATAFORMA (Condicional) -->
-          @if (loadedNetwork() === 'omnicanal') {
-            <div style="width: 1px; height: 24px; background: #cbd5e1;"></div>
-
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
-              <span style="font-size: 1.2rem;">📱</span>
-              <div style="display: flex; flex-direction: column;">
-                <label style="font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Plataforma</label>
-                <select [(ngModel)]="gridNetworkFilter" style="border: none; background: transparent; font-size: 0.9rem; font-weight: 600; color: #0f172a; cursor: pointer; outline: none; padding: 0; min-width: 100px;">
-                  <option value="ALL">🌐 Todas</option>
-                  <option value="facebook">Facebook</option>
-                  <option value="instagram">Instagram</option>
-                  <option value="tiktok">TikTok</option>
-                  <option value="youtube">YouTube</option>
-                </select>
-              </div>
-            </div>
-          }
-
-          <!-- FILTRO DE FORMATO DE CONTENIDO (Condicional Inteligente UX) -->
-          @if (showContentTypeFilter()) {
-            <div style="width: 1px; height: 24px; background: #cbd5e1;"></div>
-
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
-              <span style="font-size: 1.2rem;">🎬</span>
-              <div style="display: flex; flex-direction: column;">
-                <label style="font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Formato</label>
-                <select [(ngModel)]="gridContentTypeFilter" style="border: none; background: transparent; font-size: 0.9rem; font-weight: 600; color: #0f172a; cursor: pointer; outline: none; padding: 0; min-width: 110px;">
-                  <option value="ALL">🌟 Todos</option>
-                  <option value="video">🎥 Videos / Reels</option>
-                  <option value="image">🖼️ Imágenes</option>
-                  <option value="carousel">📑 Carruseles</option>
-                  <option value="text">📝 Solo Texto</option>
-                </select>
-              </div>
-            </div>
-          }
-
-          <div style="width: 1px; height: 24px; background: #cbd5e1;"></div>
-
-          <!-- FILTRO DE ORDENACIÓN -->
-          <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <span style="font-size: 1.2rem;">⚡</span>
-            <div style="display: flex; flex-direction: column;">
-              <label style="font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Ordenar por</label>
-              <select [(ngModel)]="gridSortMetric" style="border: none; background: transparent; font-size: 0.9rem; font-weight: 600; color: #0f172a; cursor: pointer; outline: none; padding: 0; min-width: 140px;">
-                <option value="date_desc">📅 Fecha (Reciente)</option>
-                <option value="views_desc">👁️ Mayores Vistas</option>
-                <option value="likes_desc">❤️ Mayores Likes</option>
-                <option value="comments_desc">💬 Comentarios</option>
-              </select>
-            </div>
-          </div>
-
+      <!-- CENTRO DE CONTROL ENTERPRISE: DESGLOSE DE CONTENIDO -->
+      <div class="content-breakdown-header fade-in">
+        <div class="title-with-badge">
+          <h4 class="section-title">Desglose de Contenido</h4>
+          <span class="posts-count-badge font-mono">
+            {{ gridDisplayData().length }}
+            <span class="badge-label">{{ gridDisplayData().length === 1 ? 'publicación' : 'publicaciones' }}</span>
+          </span>
         </div>
+        <p class="section-subtitle">Explora, filtra y analiza cada publicación indexada con sus métricas auditadas.</p>
+      </div>
+
+      <!-- BARRA DE CONTROLES DESPLEGABLES PERSONALIZADOS INTEGRADA -->
+      <div class="content-filter-bar fade-in">
+        
+        <!-- GRUPO IZQUIERDO: FILTROS DESPLEGABLES -->
+        <div class="filter-dropdowns-group">
+          <!-- 1. FILTRO DE COMPETIDOR -->
+        <div class="custom-filter-dropdown" [class.dropdown-open]="activeGridDropdown() === 'brand'">
+          <button
+            type="button"
+            class="dropdown-trigger-btn"
+            (click)="toggleGridDropdown('brand', $event)"
+            title="Filtrar por competidor">
+            <div class="trigger-icon-wrap">
+              <svg class="h-4 w-4 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                <path d="M3 21h18"/>
+                <path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/>
+                <path d="M9 9h1"/>
+                <path d="M9 13h1"/>
+                <path d="M9 17h1"/>
+                <path d="M14 9h1"/>
+                <path d="M14 13h1"/>
+                <path d="M14 17h1"/>
+              </svg>
+            </div>
+            <div class="trigger-text-group">
+              <span class="trigger-label">COMPETIDOR</span>
+              <span class="trigger-value" [title]="gridBrandFilter() === 'ALL' ? 'Todos los competidores' : gridBrandFilter()">
+                {{ gridBrandFilter() === 'ALL' ? 'Todos' : gridBrandFilter() }}
+              </span>
+            </div>
+            <svg class="chevron-icon" [class.rotate]="activeGridDropdown() === 'brand'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="m6 9 6 6 6-6"/>
+            </svg>
+          </button>
+
+          @if (activeGridDropdown() === 'brand') {
+            <div class="dropdown-popover-menu brand-popover" (click)="$event.stopPropagation()">
+              <div class="popover-header">
+                <span>Seleccionar Competidor</span>
+              </div>
+              <div class="popover-list custom-scrollbar">
+                <button
+                  type="button"
+                  class="dropdown-option-item"
+                  [class.active]="gridBrandFilter() === 'ALL'"
+                  (click)="selectGridBrand('ALL')">
+                  <div class="option-icon-slot">
+                    <svg class="h-4 w-4 text-indigo-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                    </svg>
+                  </div>
+                  <span class="option-label">Todos los competidores</span>
+                  @if (gridBrandFilter() === 'ALL') {
+                    <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  }
+                </button>
+
+                @for (brand of availableBrands(); track brand) {
+                  <button
+                    type="button"
+                    class="dropdown-option-item"
+                    [class.active]="gridBrandFilter() === brand"
+                    (click)="selectGridBrand(brand)">
+                    <div class="option-icon-slot">
+                      @if (getBrandLogo(brand); as logo) {
+                        <img [src]="logo" referrerpolicy="no-referrer" class="brand-opt-logo" [alt]="brand">
+                      } @else {
+                        <div class="brand-opt-initial">{{ brand.charAt(0) }}</div>
+                      }
+                    </div>
+                    <span class="option-label">{{ brand }}</span>
+                    @if (gridBrandFilter() === brand) {
+                      <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    }
+                  </button>
+                }
+              </div>
+            </div>
+          }
+        </div>
+
+        <div class="filter-divider"></div>
+
+        <!-- 2. FILTRO DE PLATAFORMA (Condicional si loadedNetwork === 'omnicanal') -->
+        @if (loadedNetwork() === 'omnicanal') {
+          <div class="custom-filter-dropdown" [class.dropdown-open]="activeGridDropdown() === 'network'">
+            <button
+              type="button"
+              class="dropdown-trigger-btn"
+              (click)="toggleGridDropdown('network', $event)"
+              title="Filtrar por canal digital">
+              <div class="trigger-icon-wrap">
+                <img [src]="getNetworkIcon(gridNetworkFilter())" referrerpolicy="no-referrer" class="h-4 w-4 object-contain" [alt]="gridNetworkFilter()">
+              </div>
+              <div class="trigger-text-group">
+                <span class="trigger-label">PLATAFORMA</span>
+                <span class="trigger-value">{{ getNetworkLabel(gridNetworkFilter()) }}</span>
+              </div>
+              <svg class="chevron-icon" [class.rotate]="activeGridDropdown() === 'network'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m6 9 6 6 6-6"/>
+              </svg>
+            </button>
+
+            @if (activeGridDropdown() === 'network') {
+              <div class="dropdown-popover-menu" (click)="$event.stopPropagation()">
+                <div class="popover-header">
+                  <span>Seleccionar Canal</span>
+                </div>
+                <div class="popover-list">
+                  <!-- TODAS -->
+                  <button
+                    type="button"
+                    class="dropdown-option-item"
+                    [class.active]="gridNetworkFilter() === 'ALL'"
+                    (click)="selectGridNetwork('ALL')">
+                    <div class="option-icon-slot">
+                      <img src="/assets/icons/omnichannel.svg" referrerpolicy="no-referrer" class="platform-opt-icon" alt="Todas">
+                    </div>
+                    <span class="option-label">Todas las plataformas</span>
+                    @if (gridNetworkFilter() === 'ALL') {
+                      <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    }
+                  </button>
+
+                  <!-- INSTAGRAM -->
+                  <button
+                    type="button"
+                    class="dropdown-option-item"
+                    [class.active]="gridNetworkFilter() === 'instagram'"
+                    (click)="selectGridNetwork('instagram')">
+                    <div class="option-icon-slot">
+                      <img src="/assets/icons/instagram.svg" referrerpolicy="no-referrer" class="platform-opt-icon" alt="Instagram">
+                    </div>
+                    <span class="option-label">Instagram</span>
+                    @if (gridNetworkFilter() === 'instagram') {
+                      <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    }
+                  </button>
+
+                  <!-- FACEBOOK -->
+                  <button
+                    type="button"
+                    class="dropdown-option-item"
+                    [class.active]="gridNetworkFilter() === 'facebook'"
+                    (click)="selectGridNetwork('facebook')">
+                    <div class="option-icon-slot">
+                      <img src="/assets/icons/facebook.svg" referrerpolicy="no-referrer" class="platform-opt-icon" alt="Facebook">
+                    </div>
+                    <span class="option-label">Facebook</span>
+                    @if (gridNetworkFilter() === 'facebook') {
+                      <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    }
+                  </button>
+
+                  <!-- TIKTOK -->
+                  <button
+                    type="button"
+                    class="dropdown-option-item"
+                    [class.active]="gridNetworkFilter() === 'tiktok'"
+                    (click)="selectGridNetwork('tiktok')">
+                    <div class="option-icon-slot">
+                      <img src="/assets/icons/tiktok.svg" referrerpolicy="no-referrer" class="platform-opt-icon" alt="TikTok">
+                    </div>
+                    <span class="option-label">TikTok</span>
+                    @if (gridNetworkFilter() === 'tiktok') {
+                      <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    }
+                  </button>
+
+                  <!-- YOUTUBE -->
+                  <button
+                    type="button"
+                    class="dropdown-option-item"
+                    [class.active]="gridNetworkFilter() === 'youtube'"
+                    (click)="selectGridNetwork('youtube')">
+                    <div class="option-icon-slot">
+                      <img src="/assets/icons/youtube.svg" referrerpolicy="no-referrer" class="platform-opt-icon" alt="YouTube">
+                    </div>
+                    <span class="option-label">YouTube</span>
+                    @if (gridNetworkFilter() === 'youtube') {
+                      <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    }
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+
+          <div class="filter-divider"></div>
+        }
+
+        <!-- 3. FILTRO DE FORMATO (Se oculta automáticamente en YouTube) -->
+        @if (showContentTypeFilter()) {
+          <div class="custom-filter-dropdown" [class.dropdown-open]="activeGridDropdown() === 'format'">
+            <button
+              type="button"
+              class="dropdown-trigger-btn"
+              (click)="toggleGridDropdown('format', $event)"
+              title="Filtrar por formato de contenido">
+              <div class="trigger-icon-wrap">
+                <svg class="h-4 w-4 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                  <path d="m22 8-6 4 6 4V8Z"/>
+                  <rect width="14" height="12" x="2" y="6" rx="2"/>
+                </svg>
+              </div>
+              <div class="trigger-text-group">
+                <span class="trigger-label">FORMATO</span>
+                <span class="trigger-value">{{ getFormatLabel(gridContentTypeFilter()) }}</span>
+              </div>
+              <svg class="chevron-icon" [class.rotate]="activeGridDropdown() === 'format'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m6 9 6 6 6-6"/>
+              </svg>
+            </button>
+
+            @if (activeGridDropdown() === 'format') {
+              <div class="dropdown-popover-menu" (click)="$event.stopPropagation()">
+                <div class="popover-header">
+                  <span>Formato Multimedia</span>
+                </div>
+                <div class="popover-list">
+                  <button
+                    type="button"
+                    class="dropdown-option-item"
+                    [class.active]="gridContentTypeFilter() === 'ALL'"
+                    (click)="selectGridFormat('ALL')">
+                    <div class="option-icon-slot">
+                      <svg class="h-4 w-4 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                      </svg>
+                    </div>
+                    <span class="option-label">Todos los formatos</span>
+                    @if (gridContentTypeFilter() === 'ALL') {
+                      <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    }
+                  </button>
+
+                  <button
+                    type="button"
+                    class="dropdown-option-item"
+                    [class.active]="gridContentTypeFilter() === 'video'"
+                    (click)="selectGridFormat('video')">
+                    <div class="option-icon-slot">
+                      <svg class="h-4 w-4 text-indigo-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="5 3 19 12 5 21 5 3"/>
+                      </svg>
+                    </div>
+                    <span class="option-label">Videos / Reels</span>
+                    @if (gridContentTypeFilter() === 'video') {
+                      <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    }
+                  </button>
+
+                  <button
+                    type="button"
+                    class="dropdown-option-item"
+                    [class.active]="gridContentTypeFilter() === 'image'"
+                    (click)="selectGridFormat('image')">
+                    <div class="option-icon-slot">
+                      <svg class="h-4 w-4 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+                        <circle cx="9" cy="9" r="2"/>
+                        <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+                      </svg>
+                    </div>
+                    <span class="option-label">Imágenes</span>
+                    @if (gridContentTypeFilter() === 'image') {
+                      <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    }
+                  </button>
+
+                  <button
+                    type="button"
+                    class="dropdown-option-item"
+                    [class.active]="gridContentTypeFilter() === 'carousel'"
+                    (click)="selectGridFormat('carousel')">
+                    <div class="option-icon-slot">
+                      <svg class="h-4 w-4 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect width="14" height="14" x="2" y="5" rx="2"/>
+                        <rect width="14" height="14" x="8" y="5" rx="2"/>
+                      </svg>
+                    </div>
+                    <span class="option-label">Carruseles</span>
+                    @if (gridContentTypeFilter() === 'carousel') {
+                      <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    }
+                  </button>
+
+                  <button
+                    type="button"
+                    class="dropdown-option-item"
+                    [class.active]="gridContentTypeFilter() === 'text'"
+                    (click)="selectGridFormat('text')">
+                    <div class="option-icon-slot">
+                      <svg class="h-4 w-4 text-sky-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 6.1H3"/>
+                        <path d="M21 12.1H3"/>
+                        <path d="M15.1 18H3"/>
+                      </svg>
+                    </div>
+                    <span class="option-label">Solo Texto</span>
+                    @if (gridContentTypeFilter() === 'text') {
+                      <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    }
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+
+          <div class="filter-divider"></div>
+        }
+
+        <!-- 4. FILTRO DE ORDENACIÓN -->
+        <div class="custom-filter-dropdown" [class.dropdown-open]="activeGridDropdown() === 'sort'">
+          <button
+            type="button"
+            class="dropdown-trigger-btn"
+            (click)="toggleGridDropdown('sort', $event)"
+            title="Ordenar publicaciones">
+            <div class="trigger-icon-wrap">
+              <svg class="h-4 w-4 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                <path d="m3 16 4 4 4-4"/>
+                <path d="M7 20V4"/>
+                <path d="m21 8-4-4-4 4"/>
+                <path d="M17 4v16"/>
+              </svg>
+            </div>
+            <div class="trigger-text-group">
+              <span class="trigger-label">ORDENAR POR</span>
+              <span class="trigger-value">{{ getSortLabel(gridSortMetric()) }}</span>
+            </div>
+            <svg class="chevron-icon" [class.rotate]="activeGridDropdown() === 'sort'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="m6 9 6 6 6-6"/>
+            </svg>
+          </button>
+
+          @if (activeGridDropdown() === 'sort') {
+            <div class="dropdown-popover-menu" (click)="$event.stopPropagation()">
+              <div class="popover-header">
+                <span>Criterio de Ordenación</span>
+              </div>
+              <div class="popover-list">
+                <button
+                  type="button"
+                  class="dropdown-option-item"
+                  [class.active]="gridSortMetric() === 'date_desc'"
+                  (click)="selectGridSort('date_desc')">
+                  <div class="option-icon-slot">
+                    <svg class="h-4 w-4 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                      <line x1="16" y1="2" x2="16" y2="6"/>
+                      <line x1="8" y1="2" x2="8" y2="6"/>
+                      <line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                  </div>
+                  <span class="option-label">Fecha (Reciente)</span>
+                  @if (gridSortMetric() === 'date_desc') {
+                    <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  }
+                </button>
+
+                <button
+                  type="button"
+                  class="dropdown-option-item"
+                  [class.active]="gridSortMetric() === 'views_desc'"
+                  (click)="selectGridSort('views_desc')">
+                  <div class="option-icon-slot">
+                    <svg class="h-4 w-4 text-purple-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                      <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                  </div>
+                  <span class="option-label">Mayor cantidad de Vistas</span>
+                  @if (gridSortMetric() === 'views_desc') {
+                    <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  }
+                </button>
+
+                <button
+                  type="button"
+                  class="dropdown-option-item"
+                  [class.active]="gridSortMetric() === 'likes_desc'"
+                  (click)="selectGridSort('likes_desc')">
+                  <div class="option-icon-slot">
+                    <svg class="h-4 w-4 text-rose-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+                    </svg>
+                  </div>
+                  <span class="option-label">Mayor cantidad de Likes</span>
+                  @if (gridSortMetric() === 'likes_desc') {
+                    <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  }
+                </button>
+
+                <button
+                  type="button"
+                  class="dropdown-option-item"
+                  [class.active]="gridSortMetric() === 'comments_desc'"
+                  (click)="selectGridSort('comments_desc')">
+                  <div class="option-icon-slot">
+                    <svg class="h-4 w-4 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                  </div>
+                  <span class="option-label">Mayor cantidad de Comentarios</span>
+                  @if (gridSortMetric() === 'comments_desc') {
+                    <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  }
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+        </div>
+
+        <!-- GRUPO DERECHO: BUSCADOR INTEGRADO Y LIMPIEZA DE FILTROS EN LA MISMA BARRA -->
+        <div class="filter-actions-group">
+          <!-- Buscador compacto de publicaciones -->
+          <div class="filter-search-box">
+            <svg class="search-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input
+              type="text"
+              [ngModel]="gridSearchQuery()"
+              (ngModelChange)="gridSearchQuery.set($event)"
+              placeholder="Buscar publicaciones..."
+              class="search-input-field"
+              aria-label="Buscar publicaciones">
+            @if (gridSearchQuery()) {
+              <button
+                type="button"
+                (click)="gridSearchQuery.set('')"
+                class="search-clear-btn"
+                title="Limpiar búsqueda">
+                ✕
+              </button>
+            }
+          </div>
+
+          <!-- Botón de limpieza de filtros alineado -->
+          @if (hasActiveGridFilters()) {
+            <button
+              type="button"
+              (click)="resetGridFilters()"
+              class="filter-reset-btn"
+              title="Restablecer todos los filtros">
+              <svg class="reset-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                <path d="M3 3v5h5"/>
+              </svg>
+              <span>Limpiar filtros</span>
+            </button>
+          }
+        </div>
+
       </div>
 
       <div class="fade-in">

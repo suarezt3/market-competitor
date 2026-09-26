@@ -1,0 +1,252 @@
+<!-- src/app/components/date-range-picker/date-range-picker.component.html -->
+<div class="date-range-picker-wrapper">
+
+  <!-- BOTÓN GATILLO EJECUTIVO -->
+  <button
+    type="button"
+    (click)="toggleDropdown()"
+    class="trigger-btn"
+    [class.active]="isOpen()"
+    [class.filtered]="hasActiveFilter()"
+    aria-haspopup="dialog"
+    [attr.aria-expanded]="isOpen()">
+
+    <!-- Icono de Calendario SVG -->
+    <svg class="trigger-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+      <line x1="16" y1="2" x2="16" y2="6"></line>
+      <line x1="8" y1="2" x2="8" y2="6"></line>
+      <line x1="3" y1="10" x2="21" y2="10"></line>
+    </svg>
+
+    <!-- Texto de Rango -->
+    <span class="trigger-label font-mono tabular-nums">
+      {{ displayRangeLabel() }}
+    </span>
+
+    <!-- Botón de Limpieza Rápida si hay filtro activo -->
+    @if (hasActiveFilter()) {
+      <span
+        role="button"
+        tabindex="0"
+        (click)="onClearClick($event)"
+        class="trigger-clear-btn"
+        title="Restablecer a todo el histórico">
+        ✕
+      </span>
+    }
+
+    <!-- Chevron de apertura -->
+    <svg class="trigger-chevron" [class.rotated]="isOpen()" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polyline points="6 9 12 15 18 9"></polyline>
+    </svg>
+  </button>
+
+  <!-- POPOVER DESPLEGABLE CON DOBLE MES Y PRESETS -->
+  @if (isOpen()) {
+    <div
+      class="popover-panel fade-in"
+      role="dialog"
+      aria-label="Selector de rango de fechas">
+
+      <div class="popover-content">
+        <!-- BARRA LATERAL: PRESETS RÁPIDOS -->
+        <aside class="presets-sidebar">
+          <span class="presets-title">Períodos Rápidos</span>
+          <div class="presets-list">
+            <button
+              type="button"
+              (click)="selectPreset('all')"
+              class="preset-item"
+              [class.active]="activePreset() === 'all'">
+              <span>Todo el histórico</span>
+            </button>
+
+            <button
+              type="button"
+              (click)="selectPreset('7d')"
+              class="preset-item"
+              [class.active]="activePreset() === '7d'">
+              <span>Últimos 7 días</span>
+            </button>
+
+            <button
+              type="button"
+              (click)="selectPreset('14d')"
+              class="preset-item"
+              [class.active]="activePreset() === '14d'">
+              <span>Últimos 14 días</span>
+            </button>
+
+            <button
+              type="button"
+              (click)="selectPreset('30d')"
+              class="preset-item"
+              [class.active]="activePreset() === '30d'">
+              <span>Últimos 30 días</span>
+            </button>
+
+            <button
+              type="button"
+              (click)="selectPreset('this_month')"
+              class="preset-item"
+              [class.active]="activePreset() === 'this_month'">
+              <span>Este mes</span>
+            </button>
+
+            <button
+              type="button"
+              (click)="selectPreset('last_month')"
+              class="preset-item"
+              [class.active]="activePreset() === 'last_month'">
+              <span>Mes anterior</span>
+            </button>
+          </div>
+        </aside>
+
+        <!-- ÁREA CENTRAL: CALENDARIOS PARALELOS (DOBLE MES) -->
+        <div class="calendars-main" (mouseleave)="onGridMouseLeave()">
+          <!-- Cabecera de Navegación de Meses -->
+          <div class="calendars-header">
+            <!-- Botón Mes Anterior -->
+            <button
+              type="button"
+              (click)="prevMonth()"
+              class="nav-month-btn"
+              title="Mes anterior">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
+            </button>
+
+            <!-- Títulos de los Dos Meses -->
+            <div class="months-titles">
+              <span class="month-title">{{ firstMonthTitle() }}</span>
+              <span class="month-title">{{ secondMonthTitle() }}</span>
+            </div>
+
+            <!-- Botón Mes Siguiente -->
+            <button
+              type="button"
+              (click)="nextMonth()"
+              class="nav-month-btn"
+              title="Mes siguiente">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Cuadrícula con los dos meses -->
+          <div class="dual-grid-wrapper">
+
+            <!-- MES 1 -->
+            <div class="single-month-grid">
+              <!-- Nombres de los días de la semana -->
+              <div class="weekdays-row">
+                @for (w of weekDays; track $index) {
+                  <span class="weekday-cell">{{ w }}</span>
+                }
+              </div>
+
+              <!-- Días del Mes 1 -->
+              <div class="days-matrix">
+                @for (d of firstMonthDays(); track d.dateStr) {
+                  <div
+                    class="day-slot"
+                    [class.in-range]="d.isInRange"
+                    [class.range-start]="d.isStart"
+                    [class.range-end]="d.isEnd"
+                    [class.hover-preview]="d.isHovered">
+                    <button
+                      type="button"
+                      (click)="onDayClick(d)"
+                      (mouseenter)="onDayHover(d)"
+                      class="day-btn"
+                      [class.outside-month]="!d.isCurrentMonth"
+                      [class.today]="d.isToday"
+                      [class.selected-start]="d.isStart"
+                      [class.selected-end]="d.isEnd">
+                      {{ d.dayNumber }}
+                    </button>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <div class="months-divider"></div>
+
+            <!-- MES 2 -->
+            <div class="single-month-grid">
+              <!-- Nombres de los días de la semana -->
+              <div class="weekdays-row">
+                @for (w of weekDays; track $index) {
+                  <span class="weekday-cell">{{ w }}</span>
+                }
+              </div>
+
+              <!-- Días del Mes 2 -->
+              <div class="days-matrix">
+                @for (d of secondMonthDays(); track d.dateStr) {
+                  <div
+                    class="day-slot"
+                    [class.in-range]="d.isInRange"
+                    [class.range-start]="d.isStart"
+                    [class.range-end]="d.isEnd"
+                    [class.hover-preview]="d.isHovered">
+                    <button
+                      type="button"
+                      (click)="onDayClick(d)"
+                      (mouseenter)="onDayHover(d)"
+                      class="day-btn"
+                      [class.outside-month]="!d.isCurrentMonth"
+                      [class.today]="d.isToday"
+                      [class.selected-start]="d.isStart"
+                      [class.selected-end]="d.isEnd">
+                      {{ d.dayNumber }}
+                    </button>
+                  </div>
+                }
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- PIE DEL POPOVER: ACCIONES Y RESUMEN -->
+      <footer class="popover-footer">
+        <div class="footer-summary">
+          <span class="summary-label">Rango seleccionado:</span>
+          @if (tempStartDate()) {
+            <span class="summary-range font-mono">
+              {{ tempStartDate() }}
+              @if (tempEndDate() && tempEndDate() !== tempStartDate()) {
+                <span> → {{ tempEndDate() }}</span>
+              }
+            </span>
+          } @else {
+            <span class="summary-placeholder">Sin restricción de fechas (Todo el histórico)</span>
+          }
+        </div>
+
+        <div class="footer-actions">
+          <button
+            type="button"
+            (click)="cancel()"
+            class="btn-cancel">
+            Cancelar
+          </button>
+          <button
+            type="button"
+            (click)="apply()"
+            class="btn-apply">
+            Aplicar Rango
+          </button>
+        </div>
+      </footer>
+
+    </div>
+  }
+
+</div>

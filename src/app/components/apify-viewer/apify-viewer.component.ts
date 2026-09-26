@@ -12,6 +12,7 @@ import { ApifyChartService, ChartMetric } from '../../services/apify-chart.servi
 
 import { ApifyDataGridComponent } from '../apify-data-grid/apify-data-grid.component';
 import { ApifyRunsTableComponent } from '../apify-runs-table/apify-runs-table.component';
+import { DateRangePickerComponent } from '../date-range-picker/date-range-picker.component';
 
 export type KpiSortOption = 'followers' | 'views' | 'likes' | 'posts';
 
@@ -24,10 +25,15 @@ export type KpiSortOption = 'followers' | 'views' | 'likes' | 'posts';
     FormsModule,
     NgxEchartsDirective,
     ApifyDataGridComponent,
-    ApifyRunsTableComponent
+    ApifyRunsTableComponent,
+    DateRangePickerComponent
   ],
   templateUrl: './apify-viewer.component.html',
-  styleUrl: './apify-viewer.component.scss'
+  styleUrl: './apify-viewer.component.scss',
+  host: {
+    '(document:click)': 'onDocumentClick($event)',
+    '(document:keydown.escape)': 'closeGridDropdowns()'
+  }
 })
 export class ApifyViewerComponent implements OnInit {
   private apifyService = inject(ApifyService);
@@ -54,6 +60,106 @@ export class ApifyViewerComponent implements OnInit {
   gridNetworkFilter = signal<string>('ALL');
   gridContentTypeFilter = signal<string>('ALL');
   gridSortMetric = signal<string>('date_desc');
+  gridSearchQuery = signal<string>('');
+
+  activeGridDropdown = signal<'brand' | 'network' | 'format' | 'sort' | null>(null);
+
+  hasActiveGridFilters = computed(() => {
+    return this.gridBrandFilter() !== 'ALL' ||
+           this.gridNetworkFilter() !== 'ALL' ||
+           (this.showContentTypeFilter() && this.gridContentTypeFilter() !== 'ALL') ||
+           this.gridSortMetric() !== 'date_desc' ||
+           this.gridSearchQuery().trim() !== '';
+  });
+
+  toggleGridDropdown(menu: 'brand' | 'network' | 'format' | 'sort', event: MouseEvent) {
+    event.stopPropagation();
+    if (this.activeGridDropdown() === menu) {
+      this.activeGridDropdown.set(null);
+    } else {
+      this.activeGridDropdown.set(menu);
+    }
+  }
+
+  closeGridDropdowns() {
+    this.activeGridDropdown.set(null);
+  }
+
+  onDocumentClick(event: MouseEvent) {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.custom-filter-dropdown')) {
+      this.closeGridDropdowns();
+    }
+  }
+
+  selectGridBrand(brand: string) {
+    this.gridBrandFilter.set(brand);
+    this.closeGridDropdowns();
+  }
+
+  selectGridNetwork(net: string) {
+    this.gridNetworkFilter.set(net);
+    if (net === 'youtube') {
+      this.gridContentTypeFilter.set('ALL');
+    }
+    this.closeGridDropdowns();
+  }
+
+  selectGridFormat(format: string) {
+    this.gridContentTypeFilter.set(format);
+    this.closeGridDropdowns();
+  }
+
+  selectGridSort(sort: string) {
+    this.gridSortMetric.set(sort);
+    this.closeGridDropdowns();
+  }
+
+  resetGridFilters() {
+    this.gridBrandFilter.set('ALL');
+    this.gridNetworkFilter.set('ALL');
+    this.gridContentTypeFilter.set('ALL');
+    this.gridSortMetric.set('date_desc');
+    this.gridSearchQuery.set('');
+    this.closeGridDropdowns();
+  }
+
+  getNetworkLabel(net: string): string {
+    switch ((net || '').toLowerCase()) {
+      case 'instagram': return 'Instagram';
+      case 'facebook': return 'Facebook';
+      case 'tiktok': return 'TikTok';
+      case 'youtube': return 'YouTube';
+      case 'all': return 'Todas';
+      default: return net || 'Todas';
+    }
+  }
+
+  getFormatLabel(format: string): string {
+    switch (format) {
+      case 'video': return 'Videos / Reels';
+      case 'image': return 'Imágenes';
+      case 'carousel': return 'Carruseles';
+      case 'text': return 'Solo Texto';
+      case 'ALL':
+      default: return 'Todos los formatos';
+    }
+  }
+
+  getSortLabel(sort: string): string {
+    switch (sort) {
+      case 'views_desc': return 'Más Vistas';
+      case 'likes_desc': return 'Más Likes';
+      case 'comments_desc': return 'Más Comentarios';
+      case 'date_desc':
+      default: return 'Fecha (Reciente)';
+    }
+  }
+
+  getBrandLogo(brand: string): string | null {
+    const kpi = this.competitorsKpi().find(c => c.name.toLowerCase() === brand.toLowerCase());
+    return kpi?.logoUrl || kpi?.avatar || null;
+  }
 
   ngOnInit() {
     this.loadHistory();
@@ -79,6 +185,16 @@ export class ApifyViewerComponent implements OnInit {
     }
   }
 
+  onDateRangeChange(range: { startDate: string; endDate: string }) {
+    this.filterStartDate.set(range.startDate);
+    this.filterEndDate.set(range.endDate);
+  }
+
+  clearDateFilter() {
+    this.filterStartDate.set('');
+    this.filterEndDate.set('');
+  }
+
   showContentTypeFilter = computed(() => {
     const mainNet = this.loadedNetwork();
     const gridNet = this.gridNetworkFilter();
@@ -89,12 +205,124 @@ export class ApifyViewerComponent implements OnInit {
     return true;
   });
 
+  getNetworkIcon(net: string): string {
+    const n = (net || '').toLowerCase();
+    if (n.includes('instagram')) return '/assets/icons/instagram.svg';
+    if (n.includes('facebook')) return '/assets/icons/facebook.svg';
+    if (n.includes('tiktok')) return '/assets/icons/tiktok.svg';
+    if (n.includes('youtube')) return '/assets/icons/youtube.svg';
+    return '/assets/icons/omnichannel.svg';
+  }
+
+  isChannelActive(net: string): boolean {
+    if (net === 'omnicanal') {
+      return this.loadedNetwork() === 'omnicanal' && this.gridNetworkFilter() === 'ALL';
+    }
+    if (this.loadedNetwork() === 'omnicanal') {
+      return this.gridNetworkFilter() === net;
+    }
+    return this.loadedNetwork() === net;
+  }
+
+  getChannelBadge(net: string): string {
+    if (net === 'omnicanal') {
+      if (this.loadedNetwork() === 'omnicanal') {
+        const count = this.data().length;
+        return count > 0 ? `${count} items` : 'Activo';
+      }
+      return 'Ecosistema';
+    }
+    if (this.loadedNetwork() === 'omnicanal') {
+      const count = this.data().filter(d => (d.__network || '').toLowerCase().includes(net)).length;
+      return count > 0 ? `${count}` : 'Live';
+    }
+    if (this.loadedNetwork() === net) {
+      const count = this.data().length;
+      return count > 0 ? `${count}` : 'Live';
+    }
+    return 'Live';
+  }
+
+  handleNavSelection(net: string) {
+    if (net === 'omnicanal') {
+      if (this.loadedNetwork() === 'omnicanal' && this.gridNetworkFilter() !== 'ALL') {
+        this.gridNetworkFilter.set('ALL');
+      } else {
+        this.fetchOmnichannelData();
+      }
+    } else {
+      this.filterOrLoadNetwork(net);
+    }
+  }
+
+  filterOrLoadNetwork(net: string) {
+    if (this.loadedNetwork() === 'omnicanal') {
+      const current = this.gridNetworkFilter();
+      this.gridNetworkFilter.set(current === net ? 'ALL' : net);
+      return;
+    }
+
+    const currentCountry = this.selectedCountry();
+    const runs = this.runsList();
+
+    let targetRun: ApifyRunRecord | undefined;
+    if (net === 'facebook') {
+      targetRun = runs.find(r => (!r.country || r.country === currentCountry) && (r.id.startsWith('HYBRID|') || r.actorId.includes('facebook') || r.actorId === 'KoJrdxJCTtpon81KY' || r.actorId === '4Hv5RhChiaDk6iwad'))
+        || runs.find(r => r.id.startsWith('HYBRID|') || r.actorId.includes('facebook') || r.actorId === 'KoJrdxJCTtpon81KY');
+    } else if (net === 'instagram') {
+      targetRun = runs.find(r => (!r.country || r.country === currentCountry) && (r.actorId.includes('instagram') || r.actorId === 'shu8hvrXbJbY3Eb9W'))
+        || runs.find(r => r.actorId.includes('instagram') || r.actorId === 'shu8hvrXbJbY3Eb9W');
+    } else if (net === 'tiktok') {
+      targetRun = runs.find(r => (!r.country || r.country === currentCountry) && (r.actorId.includes('tiktok') || r.actorId === '0FXVyOXXEmdGcV88a' || r.actorId === 'GdWCkxBtKWOsKjdch'))
+        || runs.find(r => r.actorId.includes('tiktok'));
+    } else if (net === 'youtube') {
+      targetRun = runs.find(r => (!r.country || r.country === currentCountry) && (r.actorId.includes('youtube') || r.actorId === 'h7sDV53CddomktSi5' || r.actorId.includes('streamers')))
+        || runs.find(r => r.actorId.includes('youtube'));
+    }
+
+    if (targetRun) {
+      this.loadSpecificRun(targetRun.id, targetRun.actorId);
+    } else {
+      this.resetState();
+      this.isLoading.set(true);
+      const fallbackActors: Record<string, string> = {
+        'instagram': 'shu8hvrXbJbY3Eb9W',
+        'facebook': 'KoJrdxJCTtpon81KY',
+        'tiktok': '0FXVyOXXEmdGcV88a',
+        'youtube': 'streamers/youtube-scraper'
+      };
+      const actorId = fallbackActors[net] || net;
+      this.apifyService.executeScraper({ action: 'get-latest', actorId, country: currentCountry }).subscribe({
+        next: (res) => {
+          if (res.success && res.data && res.data.length > 0) {
+            this.processDataset(res.data, net, currentCountry);
+          } else {
+            this.error.set(`No se encontraron datos recientes para ${net} en ${currentCountry}.`);
+          }
+          this.isLoading.set(false);
+        },
+        error: (err) => {
+          this.error.set(err.message || `Error al obtener datos de ${net}.`);
+          this.isLoading.set(false);
+        }
+      });
+    }
+  }
+
   // ==========================================
   // MOTOR REACTIVO PRINCIPAL
   // ==========================================
 
   filteredData = computed(() => {
-    const currentData = this.data();
+    let currentData = this.data();
+    const networkFilter = this.gridNetworkFilter();
+
+    // Sincronización Global: Si estamos en Visión Omnicanal y se filtra una red,
+    // se recalcula todo el dashboard (KPIs, gráficas analíticas y tablas) para esa red:
+    if (this.loadedNetwork() === 'omnicanal' && networkFilter !== 'ALL') {
+      currentData = currentData.filter(item => (item.__network || '').toLowerCase().includes(networkFilter.toLowerCase()));
+    }
+
     const startStr = this.filterStartDate();
     const endStr = this.filterEndDate();
 
@@ -158,6 +386,16 @@ export class ApifyViewerComponent implements OnInit {
       data = data.filter(item => item._contentType === contentTypeFilter);
     }
 
+    const search = this.gridSearchQuery().trim().toLowerCase();
+    if (search) {
+      data = data.filter(item => {
+        const text = (item.text || item.caption || item.description || item.title || item.cleanText || '').toLowerCase();
+        const brand = (item.brand || item.authorMeta?.name || item.ownerUsername || '').toLowerCase();
+        const hashtags = Array.isArray(item.hashtags) ? item.hashtags.join(' ').toLowerCase() : '';
+        return text.includes(search) || brand.includes(search) || hashtags.includes(search);
+      });
+    }
+
     data.sort((a, b) => {
       const kpiA = a._kpi || {};
       const kpiB = b._kpi || {};
@@ -190,7 +428,7 @@ export class ApifyViewerComponent implements OnInit {
   chartOptions = computed(() => {
     const data = this.filteredData();
     const net = this.loadedNetwork();
-    if (!data.length || !net || net === 'omnicanal') return null;
+    if (!data.length || !net) return null;
     return this.apifyChartService.buildChartOptions(net, data, this.selectedMetric());
   });
 
@@ -213,6 +451,150 @@ export class ApifyViewerComponent implements OnInit {
     const net = this.loadedNetwork();
     if (!data.length || net !== 'omnicanal') return null;
     return this.apifyChartService.buildMasterOmnichannelChart(data, this.selectedMetric());
+  });
+
+  omnichannelStats = computed(() => {
+    const currentData = this.data();
+    if (this.loadedNetwork() !== 'omnicanal' || !currentData.length) return null;
+
+    const startStr = this.filterStartDate();
+    const endStr = this.filterEndDate();
+    const startMs = startStr ? new Date(startStr + 'T00:00:00').getTime() : 0;
+    const endMs = endStr ? new Date(endStr + 'T23:59:59').getTime() : Infinity;
+
+    let instagram = 0;
+    let tiktok = 0;
+    let youtube = 0;
+    let facebook = 0;
+
+    currentData.forEach(item => {
+      const rawDate = item.time || item.timestamp || item.date || item.createTimeISO || item.createdAt || item.videoMeta?.createTime || item.createTime;
+      let itemMs = 0;
+      if (typeof rawDate === 'number') {
+        itemMs = rawDate < 10000000000 ? rawDate * 1000 : rawDate;
+      } else if (item.createTime && typeof item.createTime === 'number') {
+        itemMs = item.createTime < 10000000000 ? item.createTime * 1000 : item.createTime;
+      } else {
+        itemMs = rawDate ? new Date(rawDate).getTime() : 0;
+      }
+
+      if (startStr || endStr) {
+        if (itemMs && !isNaN(itemMs) && (itemMs < startMs || itemMs > endMs)) {
+          return;
+        }
+      }
+
+      const net = (item.__network || '').toLowerCase();
+      if (net.includes('instagram')) instagram++;
+      else if (net.includes('tiktok')) tiktok++;
+      else if (net.includes('youtube')) youtube++;
+      else if (net.includes('facebook')) facebook++;
+    });
+
+    return {
+      total: instagram + tiktok + youtube + facebook,
+      instagram,
+      tiktok,
+      youtube,
+      facebook
+    };
+  });
+
+  omnichannelMatrix = computed(() => {
+    const data = this.filteredData();
+    if (this.loadedNetwork() !== 'omnicanal' || !data.length) return [];
+
+    const matrixMap: Record<string, {
+      brand: string;
+      color: string;
+      avatar: string | null;
+      platforms: { instagram: boolean; tiktok: boolean; youtube: boolean; facebook: boolean };
+      postsCount: { instagram: number; tiktok: number; youtube: number; facebook: number; total: number };
+      engagement: { instagram: number; tiktok: number; youtube: number; facebook: number; total: number };
+      views: { instagram: number; tiktok: number; youtube: number; facebook: number; total: number };
+      followers: { instagram: number; tiktok: number; youtube: number; facebook: number; total: number };
+      topPlatform: string;
+    }> = {};
+
+    data.forEach(item => {
+      const brand = this.apifyChartService.getNormalizedBrandName(item);
+      if (brand === 'Embajadores / Creadores' || brand === 'Medios y Eventos B2B') return;
+
+      const net = (item.__network as 'instagram' | 'tiktok' | 'youtube' | 'facebook') || 'unknown';
+      if (!['instagram', 'tiktok', 'youtube', 'facebook'].includes(net)) return;
+
+      if (!matrixMap[brand]) {
+        matrixMap[brand] = {
+          brand,
+          color: this.apifyChartService.getBrandColor(brand),
+          avatar: null,
+          platforms: { instagram: false, tiktok: false, youtube: false, facebook: false },
+          postsCount: { instagram: 0, tiktok: 0, youtube: 0, facebook: 0, total: 0 },
+          engagement: { instagram: 0, tiktok: 0, youtube: 0, facebook: 0, total: 0 },
+          views: { instagram: 0, tiktok: 0, youtube: 0, facebook: 0, total: 0 },
+          followers: { instagram: 0, tiktok: 0, youtube: 0, facebook: 0, total: 0 },
+          topPlatform: ''
+        };
+      }
+
+      const b = matrixMap[brand];
+      b.platforms[net] = true;
+
+      const avatar = item.ownerProfilePicUrl || item.channelAvatarUrl || item.authorMeta?.avatar || item.user?.profilePic || item.profilePicUrl || item.pageProfilePic || null;
+      if (avatar && !b.avatar) b.avatar = avatar;
+
+      const isFbPage = net === 'facebook' && (item.pageId || item.category || !item.postId);
+      if (!isFbPage) {
+        b.postsCount[net]++;
+        b.postsCount.total++;
+      }
+
+      const eng = this.apifyChartService.getMetricValue(item, net, 'total');
+      const views = this.apifyChartService.getMetricValue(item, net, 'views');
+
+      b.engagement[net] += eng;
+      b.engagement.total += eng;
+      b.views[net] += views;
+      b.views.total += views;
+
+      const kpi = item._kpi;
+      let f = 0;
+      if (kpi && kpi.followers > 0) f = kpi.followers;
+      else if (net === 'facebook' && item.followers) f = item.followers;
+      else if (net === 'tiktok' && item.authorMeta?.fans) f = item.authorMeta.fans;
+      else if (net === 'youtube' && item.numberOfSubscribers) f = item.numberOfSubscribers;
+      else if (net === 'instagram' && item.followersCount) f = item.followersCount;
+
+      if (f > b.followers[net]) b.followers[net] = f;
+    });
+
+    const compactFormatter = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 });
+
+    return Object.values(matrixMap)
+      .map(b => {
+        b.followers.total = b.followers.instagram + b.followers.tiktok + b.followers.youtube + b.followers.facebook;
+
+        const platformScores = [
+          { name: 'Instagram', score: b.engagement.instagram, icon: '/assets/icons/instagram.svg' },
+          { name: 'TikTok', score: b.engagement.tiktok, icon: '/assets/icons/tiktok.svg' },
+          { name: 'YouTube', score: b.engagement.youtube, icon: '/assets/icons/youtube.svg' },
+          { name: 'Facebook', score: b.engagement.facebook, icon: '/assets/icons/facebook.svg' }
+        ].sort((x, y) => y.score - x.score);
+
+        const top = platformScores[0]?.score > 0 ? platformScores[0] : null;
+        b.topPlatform = top ? top.name : 'N/A';
+
+        return {
+          ...b,
+          topPlatformIcon: top ? top.icon : null,
+          logoUrl: this.apifyChartService.getBrandLogo(b.brand),
+          followersStr: compactFormatter.format(b.followers.total),
+          viewsStr: compactFormatter.format(b.views.total),
+          engagementStr: compactFormatter.format(b.engagement.total),
+          postsStr: compactFormatter.format(b.postsCount.total)
+        };
+      })
+      .sort((a, b) => b.engagement.total - a.engagement.total);
   });
 
   dynamicDateRange = computed(() => {
@@ -293,10 +675,18 @@ export class ApifyViewerComponent implements OnInit {
         });
 
         return {
-          name: brandName, avatar: finalAvatar, followers: totalFollowers, accountLikes: totalLikes,
-          accountViews: totalViews, accountPosts: totalPosts,
-          followersStr: compactFormatter.format(totalFollowers), likesStr: compactFormatter.format(totalLikes),
-          viewsStr: compactFormatter.format(totalViews), postsStr: compactFormatter.format(totalPosts)
+          name: brandName,
+          avatar: finalAvatar,
+          logoUrl: this.apifyChartService.getBrandLogo(brandName),
+          color: this.apifyChartService.getBrandColor(brandName),
+          followers: totalFollowers,
+          accountLikes: totalLikes,
+          accountViews: totalViews,
+          accountPosts: totalPosts,
+          followersStr: compactFormatter.format(totalFollowers),
+          likesStr: compactFormatter.format(totalLikes),
+          viewsStr: compactFormatter.format(totalViews),
+          postsStr: compactFormatter.format(totalPosts)
         };
       })
       .sort((a, b) => {
@@ -645,12 +1035,41 @@ export class ApifyViewerComponent implements OnInit {
     this.isLoading.set(true);
     const currentCountry = this.selectedCountry();
 
-    this.apifyService.getOmnichannelLatestData(currentCountry).subscribe({
+    // 1. Buscamos en la lista de ejecuciones existentes las que corresponden al mercado seleccionado
+    const currentRuns = this.runsList();
+    const specificRuns: { net: string; runId: string }[] = [];
+
+    // Facebook (híbrido o posts + páginas)
+    const fbHybrid = currentRuns.find(r => r.country === currentCountry && r.id.startsWith('HYBRID|'));
+    if (fbHybrid) {
+      const parts = fbHybrid.id.split('|');
+      if (parts[1] && parts[1] !== 'none') specificRuns.push({ net: 'facebook', runId: parts[1] });
+      if (parts[2] && parts[2] !== 'none') specificRuns.push({ net: 'facebook', runId: parts[2] });
+    } else {
+      const fbPosts = currentRuns.find(r => r.country === currentCountry && (r.actorId === 'KoJrdxJCTtpon81KY' || r.actorId.includes('facebook-posts')));
+      const fbPages = currentRuns.find(r => r.country === currentCountry && (r.actorId === '4Hv5RhChiaDk6iwad' || r.actorId.includes('facebook-pages')));
+      if (fbPosts) specificRuns.push({ net: 'facebook', runId: fbPosts.id });
+      if (fbPages) specificRuns.push({ net: 'facebook', runId: fbPages.id });
+    }
+
+    // Instagram
+    const igRun = currentRuns.find(r => r.country === currentCountry && (r.actorId === 'shu8hvrXbJbY3Eb9W' || r.actorId.includes('instagram')));
+    if (igRun) specificRuns.push({ net: 'instagram', runId: igRun.id });
+
+    // TikTok
+    const ttRun = currentRuns.find(r => r.country === currentCountry && (r.actorId === '0FXVyOXXEmdGcV88a' || r.actorId === 'GdWCkxBtKWOsKjdch' || r.actorId.includes('tiktok')));
+    if (ttRun) specificRuns.push({ net: 'tiktok', runId: ttRun.id });
+
+    // YouTube
+    const ytRun = currentRuns.find(r => r.country === currentCountry && (r.actorId === 'h7sDV53CddomktSi5' || r.actorId.includes('youtube')));
+    if (ytRun) specificRuns.push({ net: 'youtube', runId: ytRun.id });
+
+    this.apifyService.getOmnichannelLatestData(currentCountry, specificRuns.length > 0 ? specificRuns : undefined).subscribe({
       next: (consolidatedData) => {
         if (consolidatedData && consolidatedData.length > 0) {
           this.processDataset(consolidatedData, 'omnicanal', currentCountry);
         } else {
-          this.error.set('No se pudieron recuperar datos.');
+          this.error.set(`No se pudieron consolidar datos para el mercado ${currentCountry}.`);
         }
         this.isLoading.set(false);
       },

@@ -1,6 +1,6 @@
-// src/app/components/apify-data-grid/apify-data-grid.component.ts
-import { Component, Input } from '@angular/core';
+import { Component, Input, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ApifyChartService } from '../../services/apify-chart.service';
 
 @Component({
   selector: 'app-apify-data-grid',
@@ -10,8 +10,28 @@ import { CommonModule } from '@angular/common';
   styleUrl: './apify-data-grid.component.scss'
 })
 export class ApifyDataGridComponent {
+  private apifyChartService = inject(ApifyChartService);
+
   @Input({ required: true }) data: any[] = [];
   @Input({ required: true }) network: string = 'youtube';
+
+  getBrandInfo(item: any): { name: string; logoUrl: string; color: string } {
+    const name = this.apifyChartService.getNormalizedBrandName(item);
+    return {
+      name,
+      logoUrl: this.apifyChartService.getBrandLogo(name),
+      color: this.apifyChartService.getBrandColor(name)
+    };
+  }
+
+  getNetworkIcon(net: string): string {
+    const n = (net || '').toLowerCase();
+    if (n.includes('instagram')) return '/assets/icons/instagram.svg';
+    if (n.includes('facebook')) return '/assets/icons/facebook.svg';
+    if (n.includes('tiktok')) return '/assets/icons/tiktok.svg';
+    if (n.includes('youtube')) return '/assets/icons/youtube.svg';
+    return '/assets/icons/omnichannel.svg';
+  }
 
   // ==========================================
   // HELPER: DETECTOR DE RED DINÁMICO
@@ -28,9 +48,16 @@ export class ApifyDataGridComponent {
     return (match && match[2].length === 11) ? match[2] : null;
   }
 
-  handleImageError(event: any, videoId: string | null) {
-    if (videoId && event.target.src.includes('maxresdefault')) {
+  handleImageError(event: any, videoId: string | null, imgEl?: HTMLElement, fallbackEl?: HTMLElement) {
+    if (videoId && event?.target?.src && event.target.src.includes('maxresdefault')) {
       event.target.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+      return;
+    }
+    if (imgEl) {
+      imgEl.style.display = 'none';
+    }
+    if (fallbackEl) {
+      fallbackEl.style.display = 'flex';
     }
   }
 
@@ -43,12 +70,13 @@ export class ApifyDataGridComponent {
   }
 
   getMediaThumbnail(item: any): string | null {
+    if (!item) return null;
     const net = this.getItemNetwork(item);
 
     if (net === 'youtube') {
       if (item.thumbnailUrl) return item.thumbnailUrl;
       const id = this.getYouTubeId(item.url);
-      return id ? `https://img.youtube.com/vi/${id}/maxresdefault.jpg` : null;
+      return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : null;
     }
 
     if (net === 'facebook') {
@@ -58,18 +86,18 @@ export class ApifyDataGridComponent {
           return validMedia.thumbnail || validMedia.image?.uri || validMedia.photo_image?.uri;
         }
       }
-      return null;
-    }
-
-    if (net === 'instagram') {
       return item.displayUrl || item.thumbnailUrl || item.imageUrl || null;
     }
 
-    if (net === 'tiktok') {
-      return item.videoMeta?.coverUrl || item.authorMeta?.avatar || item.imageUrl || null;
+    if (net === 'instagram') {
+      return item.displayUrl || item.thumbnailUrl || item.imageUrl || (item.images && item.images[0]) || null;
     }
 
-    return null;
+    if (net === 'tiktok') {
+      return item.videoMeta?.coverUrl || item.coverUrl || item.authorMeta?.avatar || item.imageUrl || null;
+    }
+
+    return item.displayUrl || item.thumbnailUrl || item.videoMeta?.coverUrl || item.coverUrl || (item.images && item.images[0]) || null;
   }
 
   getPostTitle(item: any): string {

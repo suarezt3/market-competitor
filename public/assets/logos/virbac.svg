@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 220" width="100%" height="100%">
+  <rect width="340" height="220" rx="24" fill="#1B54A9"/>
+  
+  <g transform="translate(170, 95)">
+    <!-- Virbac custom logotype -->
+    <text x="0" y="0" font-family="'Helvetica Neue', 'Arial', sans-serif" font-weight="900" font-style="italic" font-size="58" fill="#FFFFFF" text-anchor="middle" letter-spacing="-1">
+      V<tspan fill="#FFFFFF">ı</tspan>rbac
+    </text>
+    <!-- Red square dot on the i -->
+    <rect x="-47" y="-54" width="12" height="11" fill="#E5242A" transform="rotate(-6 -41 -49)"/>
+
+    <!-- Red horizontal divider line with subtle taper -->
+    <path d="M -135 15 L 135 15 L 125 18 L -125 18 Z" fill="#E5242A"/>
+
+    <!-- SANTÉ ANIMALE in clean tracked sans-serif -->
+    <text x="0" y="44" font-family="'Montserrat', 'Arial', sans-serif" font-weight="800" font-size="19" fill="#FFFFFF" text-anchor="middle" letter-spacing="4.5">SANTÉ ANIMALE</text>
+  </g>
+</svg>

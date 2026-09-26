@@ -8,7 +8,8 @@ interface BrandConfig {
   id: string;
   name: string;
   keywords: string[];
-  color: string; // NUEVO: Color corporativo fijo para cada marca
+  color: string; // Color corporativo fijo para cada marca
+  logoUrl?: string; // Logo de la marca
 }
 
 @Injectable({
@@ -22,26 +23,104 @@ export class ApifyChartService {
   ];
 
   // ==========================================
-  // NORMALIZADOR ESCALABLE CON IDENTIDAD VISUAL
+  // NORMALIZADOR ESCALABLE CON IDENTIDAD VISUAL Y LOGOS
   // ==========================================
   private readonly BRAND_DICTIONARY: BrandConfig[] = [
-    { id: 'hills', name: "Hill's Pet Nutrition", keywords: ['hill', 'science diet', 'hillspet'], color: '#1E3A8A' }, // Azul Oscuro
-    { id: 'purina', name: 'Purina Pro Plan', keywords: ['pro plan', 'proplan', 'purina'], color: '#111827' },       // Negro/Gris muy oscuro
-    { id: 'royal', name: 'Royal Canin', keywords: ['royal canin', 'royalcanin'], color: '#E11D48' },                // Rojo Corporativo
-    { id: 'agility', name: 'Agility Gold', keywords: ['agility'], color: '#D97706' },                               // Dorado / Naranja
-    { id: 'virbac', name: 'Virbac', keywords: ['virbac', 'virbaccolombia'], color: '#2563EB' },                     // Azul Claro
-    { id: 'bonnat', name: 'Bonnat', keywords: ['bonnat', 'bonnatpets', 'bonnatpetscol'], color: '#0D9488' },        // Verde Teal
-    { id: 'nupec', name: 'Nupec', keywords: ['nupec'], color: '#0284C7' },
-    { id: 'chunky', name: 'Chunky Mascotas', keywords: ['chunky'], color: '#65A30D' },
-    { id: 'pets_table', name: "Pet's Table", keywords: ["pet's table", 'pets table'], color: '#059669' },
-    { id: 'true_blue', name: 'True Blue', keywords: ['true blue', 'trueblue'], color: '#3B82F6' },
-    { id: 'brit', name: 'Brit', keywords: ['brit'], color: '#DB2777' },
-    { id: 'bravery', name: 'Bravery', keywords: ['bravery'], color: '#9333EA' },
-    { id: 'b2b_media', name: 'Medios y Eventos B2B', keywords: ['pet industry', 'smartdogs', 'congreso', 'cvdc', 'balance dogs', 'orbit', 'familia_smartdogs'], color: '#475569' }
+    {
+      id: 'royal',
+      name: 'Royal Canin',
+      keywords: ['royal canin', 'royalcanin', 'royal_canin', 'royalcanincol', 'royal_canin_colombia', 'royal canin col'],
+      color: '#E11D48',
+      logoUrl: '/assets/logos/royal-canin.svg'
+    },
+    {
+      id: 'hills',
+      name: "Hill's Pet Nutrition",
+      keywords: ['hill', 'science diet', 'hillspet', 'hillslatam'],
+      color: '#1E3A8A',
+      logoUrl: '/assets/logos/hills.svg'
+    },
+    {
+      id: 'purina',
+      name: 'Purina Pro Plan',
+      keywords: ['pro plan', 'proplan', 'purina', 'proplanco', 'pro plan colombia', 'entre expertos purina', 'ponte la camiseta purina'],
+      color: '#111827',
+      logoUrl: '/assets/logos/purina-pro-plan.svg'
+    },
+    {
+      id: 'agility',
+      name: 'Agility Gold',
+      keywords: ['agility', 'agilty', 'agiltygold', 'agility.gold', 'agility gold'],
+      color: '#D97706',
+      logoUrl: '/assets/logos/agility-gold.svg'
+    },
+    {
+      id: 'bonnat',
+      name: 'Bonnat',
+      keywords: ['bonnat', 'bonnatpets', 'bonnatpetscol'],
+      color: '#0D9488',
+      logoUrl: '/assets/logos/bonnat.svg'
+    },
+    {
+      id: 'virbac',
+      name: 'Virbac',
+      keywords: ['virbac', 'virbaccolombia'],
+      color: '#2563EB',
+      logoUrl: '/assets/logos/virbac.svg'
+    },
+    {
+      id: 'chunky',
+      name: 'Chunky Mascotas',
+      keywords: ['chunky'],
+      color: '#009CA6',
+      logoUrl: '/assets/logos/chunky.svg'
+    },
+    {
+      id: 'true_blue',
+      name: 'True Blue',
+      keywords: ['true blue', 'trueblue', 'b2vets by trueblue'],
+      color: '#3B82F6',
+      logoUrl: '/assets/logos/true-blue.svg'
+    },
+    {
+      id: 'nupec',
+      name: 'Nupec',
+      keywords: ['nupec'],
+      color: '#0284C7',
+      logoUrl: '/assets/logos/nupec.svg'
+    },
+    {
+      id: 'pets_table',
+      name: "Pet's Table",
+      keywords: ["pet's table", 'pets table'],
+      color: '#059669',
+      logoUrl: '/assets/logos/default-brand.svg'
+    },
+    {
+      id: 'brit',
+      name: 'Brit',
+      keywords: ['brit'],
+      color: '#DB2777',
+      logoUrl: '/assets/logos/default-brand.svg'
+    },
+    {
+      id: 'bravery',
+      name: 'Bravery',
+      keywords: ['bravery'],
+      color: '#9333EA',
+      logoUrl: '/assets/logos/default-brand.svg'
+    },
+    {
+      id: 'b2b_media',
+      name: 'Medios y Eventos B2B',
+      keywords: ['pet industry', 'smartdogs', 'congreso', 'cvdc', 'balance dogs', 'orbit', 'familia_smartdogs'],
+      color: '#475569',
+      logoUrl: '/assets/logos/default-brand.svg'
+    }
   ];
 
   public getNormalizedBrandName(item: any): string {
-    const rawName = item.ownerFullName || item.ownerUsername || item.channelName || item.pageName || item.authorMeta?.name || item.user?.name || 'Desconocido';
+    const rawName = item.ownerFullName || item.ownerUsername || item.channelName || item.pageName || item.authorMeta?.name || item.authorMeta?.nickName || item.user?.name || item.title || 'Desconocido';
     const nameLower = rawName.toLowerCase();
 
     const matchedBrand = this.BRAND_DICTIONARY.find(brand =>
@@ -61,6 +140,12 @@ export class ApifyChartService {
     // Si es "Embajadores / Creadores" u otra marca dinámica, asignamos un color basado en el nombre
     const hash = brandName.split('').reduce((acc, char) => char.charCodeAt(0) + acc, 0);
     return this.fallbackPalette[hash % this.fallbackPalette.length];
+  }
+
+  // Helper para obtener el logo de la marca
+  public getBrandLogo(brandName: string): string {
+    const brand = this.BRAND_DICTIONARY.find(b => b.name === brandName);
+    return brand?.logoUrl || '/assets/logos/default-brand.svg';
   }
 
   // ==========================================
@@ -85,29 +170,43 @@ export class ApifyChartService {
     return rawDate ? new Date(rawDate) : new Date();
   }
 
-  private getMetricValue(item: any, network: string, metric: ChartMetric): number {
+  public getMetricValue(item: any, network: string, metric: ChartMetric): number {
+    const net = (network === 'omnicanal' ? item.__network : network) || item.__network || 'unknown';
+
     if (metric === 'views') {
-      if (network === 'instagram') return item.videoPlayCount || item.videoViewCount || item.playCount || item.viewsCount || 0;
-      if (network === 'tiktok') return item.playCount || item.stats?.playCount || item.videoMeta?.playCount || 0;
+      if (net === 'instagram') return item.videoPlayCount || item.videoViewCount || item.playCount || item.viewsCount || 0;
+      if (net === 'tiktok') return item.playCount || item.stats?.playCount || item.videoMeta?.playCount || 0;
+      if (net === 'youtube') return item.viewCount || 0;
       return item.viewsCount || item.viewCount || item.playCount || item.videoPostViewCount || 0;
     }
     if (metric === 'likes') {
-      if (network === 'tiktok') return item.diggCount || item.stats?.diggCount || item.videoMeta?.diggCount || 0;
+      if (net === 'tiktok') return item.diggCount || item.stats?.diggCount || item.videoMeta?.diggCount || 0;
+      if (net === 'facebook') return item.likes || item.reactionLikeCount || 0;
       return item.likesCount || item.likes || item.diggCount || item.reactionLikeCount || 0;
     }
     if (metric === 'comments') {
-      if (network === 'tiktok') return item.commentCount || item.stats?.commentCount || item.videoMeta?.commentCount || 0;
+      if (net === 'tiktok') return item.commentCount || item.stats?.commentCount || item.videoMeta?.commentCount || 0;
       return item.commentsCount || item.commentCount || item.comments || 0;
     }
 
-    if (network === 'youtube') return item.viewCount || 0;
-    if (network === 'tiktok') {
+    // Métricas para Total (Engagement)
+    if (net === 'youtube') {
+      const likes = item.likes || 0;
+      const comments = item.commentCount || 0;
+      return (likes + comments > 0) ? (likes + comments) : (item.viewCount || 0);
+    }
+    if (net === 'tiktok') {
       const likes = item.diggCount || item.stats?.diggCount || item.videoMeta?.diggCount || 0;
       const comments = item.commentCount || item.stats?.commentCount || item.videoMeta?.commentCount || 0;
       const shares = item.shareCount || item.stats?.shareCount || item.videoMeta?.shareCount || 0;
       return likes + comments + shares;
     }
-    if (network === 'facebook') return (item.likes || item.reactionLikeCount || 0) + (item.comments || 0) + (item.shares || 0);
+    if (net === 'facebook') {
+      const likes = item.likes || item.reactionLikeCount || 0;
+      const comments = item.comments || item.commentsCount || 0;
+      const shares = item.shares || 0;
+      return likes + comments + shares;
+    }
 
     return (item.likesCount || item.likes || 0) + (item.commentsCount || item.comments || 0);
   }
@@ -160,6 +259,8 @@ export class ApifyChartService {
 
     rawData.forEach(item => {
       const authorName = this.getNormalizedBrandName(item);
+      if (authorName === 'Embajadores / Creadores' || authorName === 'Medios y Eventos B2B') return;
+
       const timeKey = getFormatKey(this.extractDate(item));
       const value = this.getMetricValue(item, network, metric);
 
@@ -190,13 +291,17 @@ export class ApifyChartService {
       });
     });
 
+    const isOmni = network === 'omnicanal';
+    const mainTitle = isOmni ? `Evolución Omnicanal: ${metricName}` : `Evolución: ${metricName}`;
+    const subTitle = isOmni ? `Tendencia de crecimiento consolidada en todas las plataformas` : `Tendencia de crecimiento por ${isDaily ? 'día' : 'mes'}`;
+
     return {
-      title: { text: `Evolución: ${metricName}`, subtext: `Tendencia de crecimiento por ${isDaily ? 'día' : 'mes'}`, textStyle: { fontFamily: 'Lato', fontSize: 16, color: '#111827' } },
-      tooltip: { trigger: 'axis', backgroundColor: 'rgba(255, 255, 255, 0.98)', textStyle: { fontFamily: 'Lato' } },
-      legend: { data: legendData, top: 60, textStyle: { fontFamily: 'Lato' } },
+      title: { text: mainTitle, subtext: subTitle, textStyle: { fontFamily: 'Inter', fontSize: 16, color: '#111827' } },
+      tooltip: { trigger: 'axis', backgroundColor: 'rgba(255, 255, 255, 0.98)', textStyle: { fontFamily: 'Inter' } },
+      legend: { data: legendData, top: 60, textStyle: { fontFamily: 'Inter' } },
       grid: { left: '3%', right: '4%', bottom: '5%', top: 110, containLabel: true },
-      xAxis: { type: 'category', boundaryGap: false, data: xAxisLabels, axisLabel: { fontFamily: 'Lato' } },
-      yAxis: { type: 'value', axisLabel: { fontFamily: 'Lato', formatter: (val: number) => this.formatCompactNumber(val) } },
+      xAxis: { type: 'category', boundaryGap: false, data: xAxisLabels, axisLabel: { fontFamily: 'Inter' } },
+      yAxis: { type: 'value', axisLabel: { fontFamily: 'Inter', formatter: (val: number) => this.formatCompactNumber(val) } },
       series: seriesConfig
     };
   }
@@ -209,6 +314,8 @@ export class ApifyChartService {
 
     rawData.forEach(item => {
       const authorName = this.getNormalizedBrandName(item);
+      if (authorName === 'Embajadores / Creadores' || authorName === 'Medios y Eventos B2B') return;
+
       const value = this.getMetricValue(item, network, metric);
       if (!aggregatedData[authorName]) aggregatedData[authorName] = 0;
       aggregatedData[authorName] += value;
@@ -217,7 +324,7 @@ export class ApifyChartService {
 
     if (!hasData) {
       return {
-        title: { text: 'Cuota de Mercado (Market Share)', subtext: `No hay datos de ${metricName}`, left: 'center', textStyle: { fontFamily: 'Lato', fontSize: 16, color: '#111827' } },
+        title: { text: 'Cuota de Mercado (Market Share)', subtext: `No hay datos de ${metricName}`, left: 'center', textStyle: { fontFamily: 'Inter', fontSize: 16, color: '#111827' } },
         series: [{
           name: 'Sin datos', type: 'pie', radius: ['35%', '50%'], center: ['50%', '50%'],
           itemStyle: { color: '#e5e7eb' },
@@ -232,15 +339,18 @@ export class ApifyChartService {
         name, value, itemStyle: { color: this.getBrandColor(name) } // FIX: Color corporativo
       }));
 
+    const isOmni = network === 'omnicanal';
+    const mainTitle = isOmni ? 'Cuota de Mercado Omnicanal (Market Share)' : 'Cuota de Mercado (Market Share)';
+
     return {
-      title: { text: 'Cuota de Mercado (Market Share)', subtext: `Basado en ${metricName}`, left: 'center', textStyle: { fontFamily: 'Lato', fontSize: 16, color: '#111827' } },
+      title: { text: 'Cuota de Mercado (Market Share)', subtext: `Basado en ${metricName}`, left: 'center', textStyle: { fontFamily: 'Inter', fontSize: 16, color: '#111827' } },
       tooltip: { trigger: 'item', formatter: '<b>{b}</b><br/>{c} ({d}%)', backgroundColor: 'rgba(255, 255, 255, 0.98)' },
-      legend: { orient: 'horizontal', bottom: 0, textStyle: { fontFamily: 'Lato', fontSize: 11 } },
+      legend: { orient: 'horizontal', bottom: 0, textStyle: { fontFamily: 'Inter', fontSize: 11 } },
       series: [
         {
           name: metricName, type: 'pie', radius: ['35%', '50%'], center: ['50%', '50%'], avoidLabelOverlap: true,
           itemStyle: { borderRadius: 8, borderColor: '#fff', borderWidth: 2 },
-          label: { show: true, formatter: '{b}\n{d}%', fontWeight: 'bold', fontFamily: 'Lato', fontSize: 11, color: '#4b5563' },
+          label: { show: true, formatter: '{b}\n{d}%', fontWeight: 'bold', fontFamily: 'Inter', fontSize: 11, color: '#4b5563' },
           labelLine: { show: true, smooth: 0.2, length: 5, length2: 10 },
           data: pieData
         }
@@ -276,7 +386,7 @@ export class ApifyChartService {
     });
 
     return {
-      title: { text: 'Cuadrante de Calidad de Contenido', subtext: 'Eje X: Vistas (Alcance) | Eje Y: Interacciones | Tamaño: Comentarios', textStyle: { fontFamily: 'Lato', fontSize: 16, color: '#111827' } },
+      title: { text: 'Cuadrante de Calidad de Contenido', subtext: 'Eje X: Vistas (Alcance) | Eje Y: Interacciones | Tamaño: Comentarios', textStyle: { fontFamily: 'Inter', fontSize: 16, color: '#111827' } },
       tooltip: {
         trigger: 'item', backgroundColor: 'rgba(255, 255, 255, 0.98)', borderColor: '#e5e7eb', padding: 12,
         formatter: (params: any) => {
@@ -295,7 +405,7 @@ export class ApifyChartService {
           `;
         }
       },
-      legend: { data: legendData, top: 65, textStyle: { fontFamily: 'Lato' } },
+      legend: { data: legendData, top: 65, textStyle: { fontFamily: 'Inter' } },
       grid: { left: '5%', right: '8%', bottom: '10%', top: 120, containLabel: true },
       xAxis: { type: 'value', name: 'Vistas (Alcance)', nameLocation: 'middle', nameGap: 30, splitLine: { lineStyle: { type: 'dashed', color: '#e5e7eb' } }, axisLabel: { formatter: (val: number) => this.formatCompactNumber(val) } },
       yAxis: { type: 'value', name: 'Engagement Total', splitLine: { lineStyle: { type: 'dashed', color: '#e5e7eb' } }, axisLabel: { formatter: (val: number) => this.formatCompactNumber(val) } },
@@ -311,8 +421,10 @@ export class ApifyChartService {
     const brandNetworkMap: Record<string, Record<string, number>> = {};
 
     aggregatedData.forEach(item => {
-       const net = item.__network || 'unknown';
        const authorName = this.getNormalizedBrandName(item);
+       if (authorName === 'Embajadores / Creadores' || authorName === 'Medios y Eventos B2B') return;
+
+       const net = item.__network || 'unknown';
        const val = this.getMetricValue(item, net, metric);
 
        if (!brandNetworkMap[authorName]) {
@@ -333,19 +445,19 @@ export class ApifyChartService {
          data: networks.map(n => netData[n]),
          itemStyle: { color: this.getBrandColor(brand), borderRadius: [4, 4, 0, 0] }, // FIX: Color corporativo
          label: {
-           show: true, position: 'top', fontFamily: 'Lato', fontSize: 10, color: '#6b7280',
+           show: true, position: 'top', fontFamily: 'Inter', fontSize: 10, color: '#6b7280',
            formatter: (p: any) => p.value > 0 ? this.formatCompactNumber(p.value) : ''
          }
        });
     });
 
     return {
-      title: { text: `Share of Voice Omnicanal`, subtext: `Comparativa de ${metricName} en todo el Ecosistema Digital`, textStyle: { fontFamily: 'Lato', fontSize: 16, color: '#111827' } },
-      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, backgroundColor: 'rgba(255, 255, 255, 0.98)', textStyle: { fontFamily: 'Lato' } },
-      legend: { data: legendData, top: 60, textStyle: { fontFamily: 'Lato' } },
+      title: { text: `Share of Voice Omnicanal`, subtext: `Comparativa de ${metricName} en todo el Ecosistema Digital`, textStyle: { fontFamily: 'Inter', fontSize: 16, color: '#111827' } },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, backgroundColor: 'rgba(255, 255, 255, 0.98)', textStyle: { fontFamily: 'Inter' } },
+      legend: { data: legendData, top: 60, textStyle: { fontFamily: 'Inter' } },
       grid: { left: '3%', right: '4%', bottom: '5%', top: 110, containLabel: true },
-      xAxis: { type: 'category', data: displayNetworks, axisLabel: { fontFamily: 'Lato', fontWeight: 'bold' } },
-      yAxis: { type: 'value', axisLabel: { fontFamily: 'Lato', formatter: (val: number) => this.formatCompactNumber(val) } },
+      xAxis: { type: 'category', data: displayNetworks, axisLabel: { fontFamily: 'Inter', fontWeight: 'bold' } },
+      yAxis: { type: 'value', axisLabel: { fontFamily: 'Inter', formatter: (val: number) => this.formatCompactNumber(val) } },
       series: seriesConfig
     };
   }

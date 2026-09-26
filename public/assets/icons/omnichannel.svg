@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
+  <defs>
+    <linearGradient id="omni-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4F46E5"/>
+      <stop offset="50%" stop-color="#7C3AED"/>
+      <stop offset="100%" stop-color="#06B6D4"/>
+    </linearGradient>
+  </defs>
+  <!-- Background Circle with Gradient -->
+  <circle cx="50" cy="50" r="48" fill="url(#omni-grad)"/>
+  
+  <!-- Interconnected Globe / Channels Network Grid -->
+  <circle cx="50" cy="50" r="32" fill="none" stroke="#FFFFFF" stroke-width="4.5" opacity="0.95"/>
+  <ellipse cx="50" cy="50" rx="16" ry="32" fill="none" stroke="#FFFFFF" stroke-width="4" opacity="0.85"/>
+  <line x1="18" y1="50" x2="82" y2="50" stroke="#FFFFFF" stroke-width="4" opacity="0.85"/>
+  <line x1="24" y1="34" x2="76" y2="34" stroke="#FFFFFF" stroke-width="3" opacity="0.7"/>
+  <line x1="24" y1="66" x2="76" y2="66" stroke="#FFFFFF" stroke-width="3" opacity="0.7"/>
+</svg>

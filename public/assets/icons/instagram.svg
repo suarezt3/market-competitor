@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
+  <defs>
+    <radialGradient id="ig-grad" cx="25%" cy="105%" r="120%" fx="20%" fy="100%">
+      <stop offset="0%" stop-color="#FFD600"/>
+      <stop offset="10%" stop-color="#FF7A00"/>
+      <stop offset="45%" stop-color="#FF0069"/>
+      <stop offset="70%" stop-color="#D300C5"/>
+      <stop offset="100%" stop-color="#7638FA"/>
+    </radialGradient>
+  </defs>
+  <!-- Background Rounded Rect -->
+  <rect width="100" height="100" rx="23" fill="url(#ig-grad)"/>
+  <!-- Outer camera outline -->
+  <rect x="18" y="18" width="64" height="64" rx="17" fill="none" stroke="#FFFFFF" stroke-width="6.5"/>
+  <!-- Center lens -->
+  <circle cx="50" cy="50" r="16" fill="none" stroke="#FFFFFF" stroke-width="6.5"/>
+  <!-- Flash dot -->
+  <circle cx="68" cy="32" r="4.2" fill="#FFFFFF"/>
+</svg>

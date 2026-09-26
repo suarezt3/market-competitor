@@ -89,28 +89,48 @@ export class ApifyService {
   // CARGA OMNICANAL EN PARALELO
   // ==========================================
 
-  getOmnichannelLatestData(country: MarketCountry = 'Colombia'): Observable<any[]> {
-    const actors = [
-      { net: 'facebook', id: '4Hv5RhChiaDk6iwad' },
-      { net: 'tiktok', id: '0FXVyOXXEmdGcV88a' },
-      { net: 'instagram', id: 'apify/instagram-scraper' },
-      { net: 'youtube', id: 'streamers/youtube-scraper' }
-    ];
+  getOmnichannelLatestData(country: MarketCountry = 'Colombia', specificRuns?: { net: string; runId: string }[]): Observable<any[]> {
+    let requests: Observable<any[]>[];
 
-    const requests = actors.map(actor =>
-      this.executeScraper({ action: 'get-latest', actorId: actor.id, country }).pipe(
-        map(response => {
-          if (response.success && Array.isArray(response.data)) {
-            return response.data.map(item => ({ ...item, __network: actor.net, __country: country }));
-          }
-          return [];
-        }),
-        catchError(err => {
-          console.error(`[ApifyService] Error cargando data de ${actor.net} para ${country}:`, err);
-          return of([]);
-        })
-      )
-    );
+    if (specificRuns && specificRuns.length > 0) {
+      requests = specificRuns.map(run =>
+        this.executeScraper({ action: 'get-run-data', runId: run.runId }).pipe(
+          map(response => {
+            if (response.success && Array.isArray(response.data)) {
+              return response.data.map(item => ({ ...item, __network: run.net, __country: country }));
+            }
+            return [];
+          }),
+          catchError(err => {
+            console.error(`[ApifyService] Error cargando data de run ${run.runId} (${run.net}):`, err);
+            return of([]);
+          })
+        )
+      );
+    } else {
+      const actors = [
+        { net: 'facebook', id: '4Hv5RhChiaDk6iwad' }, // FB Pages (Comunidad/Perfiles)
+        { net: 'facebook', id: 'KoJrdxJCTtpon81KY' }, // FB Posts (Publicaciones/Métricas)
+        { net: 'tiktok', id: '0FXVyOXXEmdGcV88a' },   // TikTok
+        { net: 'instagram', id: 'apify/instagram-scraper' }, // Instagram
+        { net: 'youtube', id: 'streamers/youtube-scraper' }  // YouTube
+      ];
+
+      requests = actors.map(actor =>
+        this.executeScraper({ action: 'get-latest', actorId: actor.id, country }).pipe(
+          map(response => {
+            if (response.success && Array.isArray(response.data)) {
+              return response.data.map(item => ({ ...item, __network: actor.net, __country: country }));
+            }
+            return [];
+          }),
+          catchError(err => {
+            console.error(`[ApifyService] Error cargando data de ${actor.net} (${actor.id}) para ${country}:`, err);
+            return of([]);
+          })
+        )
+      );
+    }
 
     return forkJoin(requests).pipe(
       map(results => results.flat())

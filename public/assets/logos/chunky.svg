@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 280" width="100%" height="100%">
+  <rect width="320" height="280" rx="28" fill="#FFFFFF"/>
+
+  <!-- Italcol organic warm badge on top -->
+  <g transform="translate(160, 85)">
+    <!-- Back orange layer -->
+    <ellipse cx="6" cy="4" rx="55" ry="38" fill="#FF5E00" opacity="0.85" transform="rotate(-6)"/>
+    <!-- Front yellow layer -->
+    <ellipse cx="-4" cy="-2" rx="54" ry="36" fill="#FFAA00" opacity="0.9" transform="rotate(4)"/>
+    <!-- Main red-orange core -->
+    <ellipse cx="0" cy="0" rx="50" ry="34" fill="#FF4500"/>
+    <text x="0" y="9" font-family="'Arial Black', sans-serif" font-weight="900" font-size="24" fill="#FFFFFF" text-anchor="middle" letter-spacing="-0.5">italcol</text>
+  </g>
+
+  <!-- Chunky playful teal logotype -->
+  <g transform="translate(160, 205)">
+    <defs>
+      <!-- Bite mark for 'C' -->
+      <mask id="c-bite-mask">
+        <rect x="-140" y="-60" width="280" height="120" fill="white"/>
+        <circle cx="-125" cy="-20" r="10" fill="black"/>
+        <circle cx="-132" cy="-14" r="8" fill="black"/>
+      </mask>
+    </defs>
+    
+    <!-- Bold teal Chunky text -->
+    <text x="0" y="0" font-family="'Fredoka One', 'Arial Rounded MT Bold', 'Baloo 2', sans-serif" font-weight="900" font-size="70" fill="#009CA6" text-anchor="middle" letter-spacing="-1.5" mask="url(#c-bite-mask)">
+      Chunky
+    </text>
+
+    <!-- Cloud crumb dots on k and y -->
+    <circle cx="56" cy="-10" r="4.5" fill="#FFFFFF"/>
+    <circle cx="59" cy="-5" r="3.5" fill="#FFFFFF"/>
+    <circle cx="120" cy="-6" r="4" fill="#FFFFFF"/>
+    <circle cx="123" cy="-1" r="3" fill="#FFFFFF"/>
+  </g>
+</svg>
