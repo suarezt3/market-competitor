@@ -440,6 +440,98 @@ $primary-hover: #4f46e5;
         }
       }
     }
+
+    .sidebar-help-section {
+      margin-top: 0.85rem;
+
+      .sidebar-methodology-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        width: 100%;
+        padding: 0.65rem 0.75rem;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.75rem;
+        cursor: pointer;
+        text-align: left;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+
+        .btn-icon-badge {
+          width: 32px;
+          height: 32px;
+          border-radius: 0.5rem;
+          background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+          border: 1px solid #c7d2fe;
+          color: #4f46e5;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          transition: transform 0.2s ease, background 0.2s ease;
+        }
+
+        .btn-text-group {
+          display: flex;
+          flex-direction: column;
+          flex: 1;
+          min-width: 0;
+
+          .btn-main-label {
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: #0f172a;
+            line-height: 1.25;
+            letter-spacing: -0.01em;
+          }
+
+          .btn-sub-label {
+            font-size: 0.67rem;
+            font-weight: 500;
+            color: #64748b;
+            line-height: 1.2;
+            margin-top: 1px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+        }
+
+        .btn-arrow {
+          color: #94a3b8;
+          flex-shrink: 0;
+          transition: transform 0.2s ease, color 0.2s ease;
+        }
+
+        &:hover {
+          background: #f8fafc;
+          border-color: #c7d2fe;
+          box-shadow: 0 4px 12px -2px rgba(79, 70, 229, 0.08);
+          transform: translateY(-1px);
+
+          .btn-icon-badge {
+            background: #4f46e5;
+            color: #ffffff;
+            border-color: #4f46e5;
+            transform: scale(1.05);
+          }
+
+          .btn-main-label {
+            color: #4338ca;
+          }
+
+          .btn-arrow {
+            color: #4f46e5;
+            transform: translateX(2px);
+          }
+        }
+
+        &:active {
+          transform: translateY(0);
+        }
+      }
+    }
   }
 }
 
@@ -448,7 +540,7 @@ $primary-hover: #4f46e5;
 ========================================= */
 .dashboard-content {
   padding: 2.5rem 3rem;
-  overflow-y: auto;
+  overflow: visible;
 
   .enterprise-header {
     margin-bottom: 2rem;
@@ -498,17 +590,18 @@ $primary-hover: #4f46e5;
 
   /* BARRA ENTERPRISE DE ANALÍTICA (FECHAS Y MÉTRICAS) - STICKY HEADER */
   .enterprise-analytics-toolbar {
+    position: -webkit-sticky;
     position: sticky;
-    top: 0;
-    z-index: 40;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    top: 1rem;
+    z-index: 50;
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     border: 1px solid #cbd5e1;
     border-radius: 0.75rem;
     padding: 0.85rem 1.25rem;
     margin-bottom: 1.75rem;
-    box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.07), 0 4px 6px -4px rgba(15, 23, 42, 0.05);
+    box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -595,6 +688,33 @@ $primary-hover: #4f46e5;
     }
   }
 
+  .toolbar-methodology-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    color: #475569;
+    padding: 0.45rem 0.8rem;
+    border-radius: 0.5rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+
+    svg {
+      color: #6366f1;
+    }
+
+    &:hover {
+      background: #f8fafc;
+      color: #4f46e5;
+      border-color: #a5b4fc;
+      box-shadow: 0 2px 4px rgba(79, 70, 229, 0.08);
+    }
+  }
+
   /* GRÁFICAS */
   .charts-grid {
     display: grid;
@@ -610,6 +730,14 @@ $primary-hover: #4f46e5;
       box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
       height: 450px;
       transition: box-shadow 0.3s ease;
+      position: relative;
+
+      .chart-card-top-action {
+        position: absolute;
+        top: 1rem;
+        right: 1.25rem;
+        z-index: 10;
+      }
 
       &:hover {
         box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);

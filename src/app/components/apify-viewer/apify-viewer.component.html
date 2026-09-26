@@ -138,6 +138,29 @@
           <span>{{ isLoading() ? 'Actualizando' : 'Sincronizar' }}</span>
         </button>
       </div>
+
+      <!-- ACCESO A GUÍA METODOLÓGICA Y FÓRMULAS -->
+      <div class="sidebar-help-section">
+        <button
+          type="button"
+          (click)="openMethodology('overview')"
+          class="sidebar-methodology-btn"
+          title="Ver cómo se calculan las métricas y origen de datos">
+          <div class="btn-icon-badge">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+            </svg>
+          </div>
+          <div class="btn-text-group">
+            <span class="btn-main-label">Guía Metodológica</span>
+            <span class="btn-sub-label">Fórmulas & Fuentes de API</span>
+          </div>
+          <svg class="btn-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>
+      </div>
     </div>
   </aside>
 
@@ -171,7 +194,7 @@
     @if (!isLoading() && !error() && data().length > 0) {
 
       <!-- CABECERA FIJA FLOTANTE (STICKY): CALENDARIO EMPRESARIAL + CONTROL DE MÉTRICAS -->
-      <div class="enterprise-analytics-toolbar sticky-toolbar fade-in">
+      <div class="enterprise-analytics-toolbar sticky-toolbar">
 
         <!-- LADO IZQUIERDO: SELECTOR DE FECHAS DESPLEGABLE -->
         <div class="toolbar-date-section">
@@ -259,6 +282,22 @@
               <span class="segment-label">Comentarios</span>
             </button>
           </div>
+        </div>
+
+        <!-- ACCESO A GUÍA METODOLÓGICA DESDE LA CABECERA FIJA -->
+        <div class="toolbar-doc-section">
+          <button
+            type="button"
+            class="toolbar-methodology-btn"
+            (click)="openMethodology('overview')"
+            title="Ver documentación metodológica y fórmulas matemáticas">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+            <span>Metodología</span>
+          </button>
         </div>
 
       </div>
@@ -487,6 +526,16 @@
 
         @if (marketShareChartOptions()) {
           <div class="chart-card">
+            <div class="chart-card-top-action">
+              <app-metric-info-tooltip
+                [title]="'Cuota de Mercado (Share of Voice)'"
+                [definition]="'Mide el porcentaje de participación relativa que representa cada marca sobre el total del sector según la métrica activa.'"
+                [formula]="'SOV = (Métrica_Marca / Σ Métricas_Sector) × 100'"
+                [fieldsUsed]="['likes', 'comments', 'views']"
+                [topicId]="'market_share'"
+                (openFullDoc)="openMethodology($event)">
+              </app-metric-info-tooltip>
+            </div>
             <div echarts [options]="marketShareChartOptions()!" style="height: 100%; width: 100%;"></div>
           </div>
         }
@@ -495,9 +544,19 @@
           <div class="chart-card kpi-container-card">
 
             <div class="kpi-header-wrapper">
-              <div class="kpi-title-group">
-                <h4 class="kpi-main-title">Comunidad de Marca</h4>
-                <p class="kpi-sub-title">Métricas consolidadas por competidor</p>
+              <div class="kpi-title-group" style="display: flex; align-items: center; gap: 0.6rem;">
+                <div>
+                  <h4 class="kpi-main-title">Comunidad de Marca</h4>
+                  <p class="kpi-sub-title">Métricas consolidadas por competidor</p>
+                </div>
+                <app-metric-info-tooltip
+                  [title]="'Comunidad y Métricas por Competidor'"
+                  [definition]="'Consolida seguidores, publicaciones indexadas y volumen total de interacciones acumuladas.'"
+                  [formula]="'Interacciones = Likes + Comentarios | ER = (Promedio_Interacciones / Seguidores) × 100'"
+                  [fieldsUsed]="['followersCount', 'fans', 'numberOfSubscribers', 'likes', 'comments']"
+                  [topicId]="'engagement'"
+                  (openFullDoc)="openMethodology($event)">
+                </app-metric-info-tooltip>
               </div>
 
               <!-- SELECTOR DE ORDENACIÓN REDISEÑADO CON POPOVER -->
@@ -664,34 +723,92 @@
 
         @if (chartOptions()) {
           <div class="chart-card" style="min-height: 380px;" [style.grid-column]="loadedNetwork() === 'omnicanal' ? '1 / -1' : 'auto'">
+            <div class="chart-card-top-action">
+              <app-metric-info-tooltip
+                [title]="'Volumen de Publicaciones por Competidor'"
+                [definition]="'Distribución del número total de publicaciones indexadas por marca dentro de la ventana de análisis.'"
+                [formula]="'Total_Posts = Conteo de registros indexados en el dataset'"
+                [fieldsUsed]="['postId', 'id', 'shortCode']"
+                [topicId]="'metrics_calc'"
+                (openFullDoc)="openMethodology($event)">
+              </app-metric-info-tooltip>
+            </div>
             <div echarts [options]="chartOptions()!" style="height: 100%; width: 100%;"></div>
           </div>
         }
 
         @if (masterChartOptions()) {
           <div class="chart-card" style="grid-column: 1 / -1; height: 450px;">
+            <div class="chart-card-top-action">
+              <app-metric-info-tooltip
+                [title]="'Share of Voice Omnicanal por Red'"
+                [definition]="'Comparativa de tracción y volumen alcanzado por cada competidor desglosado canal por canal (Facebook, Instagram, TikTok y YouTube), reflejando la métrica activa seleccionada.'"
+                [formula]="'Métrica_Canal = Σ Métrica activa por marca dentro de cada red social'"
+                [fieldsUsed]="['__network', 'likesCount', 'commentsCount', 'videoViewCount', 'diggCount', 'playCount']"
+                [topicId]="'market_share'"
+                (openFullDoc)="openMethodology($event)">
+              </app-metric-info-tooltip>
+            </div>
             <div echarts [options]="masterChartOptions()!" style="height: 100%; width: 100%;"></div>
           </div>
         }
 
         @if (performanceChartOptions() && loadedNetwork() !== 'omnicanal') {
           <div class="chart-card" style="grid-column: 1 / -1; height: 500px;">
+            <div class="chart-card-top-action">
+              <app-metric-info-tooltip
+                [title]="'Evolución y Tendencia Temporal'"
+                [definition]="'Distribución cronológica del volumen de publicaciones y de interacciones a lo largo de las fechas analizadas.'"
+                [formula]="'Σ Interacciones agrupadas por fecha de emisión (timestamp)'"
+                [fieldsUsed]="['timestamp', 'date', 'createTime', 'likesCount', 'commentsCount']"
+                [topicId]="'metrics_calc'"
+                (openFullDoc)="openMethodology($event)">
+              </app-metric-info-tooltip>
+            </div>
             <div echarts [options]="performanceChartOptions()!" style="height: 100%; width: 100%;"></div>
           </div>
         }
 
         @if (engagementChartOptions()) {
           <div class="chart-card" style="grid-column: 1 / -1; min-height: 440px;">
+            <div class="chart-card-top-action">
+              <app-metric-info-tooltip
+                [title]="'Tasa de Engagement & Promedio por Post'"
+                [definition]="'Relación entre el promedio de interacciones por post y el tamaño de la comunidad de seguidores.'"
+                [formula]="'ER = [ (Promedio_Interacciones / Seguidores) ] × 100'"
+                [fieldsUsed]="['followers', 'likes', 'comments']"
+                [topicId]="'engagement'"
+                (openFullDoc)="openMethodology($event)">
+              </app-metric-info-tooltip>
+            </div>
             <div echarts [options]="engagementChartOptions()!" style="height: 100%; width: 100%;"></div>
           </div>
         }
 
         @if (formatPerformanceChartOptions()) {
           <div class="chart-card" style="grid-column: 1 / -1; min-height: 400px;">
+            <div class="chart-card-top-action">
+              <app-metric-info-tooltip
+                [title]="'Efectividad por Formato Multimedia'"
+                [definition]="'Retorno medio de interacción según el formato del contenido (Reels, Videos, Fotos, Carruseles).'"
+                [formula]="'Efectividad = Σ Interacciones_Formato / Total_Posts_Formato'"
+                [fieldsUsed]="['type', 'videoMeta', 'images', 'productType']"
+                [topicId]="'format_effectiveness'"
+                (openFullDoc)="openMethodology($event)">
+              </app-metric-info-tooltip>
+            </div>
             <div echarts [options]="formatPerformanceChartOptions()!" style="height: 100%; width: 100%;"></div>
           </div>
         }
       </div>
+
+      <!-- WIDGET DE CONTENIDO VIRAL DESTACADO (TOP 5 POR COMPETIDOR) -->
+      <app-viral-highlights
+        [data]="filteredData()"
+        [activeMetric]="selectedMetric()"
+        [loadedNetwork]="loadedNetwork()"
+        (openMethodology)="openMethodology($event)">
+      </app-viral-highlights>
 
       <!-- CENTRO DE CONTROL ENTERPRISE: DESGLOSE DE CONTENIDO -->
       <div class="content-breakdown-header fade-in">
@@ -1179,3 +1296,10 @@
     }
   </main>
 </div>
+
+<!-- MODAL DE DOCUMENTACIÓN METODOLÓGICA Y GLOSARIO TÉCNICO -->
+<app-methodology-guide
+  [isOpen]="showMethodologyModal()"
+  [initialTopic]="selectedMethodologyTopic()"
+  (closeModal)="closeMethodology()">
+</app-methodology-guide>

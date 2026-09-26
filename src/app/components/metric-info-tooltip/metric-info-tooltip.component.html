@@ -1,0 +1,71 @@
+<!-- src/app/components/metric-info-tooltip/metric-info-tooltip.component.html -->
+<div class="metric-info-wrapper" (click)="$event.stopPropagation()">
+  <!-- BOTÓN DISCRETO (?) -->
+  <button
+    type="button"
+    class="info-trigger-btn"
+    [class.active]="isOpen()"
+    (click)="toggle($event)"
+    [attr.aria-expanded]="isOpen()"
+    [attr.aria-label]="'Ver metodología de ' + title()"
+    title="Cómo se calcula esta métrica">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+      <line x1="12" y1="17" x2="12.01" y2="17"></line>
+    </svg>
+  </button>
+
+  <!-- POPOVER CONTEXTUAL INFORMATIVO -->
+  @if (isOpen()) {
+    <div class="info-popover-card" role="dialog" aria-modal="false" (click)="$event.stopPropagation()">
+      <div class="popover-header">
+        <div class="header-icon-tag">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+          <span>METODOLOGÍA</span>
+        </div>
+        <h5 class="popover-title">{{ title() }}</h5>
+      </div>
+
+      <div class="popover-body">
+        @if (definition()) {
+          <p class="popover-definition">{{ definition() }}</p>
+        }
+
+        @if (formula()) {
+          <div class="formula-box">
+            <span class="formula-label">Fórmula matemática:</span>
+            <code class="formula-code font-mono">{{ formula() }}</code>
+          </div>
+        }
+
+        @if (fieldsUsed().length > 0) {
+          <div class="fields-list-box">
+            <span class="fields-label">Campos extraídos de la API:</span>
+            <div class="fields-tags-row">
+              @for (field of fieldsUsed(); track field) {
+                <span class="api-field-pill font-mono">{{ field }}</span>
+              }
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="popover-footer">
+        <button
+          type="button"
+          class="btn-view-full-doc"
+          (click)="onDocClick($event)">
+          <span>Ver guía metodológica completa</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </div>
+  }
+</div>

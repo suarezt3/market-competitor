@@ -1,55 +1,61 @@
-# Plan de Implementación: Cabecera Fija (Sticky) de Filtros Globales y Gráfico de Barras Agrupadas de Engagement
+# Plan de Implementación: Corrección de Documentación de "Share of Voice Omnicanal" y Rediseño de Botón en Sidebar
 
-Este plan detalla los cambios para optimizar la experiencia de usuario trasladando los filtros globales a una **cabecera fija flotante (sticky header)** siempre visible durante el scroll, e implementando el **gráfico de barras agrupadas dobles** para visualizar en paralelo el promedio de interacciones y la tasa de engagement (%) por cada competidor.
+Este plan aborda las dos correcciones solicitadas por el usuario:
+1. **Corrección de la Documentación del Gráfico 'Share of Voice Omnicanal':** Sustituir el tooltip erróneo de *"Evolución y Tendencia Temporal"* por la definición, fórmula matemática y campos API exactos de la comparativa multicanal por red (Facebook, Instagram, TikTok, YouTube), además de profundizar esta explicación en la guía metodológica.
+2. **Rediseño Profesional del Botón en la Barra Lateral:** Mover y rediseñar el botón de *"Guía Metodológica & Fórmulas"* para que coincida con el estilo estético del dashboard (tarjeta interactiva con micro-badge, icono vectorizado, subtítulo explicativo y micro-interacciones de hover).
 
 ---
 
 ## User Review Required
 
 > [!IMPORTANT]
-> **Decisiones de diseño acordadas con el usuario:**
-> 1. **Ubicación de Filtros Globales:**
->    - **Cabecera fija superior (`position: sticky; top: 0; z-index: 40`)**: La barra con el selector de rango de fechas y los controles segmentados de métricas (`Total`, `Vistas`, `Likes`, `Comentarios`) se anclará en la parte superior del área de trabajo del dashboard.
->    - Incorporará fondo translúcido con desenfoque de cristal (`backdrop-filter: blur(12px); background: rgba(255, 255, 255, 0.95)`), borde sutil inferior y sombra ligera al hacer scroll, garantizando que el usuario pueda cambiar fechas o métricas en cualquier punto sin tener que desplazarse hacia arriba.
-> 2. **Gráfico de Barras Agrupadas Dobles (Engagement vs Interacciones):**
->    - Sustituir la visualización mixta (barra + línea) por **dos barras verticales agrupadas por competidor**:
->      - **Barra 1 (Azul / Color Marca):** Promedio de interacciones por publicación (Likes + Comentarios).
->      - **Barra 2 (Púrpura / Violeta):** Tasa de Engagement Rate estimada (`%`).
->    - Doble eje Y (Eje izquierdo: valor numérico compacto de interacciones; Eje derecho: porcentaje con formato `{value}%`).
->    - Etiquetas numéricas superiores en cada barra y tooltip detallado interactivo.
+> **Detalles de los Cambios Confirmados:**
+> 1. **Gráfico 'Share of Voice Omnicanal':**
+>    - **Título del Tooltip:** *"Share of Voice Omnicanal (Comparativa Multicanal)"*
+>    - **Definición:** *"Desglose del volumen generado por cada marca competidora en cada una de las redes sociales del ecosistema (Facebook, Instagram, TikTok, YouTube) para la métrica activa seleccionada."*
+>    - **Fórmula Matemática:** $\text{Volumen}(\text{Marca}, \text{Red}) = \sum_{i \in \text{Posts}(\text{Marca}, \text{Red})} \text{Métrica}_i$
+>    - **Campos API:** `__network`, `likes`, `comments`, `views`, `shares`.
+>    - **Enlace de Documentación:** Sección 06 de la Guía Metodológica (*Cuota de Mercado y Comparativa Omnicanal*), enriquecida con la explicación de dominancia canal por canal.
+> 2. **Botón en Sidebar Lateral:**
+>    - Se elimina el estilo por defecto de navegador causado por un anidamiento CSS erróneo fuera de `.dashboard-sidebar`.
+>    - Se implementa como una tarjeta de acción refinada: icono de documento/fórmulas con fondo suave índigo, tipografía nítida con título y subtítulo, borde sutil (`#e2e8f0`), elevación suave y transición al pasar el cursor.
 
 ---
 
 ## Proposed Changes
 
-### `src/app/services/apify-chart.service.ts`
-- Actualizar `buildEngagementRateChart(network: string, rawData: any[]): EChartsOption`:
-  - Configurar las dos series como tipo `'bar'` agrupadas (`barGap: '20%'`, `barMaxWidth: 28`):
-    - Serie 1: `'Promedio Interacciones / Post'` con `yAxisIndex: 0`, color de la marca respectiva y bordes superiores redondeados `borderRadius: [4, 4, 0, 0]`.
-    - Serie 2: `'Tasa Engagement (%)'` con `yAxisIndex: 1`, color violeta empresarial (`#8b5cf6`), bordes superiores redondeados `borderRadius: [4, 4, 0, 0]` y etiqueta de porcentaje visible `{c}%`.
-  - Configurar doble eje Y equilibrado para evitar solapamientos visuales.
+### 1. Corrección en `src/app/components/apify-viewer/apify-viewer.component.html`
+- Localizar el bloque `@if (masterChartOptions())` (línea ~732).
+- Actualizar los parámetros de `<app-metric-info-tooltip>`:
+  - `title`: `'Share of Voice Omnicanal (Comparativa por Red)'`
+  - `definition`: `'Distribución y comparativa del desempeño de cada competidor a través de las distintas redes sociales (Facebook, Instagram, TikTok, YouTube) para la métrica activa.'`
+  - `formula`: `'Volumen(Marca, Red) = Σ Métrica_Activa de publicaciones de esa marca en dicha plataforma'`
+  - `fieldsUsed`: `['__network', 'likes', 'comments', 'views', 'shares']`
+  - `topicId`: `'market_share'`
+- Mejorar el marcado del botón en el sidebar para incluir estructura de icono badge, textos jerárquicos (título + subtítulo) e icono de flecha `→`.
 
-### `src/app/components/apify-viewer/apify-viewer.component.html`
-- Reubicar la barra de controles `.enterprise-analytics-toolbar`:
-  - Moverla a la parte superior de la sección de resultados (`@if (!isLoading() && !error() && data().length > 0)`), antes de los títulos de red y de las tablas de datos, convirtiéndola en la barra de control fija del dashboard.
-  - Asegurar que el selector `<app-date-range-picker>` y el control segmentado de métricas queden integrados limpiamente en la cabecera fija.
+### 2. Actualización de Estilos en `src/app/components/apify-viewer/apify-viewer.component.scss`
+- Reubicar y perfeccionar la clase `.sidebar-methodology-btn` y su contenedor `.sidebar-help-section` directamente dentro del bloque `.dashboard-sidebar` para garantizar que los estilos se apliquen correctamente.
+- Aplicar:
+  - `background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.75rem;`
+  - Badge de icono SVG con gradiente o fondo `#eef2ff` y color `#4f46e5`.
+  - Estructura flex con `title` (`font-weight: 700; font-size: 0.82rem`) y `subtitle` (`color: #64748b; font-size: 0.7rem`).
+  - Efecto `:hover` con elevación (`transform: translateY(-1px)`), sombra sutil y borde `#c7d2fe`.
 
-### `src/app/components/apify-viewer/apify-viewer.component.scss`
-- Adaptar `.enterprise-analytics-toolbar`:
-  - `position: sticky; top: 0; z-index: 40;`
-  - Efecto de desenfoque de cristal (`backdrop-filter: blur(12px); background: rgba(255, 255, 255, 0.94);`)
-  - Margen negativo horizontal compensatorio o alineación con el padding del contenedor principal `.dashboard-content` para un acople perfecto de extremo a extremo.
-  - Asegurar que el popover del calendario de fechas mantenga un `z-index` superior (`z-index: 50+`) para desplegarse limpiamente sobre cualquier elemento subyacente.
+### 3. Profundización en `src/app/components/methodology-guide/methodology-guide.component.html`
+- En la sección **06 (Cuota de Mercado y Share of Voice)**, añadir el apartado específico de **Comparativa Omnicanal por Red Social**:
+  - Explicar cómo se construye la matriz de barras agrupadas por canal.
+  - Cómo ayuda a identificar qué marcas dominan en Facebook (ej. Royal Canin con 4.3M), cuáles en TikTok o Instagram, y cómo evaluar si la estrategia de un competidor es monoplataforma u omnicanal.
 
 ---
 
 ## Verification Plan
 
 ### Verificación Automatizada
-- Ejecutar `compile_applet` para confirmar compilación exitosa sin errores de TypeScript, Angular ni ECharts.
+- Ejecutar `compile_applet` para confirmar compilación limpia en Angular 21 y SCSS sin advertencias.
 
-### Verificación Manual / Visual
-- Comprobar que al cargar un dataset y hacer scroll hacia abajo por las tablas o por los gráficos de contenido, la barra de filtros de fechas y métricas permanece fija arriba.
-- Verificar que al hacer clic en el selector de fechas se abre el modal/dropdown sin recortes ni problemas de capas (z-index).
-- Cambiar de fecha o de métrica desde cualquier punto del scroll y confirmar que todos los gráficos y tablas se actualizan instantáneamente.
-- Verificar que el gráfico de **Engagement Rate y Promedio de Interacciones** muestra barras dobles agrupadas una al lado de la otra por cada marca competidora.
+### Verificación Manual
+- Abrir la vista general omnicanal con data cargada.
+- Hacer clic en el icono `(?)` en la esquina superior del gráfico **Share of Voice Omnicanal** y comprobar que muestra el título, definición, fórmula y campos correctos (en lugar del texto de evolución temporal).
+- Hacer clic en *"Ver guía metodológica completa"* y verificar que lleva a la sección enriquecida de Cuota de Mercado y Desglose Omnicanal.
+- Observar el panel lateral izquierdo y verificar que el botón de *"Guía Metodológica & Fórmulas"* luce con un diseño elegante, profesional y 100% integrado con el estilo visual de la aplicación.

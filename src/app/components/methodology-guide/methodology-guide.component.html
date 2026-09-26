@@ -1,0 +1,562 @@
+<!-- src/app/components/methodology-guide/methodology-guide.component.html -->
+@if (isOpen()) {
+  <div class="methodology-backdrop" (click)="closeModal.emit()">
+    <div class="methodology-modal" (click)="$event.stopPropagation()">
+
+      <!-- ENCABEZADO SUPERIOR -->
+      <header class="modal-top-bar">
+        <div class="top-title-group">
+          <div class="modal-tag-badge">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+            </svg>
+            <span>DOCUMENTACIÓN METODOLÓGICA & GLOSARIO TÉCNICO</span>
+          </div>
+          <h2 class="modal-main-title">Auditoría, Fórmulas e Ingesta de Datos del Dashboard</h2>
+          <p class="modal-subtitle">Guía de referencia sobre qué medimos, de dónde proviene la data y cómo se calculan los indicadores analíticos.</p>
+        </div>
+
+        <button
+          type="button"
+          class="modal-close-icon-btn"
+          (click)="closeModal.emit()"
+          title="Cerrar documentación (Esc)">
+          ✕
+        </button>
+      </header>
+
+      <!-- CUERPO PRINCIPAL CON MENÚ LATERAL Y CONTENIDO -->
+      <div class="modal-content-layout">
+
+        <!-- MENÚ LATERAL DE NAVEGACIÓN -->
+        <aside class="nav-sidebar">
+          <span class="nav-index-label">ÍNDICE METODOLÓGICO</span>
+          <nav class="nav-buttons-list">
+            @for (sec of sections; track sec.id) {
+              <button
+                type="button"
+                class="nav-tab-btn"
+                [class.active]="activeSection() === sec.id"
+                (click)="activeSection.set(sec.id)">
+                <span class="tab-label">{{ sec.label }}</span>
+                @if (sec.badge) {
+                  <span class="tab-badge">{{ sec.badge }}</span>
+                }
+              </button>
+            }
+          </nav>
+        </aside>
+
+        <!-- PANEL DE LECTURA PRINCIPAL -->
+        <main class="content-viewport custom-scrollbar">
+
+          <!-- 1. VISIÓN GENERAL -->
+          @if (activeSection() === 'overview') {
+            <article class="doc-article fade-in">
+              <div class="article-header">
+                <span class="section-number">Sección 01</span>
+                <h3>¿Qué es lo que estamos mostrando?</h3>
+              </div>
+
+              <p class="lead-text">
+                El dashboard es un centro de inteligencia competitiva omnicanal diseñado para monitorear, comparar y auditar el rendimiento orgánico de marcas y competidores en redes sociales líderes (<strong>Instagram, TikTok, YouTube y Facebook</strong>).
+              </p>
+
+              <div class="cards-grid-2">
+                <div class="info-card">
+                  <div class="card-icon-title">
+                    <span class="bullet-dot bg-indigo-600"></span>
+                    <h4>Objetivo de Inteligencia</h4>
+                  </div>
+                  <p>Descubrir la cuota de atención que domina cada marca en su categoría (Share of Voice), comparar el tamaño de comunidad vs. su capacidad real de movilización, y detectar patrones de contenido exitosos.</p>
+                </div>
+
+                <div class="info-card">
+                  <div class="card-icon-title">
+                    <span class="bullet-dot bg-emerald-600"></span>
+                    <h4>Enfoque Omnicanal vs. Específico</h4>
+                  </div>
+                  <p>Permite consolidar la huella digital total de las marcas en una sola vista homogénea o profundizar canal por canal para evaluar estrategias nativas específicas de cada plataforma.</p>
+                </div>
+              </div>
+
+              <div class="summary-box">
+                <h4>Componentes que integran la vista:</h4>
+                <ul class="styled-list">
+                  <li><strong>Cabecera Flotante con Filtro de Fechas:</strong> Permite aislar ventanas temporales (campañas, estacionalidad o análisis histórico completo).</li>
+                  <li><strong>Selector de Métrica Activa:</strong> Control segmentado que reconfigura todo el dashboard según <em>Total Interacciones, Vistas, Likes o Comentarios</em>.</li>
+                  <li><strong>Cuota de Mercado (Donut):</strong> Participación porcentual de cada marca sobre el total del sector.</li>
+                  <li><strong>Comunidad y Matriz Omnicanal:</strong> Cuadro de mando comparativo con seguidores, publicaciones indexadas y tasa de engagement.</li>
+                  <li><strong>Tendencia Temporal y Volúmenes:</strong> Evolución histórica de publicaciones e impacto a lo largo del tiempo.</li>
+                  <li><strong>Efectividad por Formato:</strong> Rendimiento comparado entre Videos/Reels, Carruseles y Fotos fijas.</li>
+                  <li><strong>Contenido Viral Destacado:</strong> Top 5 publicaciones con mejor rendimiento por marca.</li>
+                  <li><strong>Desglose de Contenido Auditado:</strong> Tabla exhaustiva con buscador, filtros y accesos a cada post original.</li>
+                </ul>
+              </div>
+            </article>
+          }
+
+          <!-- 2. FUENTES E INGESTA (APIFY) -->
+          @if (activeSection() === 'data_sources') {
+            <article class="doc-article fade-in">
+              <div class="article-header">
+                <span class="section-number">Sección 02</span>
+                <h3>¿De dónde traemos la data y cómo se extrae?</h3>
+              </div>
+
+              <p class="lead-text">
+                Toda la información proviene directamente de la nube de <strong>Apify</strong> mediante el uso de <em>Actors</em> (scrapers especializados) que indexan publicaciones y perfiles públicos de manera estandarizada y segura.
+              </p>
+
+              <div class="api-table-wrapper">
+                <table class="api-table">
+                  <thead>
+                    <tr>
+                      <th>Red Social</th>
+                      <th>Actor de Apify</th>
+                      <th>Datos Extraídos</th>
+                      <th>Frecuencia & Modo</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><strong>Instagram</strong></td>
+                      <td><code>apify/instagram-scraper</code></td>
+                      <td>Posts, Reels, Likes, Comentarios, Vistas de video, Fechas ISO, Captions, URLs de CDN y perfiles.</td>
+                      <td>En vivo / Historiales en caché</td>
+                    </tr>
+                    <tr>
+                      <td><strong>TikTok</strong></td>
+                      <td><code>clockworks/tiktok-scraper</code></td>
+                      <td>Videos, Reproducciones (playCount), Likes (diggCount), Comentarios, Compartidos, Audios y Hashtags.</td>
+                      <td>En vivo / Historiales en caché</td>
+                    </tr>
+                    <tr>
+                      <td><strong>YouTube</strong></td>
+                      <td><code>streamers/youtube-scraper</code></td>
+                      <td>Videos regulares, Shorts, Vistas, Likes, Comentarios, Duración, Fecha de publicación y Canal.</td>
+                      <td>En vivo / Historiales en caché</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Facebook</strong></td>
+                      <td><code>apify/facebook-pages-scraper</code></td>
+                      <td>Publicaciones en páginas públicas, Reacciones, Comentarios, Compartidos y Metadatos de la página.</td>
+                      <td>En vivo / Historiales en caché</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="tech-card mt-4">
+                <h4>Resolución de Entidades y Normalización de Marcas</h4>
+                <p>
+                  Debido a que los scrapers traen múltiples perfiles, variaciones de nombres de usuario (ej. <code>@bancodebogota_oficial</code>, <code>banco-de-bogota</code>) o menciones de creadores, el servicio central <code>ApifyChartService</code> implementa un motor de <strong>Brand Entity Resolution</strong> con expresiones regulares y diccionarios de alias. Esto garantiza que todos los perfiles se agrupen bajo la marca matriz correcta (ej. <em>Banco de Bogotá, Bancolombia, Davivienda, Nu</em>).
+                </p>
+              </div>
+
+              <div class="tech-card mt-4">
+                <h4>Optimización de Créditos y Latencia Cero</h4>
+                <p>
+                  El sistema utiliza una arquitectura de lectura de datasets pre-ejecutados (<code>loadSpecificRun</code>). Una vez que una ejecución es procesada en Apify, sus registros se leen sin volver a activar el scraper, permitiendo explorar miles de publicaciones con <strong>latencia cero y sin consumir créditos adicionales</strong>.
+                </p>
+              </div>
+            </article>
+          }
+
+          <!-- 3. FÓRMULAS DE MÉTRICAS BASE -->
+          @if (activeSection() === 'metrics_calc') {
+            <article class="doc-article fade-in">
+              <div class="article-header">
+                <span class="section-number">Sección 03</span>
+                <h3>¿Cómo se están calculando las métricas base?</h3>
+              </div>
+
+              <p class="lead-text">
+                Cada plataforma social estructura sus datos de forma distinta. El dashboard estandariza las variables en cuatro pilares fundamentales: <strong>Interacciones Totales, Vistas, Likes y Comentarios</strong>.
+              </p>
+
+              <div class="formula-card">
+                <div class="formula-header">
+                  <span class="formula-badge">FÓRMULA 01</span>
+                  <h4>Total de Interacciones por Publicación</h4>
+                </div>
+                <div class="formula-display font-mono">
+                  Interacciones_post = Likes + Comentarios (+ Shares si aplica en la red)
+                </div>
+                <p class="formula-notes">
+                  Representa el esfuerzo activo realizado por la audiencia para interactuar con la publicación. Los Likes demuestran aprobación y los Comentarios demuestran intención y profundidad de engagement.
+                </p>
+              </div>
+
+              <div class="formula-card">
+                <div class="formula-header">
+                  <span class="formula-badge">FÓRMULA 02</span>
+                  <h4>Interacciones Totales Acumuladas de la Marca</h4>
+                </div>
+                <div class="formula-display font-mono">
+                  Interacciones_Totales_Marca = Σ (Interacciones_post_i)  para i = 1 hasta N
+                </div>
+                <p class="formula-notes">
+                  Suma lineal de todas las interacciones generadas por los <em>N</em> posts indexados de la marca dentro del rango de fechas activo.
+                </p>
+              </div>
+
+              <div class="formula-card">
+                <div class="formula-header">
+                  <span class="formula-badge">FÓRMULA 03</span>
+                  <h4>Promedio de Interacciones por Publicación</h4>
+                </div>
+                <div class="formula-display font-mono">
+                  Promedio_Interacciones = Interacciones_Totales_Marca / Total_Publicaciones_Indexadas
+                </div>
+                <p class="formula-notes">
+                  Es la métrica clave de eficiencia de publicación. Elimina el sesgo de aquellas marcas que publican con demasiada frecuencia pero con bajo rendimiento unitario.
+                </p>
+              </div>
+
+              <div class="formula-card">
+                <div class="formula-header">
+                  <span class="formula-badge">FÓRMULA 04</span>
+                  <h4>Vistas y Reproducciones (Reach Proxy)</h4>
+                </div>
+                <div class="formula-display font-mono">
+                  Vistas_Totales = Σ (videoViewCount || playCount || viewCount)
+                </div>
+                <p class="formula-notes">
+                  Mide el volumen de reproducciones consumidas por los usuarios. En formatos estáticos (fotos fijas sin contador de vistas público en la API de Instagram/Facebook), el contador de vistas es omitido para no alterar los cálculos con suposiciones.
+                </p>
+              </div>
+            </article>
+          }
+
+          <!-- 4. ENGAGEMENT RATE -->
+          @if (activeSection() === 'engagement') {
+            <article class="doc-article fade-in">
+              <div class="article-header">
+                <span class="section-number">Sección 04</span>
+                <h3>¿Cómo se calcula la Tasa de Engagement (Engagement Rate)?</h3>
+              </div>
+
+              <p class="lead-text">
+                El <strong>Engagement Rate (ER)</strong> es el estándar de la industria publicitaria para evaluar la conexión genuina entre una comunidad y el contenido emitido. En este dashboard calculamos dos variantes complementarias:
+              </p>
+
+              <div class="formula-card">
+                <div class="formula-header">
+                  <span class="formula-badge">MÉTODO ESTÁNDAR</span>
+                  <h4>1. Engagement Rate por Comunidad (Basado en Seguidores)</h4>
+                </div>
+                <div class="formula-display font-mono">
+                  ER_Seguidores = [ (Promedio_Interacciones_por_Post) / (Total_Seguidores) ] × 100
+                </div>
+                <p class="formula-notes">
+                  <strong>Interpretación:</strong> Mide qué porcentaje de la base de seguidores reacciona o comenta en promedio en cada publicación. Permite comparar de forma justa a marcas con millones de seguidores frente a marcas emergentes más pequeñas.
+                </p>
+                <div class="example-box">
+                  <strong>Ejemplo práctico:</strong> Si una marca tiene 100,000 seguidores y sus publicaciones promedian 2,500 interacciones:<br>
+                  <code>ER = (2,500 / 100,000) × 100 = 2.50%</code>
+                </div>
+              </div>
+
+              <div class="formula-card">
+                <div class="formula-header">
+                  <span class="formula-badge">MÉTODO DE ALCANCE</span>
+                  <h4>2. Engagement Rate por Reproducciones (Basado en Vistas)</h4>
+                </div>
+                <div class="formula-display font-mono">
+                  ER_Vistas = [ (Interacciones_Totales) / (Vistas_Totales_de_Video) ] × 100
+                </div>
+                <p class="formula-notes">
+                  <strong>Interpretación:</strong> Específico para TikTok, Reels de Instagram y Shorts de YouTube. Como los algoritmos de recomendación impulsan videos a usuarios que no necesariamente siguen a la cuenta, este ratio mide la <em>capacidad de conversión</em> del contenido que fue visto.
+                </p>
+              </div>
+
+              <div class="callout-box">
+                <h4>Auditoría de consistencia:</h4>
+                <p>
+                  Si los seguidores de una marca no están disponibles en la API de la red para una ejecución histórica específica, el dashboard evita generar cifras ficticias o divisiones por cero mostrando un indicador transparente y priorizando el <strong>Promedio de Interacciones por Publicación</strong>.
+                </p>
+              </div>
+            </article>
+          }
+
+          <!-- 5. EFECTIVIDAD POR FORMATO -->
+          @if (activeSection() === 'format_effectiveness') {
+            <article class="doc-article fade-in">
+              <div class="article-header">
+                <span class="section-number">Sección 05</span>
+                <h3>¿Cómo se mide la Efectividad por Formato?</h3>
+              </div>
+
+              <p class="lead-text">
+                El gráfico de <strong>Efectividad por Formato</strong> clasifica todas las publicaciones auditadas en categorías universales de multimedia y evalúa qué tipo de contenido produce mayor retorno por unidad publicada.
+              </p>
+
+              <div class="cards-grid-2">
+                <div class="format-card">
+                  <div class="format-header">
+                    <span class="format-tag">VIDEO / REEL</span>
+                  </div>
+                  <p>Publicaciones en video de corta y mediana duración (Instagram Reels, TikToks, YouTube Shorts, Videos de Facebook). Identificado mediante <code>videoMeta</code>, <code>isVideo</code> o URLs de video.</p>
+                </div>
+
+                <div class="format-card">
+                  <div class="format-header">
+                    <span class="format-tag">CARRUSEL (ÁLBUM)</span>
+                  </div>
+                  <p>Secuencia de múltiples imágenes o tarjetas deslizables. Detectado a través de colecciones <code>images[]</code> o <code>carouselMedia</code>. Suele tener el mayor tiempo de retención.</p>
+                </div>
+
+                <div class="format-card">
+                  <div class="format-header">
+                    <span class="format-tag">FOTO FIJA</span>
+                  </div>
+                  <p>Una sola imagen estática (post estándar o infografía). Tradicionalmente orientada a anuncios o información corporativa directa.</p>
+                </div>
+
+                <div class="format-card">
+                  <div class="format-header">
+                    <span class="format-tag">POST ESTÁNDAR / TEXTO</span>
+                  </div>
+                  <p>Publicaciones basadas en texto, estados o enlaces compartidos con previsualización (frecuentes en Facebook).</p>
+                </div>
+              </div>
+
+              <div class="formula-card mt-4">
+                <div class="formula-header">
+                  <span class="formula-badge">CÁLCULO COMPARATIVO</span>
+                  <h4>Retorno Promedio por Formato</h4>
+                </div>
+                <div class="formula-display font-mono">
+                  Efectividad_Formato_k = Σ (Interacciones de posts con formato k) / Total_posts_con_formato_k
+                </div>
+                <p class="formula-notes">
+                  Esto responde a la pregunta de negocio: <em>"¿Si el equipo de contenido produce un Reel en lugar de una foto fija, cuántas veces más interacciones promedio se pueden esperar?"</em>
+                </p>
+              </div>
+            </article>
+          }
+
+          <!-- 6. CUOTA DE MERCADO (SHARE OF VOICE) -->
+          @if (activeSection() === 'market_share') {
+            <article class="doc-article fade-in">
+              <div class="article-header">
+                <span class="section-number">Sección 06</span>
+                <h3>¿Cómo se calcula la Cuota de Mercado (Share of Voice)?</h3>
+              </div>
+
+              <p class="lead-text">
+                El dashboard ofrece dos visualizaciones complementarias de <strong>Share of Voice</strong> para evaluar tanto la dominancia global como el desempeño canal por canal en el ecosistema digital:
+              </p>
+
+              <!-- SUBSECCIÓN A: SOV GLOBAL -->
+              <div class="formula-card">
+                <div class="formula-header">
+                  <span class="formula-badge">1. SHARE OF VOICE GLOBAL (DONUT)</span>
+                  <h4>Participación Relativa de la Categoría</h4>
+                </div>
+                <div class="formula-display font-mono">
+                  SOV_Global_Marca_k = [ (Métrica_Activa_Marca_k) / Σ (Métrica_Activa_Todas_las_Marcas) ] × 100
+                </div>
+                <p class="formula-notes">
+                  Muestra la cuota porcentual que cada marca acapara del total del mercado. La <code>Métrica_Activa</code> cambia dinámicamente según la opción elegida en la cabecera fija (<strong>Total Interacciones</strong>, <strong>Vistas</strong>, <strong>Likes</strong> o <strong>Comentarios</strong>).
+                </p>
+              </div>
+
+              <!-- SUBSECCIÓN B: SOV OMNICANAL POR RED SOCIAL -->
+              <div class="formula-card mt-4" style="border-left: 3px solid #6366f1;">
+                <div class="formula-header">
+                  <span class="formula-badge" style="background: #eef2ff; color: #4338ca;">2. SHARE OF VOICE OMNICANAL POR RED (BARRAS POR CANAL)</span>
+                  <h4>Comparativa de Tracción en Facebook, Instagram, TikTok y YouTube</h4>
+                </div>
+                <div class="formula-display font-mono">
+                  Métrica_Canal(Marca_k, Red_r) = Σ (Métrica_Activa del post_p) para todo p de Marca_k en Red_r
+                </div>
+                <p class="formula-notes">
+                  <strong>Qué muestra esta gráfica:</strong> El eje horizontal reúne las 4 redes sociales analizadas (<strong>Facebook</strong>, <strong>Instagram</strong>, <strong>TikTok</strong> y <strong>YouTube</strong>). Dentro de cada red se proyectan las barras comparativas de cada competidor, reflejando el volumen auditado que cada marca consiguió en dicha plataforma con la métrica seleccionada.
+                </p>
+              </div>
+
+              <div class="example-box mt-4">
+                <h4>Interpretación Estratégica del SOV Omnicanal:</h4>
+                <p>
+                  Esta visualización permite detectar <strong>asimetrías y especializaciones de canal</strong> entre competidores:
+                </p>
+                <ul class="doc-list" style="margin-top: 0.5rem;">
+                  <li><strong>Dominancia en Video Corto (TikTok/Reels):</strong> Si una marca lidera en TikTok con alto volumen de vistas pero tiene baja presencia en Facebook.</li>
+                  <li><strong>Comunidades Tradicionales (Facebook):</strong> Marcas con páginas de alto histórico que acumulan gran volumen de likes o comentarios en Facebook.</li>
+                  <li><strong>Contenido Educativo o Largo Formato (YouTube):</strong> Marcas con estrategia audiovisual extendida que acumulan visualizaciones en YouTube frente a plataformas de consumo efímero.</li>
+                </ul>
+              </div>
+            </article>
+          }
+
+          <!-- 7. ALGORITMO DE CONTENIDO VIRAL -->
+          @if (activeSection() === 'viral_content') {
+            <article class="doc-article fade-in">
+              <div class="article-header">
+                <span class="section-number">Sección 07</span>
+                <h3>¿Cómo se seleccionan los Top 5 de Contenido Viral?</h3>
+              </div>
+
+              <p class="lead-text">
+                El widget de <strong>Contenido Viral Destacado</strong> ejecuta un algoritmo de clasificación dinámico por cada competidor para aislar los contenidos con mayor impacto relativo.
+              </p>
+
+              <div class="steps-flow">
+                <div class="flow-step">
+                  <div class="step-num">1</div>
+                  <div class="step-desc">
+                    <h5>Filtrado Temporal & de Marca</h5>
+                    <p>Se aíslan exclusivamente las publicaciones del competidor seleccionado que pertenezcan a la ventana temporal definida en el calendario del dashboard.</p>
+                  </div>
+                </div>
+
+                <div class="flow-step">
+                  <div class="step-num">2</div>
+                  <div class="step-desc">
+                    <h5>Extracción de la Métrica Objetiva</h5>
+                    <p>Si la métrica activa en cabecera es <em>Vistas</em>, se toma <code>post.views</code>. Si es <em>Likes</em>, <code>post.likes</code>. Si es <em>Comentarios</em>, <code>post.comments</code>. Si es <em>Total</em>, <code>post.totalInteractions</code>.</p>
+                  </div>
+                </div>
+
+                <div class="flow-step">
+                  <div class="step-num">3</div>
+                  <div class="step-desc">
+                    <h5>Ordenación Descendente (Sort)</h5>
+                    <p>Se ordenan todos los posts de la marca de mayor a menor según el valor cuantitativo de la métrica activa: <code>posts.sort((a, b) => b.metric - a.metric)</code>.</p>
+                  </div>
+                </div>
+
+                <div class="flow-step">
+                  <div class="step-num">4</div>
+                  <div class="step-desc">
+                    <h5>Asignación de Insignias de Podio</h5>
+                    <p>Se toman las primeras 5 posiciones (Top 1 al 5), asignando acentos de Oro (#1), Plata (#2), Bronce (#3) y enlace a vista previa rápida.</p>
+                  </div>
+                </div>
+              </div>
+            </article>
+          }
+
+          <!-- 8. DICCIONARIO TÉCNICO DE CAMPOS JSON -->
+          @if (activeSection() === 'api_dictionary') {
+            <article class="doc-article fade-in">
+              <div class="article-header">
+                <span class="section-number">Sección 08</span>
+                <h3>Diccionario Técnico de Campos JSON (Apify Payloads)</h3>
+              </div>
+
+              <p class="lead-text">
+                Mapeo exacto de los campos crudos recibidos desde los endpoints de Apify y su transformación al modelo unificado de datos del dashboard.
+              </p>
+
+              <div class="api-table-wrapper">
+                <table class="api-table">
+                  <thead>
+                    <tr>
+                      <th>Campo Crudo en Apify</th>
+                      <th>Red Social</th>
+                      <th>Campo Mapeado</th>
+                      <th>Descripción / Tipo</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><code>likesCount</code></td>
+                      <td>Instagram</td>
+                      <td><code>likes</code></td>
+                      <td>Número entero de "Me gusta" registrados.</td>
+                    </tr>
+                    <tr>
+                      <td><code>diggCount</code></td>
+                      <td>TikTok</td>
+                      <td><code>likes</code></td>
+                      <td>Contador oficial de corazones del video.</td>
+                    </tr>
+                    <tr>
+                      <td><code>commentsCount</code></td>
+                      <td>Instagram / YouTube</td>
+                      <td><code>comments</code></td>
+                      <td>Total de comentarios de primer nivel y respuestas.</td>
+                    </tr>
+                    <tr>
+                      <td><code>commentCount</code></td>
+                      <td>TikTok</td>
+                      <td><code>comments</code></td>
+                      <td>Contador de comentarios en el video.</td>
+                    </tr>
+                    <tr>
+                      <td><code>videoViewCount</code> / <code>videoPlayCount</code></td>
+                      <td>Instagram</td>
+                      <td><code>views</code></td>
+                      <td>Reproducciones de Reels / Videos.</td>
+                    </tr>
+                    <tr>
+                      <td><code>playCount</code></td>
+                      <td>TikTok</td>
+                      <td><code>views</code></td>
+                      <td>Total de reproducciones del video en TikTok.</td>
+                    </tr>
+                    <tr>
+                      <td><code>viewCount</code></td>
+                      <td>YouTube</td>
+                      <td><code>views</code></td>
+                      <td>Vistas registradas por el reproductor de YouTube.</td>
+                    </tr>
+                    <tr>
+                      <td><code>displayUrl</code> / <code>thumbnailUrl</code></td>
+                      <td>Instagram</td>
+                      <td><code>thumbnail</code></td>
+                      <td>URL de CDN para visualización multimedia.</td>
+                    </tr>
+                    <tr>
+                      <td><code>videoMeta.coverUrl</code></td>
+                      <td>TikTok</td>
+                      <td><code>thumbnail</code></td>
+                      <td>Fotograma de portada oficial generado por TikTok.</td>
+                    </tr>
+                    <tr>
+                      <td><code>timestamp</code> / <code>createTimeISO</code></td>
+                      <td>Instagram / TikTok</td>
+                      <td><code>date</code></td>
+                      <td>Cadena ISO o timestamp UNIX milisegundos.</td>
+                    </tr>
+                    <tr>
+                      <td><code>followersCount</code> / <code>fans</code> / <code>numberOfSubscribers</code></td>
+                      <td>IG / TikTok / YT</td>
+                      <td><code>followers</code></td>
+                      <td>Tamaño de la comunidad / Suscriptores.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          }
+
+        </main>
+      </div>
+
+      <!-- PIE DEL MODAL -->
+      <footer class="modal-footer">
+        <div class="footer-note">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+          <span>Metodología auditada compatible con las políticas y cuotas de datos de Apify.</span>
+        </div>
+
+        <button
+          type="button"
+          class="btn-close-modal"
+          (click)="closeModal.emit()">
+          Entendido / Cerrar Guía
+        </button>
+      </footer>
+
+    </div>
+  </div>
+}

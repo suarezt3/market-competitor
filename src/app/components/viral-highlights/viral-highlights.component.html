@@ -1,0 +1,269 @@
+<!-- src/app/components/viral-highlights/viral-highlights.component.html -->
+<section class="viral-highlights-widget" aria-label="Contenido viral destacado por competidor">
+
+  <!-- CABECERA DEL WIDGET -->
+  <div class="widget-header">
+    <div class="header-left">
+      <div class="header-icon-badge">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>
+        </svg>
+      </div>
+      <div>
+        <div class="title-row">
+          <h3 class="widget-title">Contenido Viral Destacado</h3>
+          <span class="active-metric-badge">
+            Ordenado por: <strong>{{ getMetricLabel(activeMetric()) }}</strong>
+          </span>
+          <app-metric-info-tooltip
+            [title]="'Contenido Viral Destacado (Top 5)'"
+            [definition]="'Clasifica y audita las 5 publicaciones líderes por marca según la métrica activa en el dashboard.'"
+            [formula]="'Ranking = Top 5 DESC por métrica seleccionada'"
+            [fieldsUsed]="['views', 'likes', 'comments', 'totalInteractions']"
+            [topicId]="'viral_content'"
+            (openFullDoc)="openMethodology.emit($event)">
+          </app-metric-info-tooltip>
+        </div>
+        <p class="widget-subtitle">
+          Auditoría de las 5 publicaciones con mayor tracción por competidor. Identifica qué formatos, copys y temáticas generan mejores resultados.
+        </p>
+      </div>
+    </div>
+
+    <!-- RESUMEN ACUMULADO DEL TOP 5 -->
+    @if (top5Summary(); as sum) {
+      <div class="top5-kpi-summary">
+        <div class="kpi-mini-stat" title="Total vistas acumuladas en el Top 5">
+          <span class="kpi-mini-label">Vistas Top 5</span>
+          <span class="kpi-mini-value font-mono">{{ sum.viewsCompact }}</span>
+        </div>
+        <div class="kpi-mini-divider"></div>
+        <div class="kpi-mini-stat" title="Total interacciones acumuladas en el Top 5">
+          <span class="kpi-mini-label">Interacciones</span>
+          <span class="kpi-mini-value font-mono text-indigo-600">{{ sum.interactionsCompact }}</span>
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- SELECTOR DE PESTAÑAS POR COMPETIDOR -->
+  @if (competitorTabs().length > 0) {
+    <div class="competitor-tabs-wrapper custom-scrollbar">
+      <div class="competitor-tabs-bar" role="tablist" aria-label="Competidores para contenido viral">
+        @for (comp of competitorTabs(); track comp.brand) {
+          <button
+            type="button"
+            role="tab"
+            [attr.aria-selected]="activeBrand() === comp.brand"
+            (click)="selectBrand(comp.brand)"
+            class="competitor-tab-btn"
+            [class.active]="activeBrand() === comp.brand">
+
+            <!-- Indicador visual de color de marca -->
+            <span class="brand-color-dot" [style.background-color]="comp.color"></span>
+
+            <!-- Logo o Avatar si está disponible -->
+            @if (comp.logo) {
+              <img [src]="comp.logo" referrerpolicy="no-referrer" class="tab-brand-logo" [alt]="comp.brand">
+            } @else if (comp.avatar) {
+              <img [src]="comp.avatar" referrerpolicy="no-referrer" class="tab-brand-avatar" [alt]="comp.brand">
+            }
+
+            <span class="tab-brand-name">{{ comp.brand }}</span>
+            <span class="tab-posts-pill font-mono">{{ comp.postsCount }}</span>
+          </button>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- GRID DE LAS 5 PUBLICACIONES VIRALES -->
+  @if (topPosts().length > 0) {
+    <div class="viral-cards-grid">
+      @for (post of topPosts(); track post.id) {
+        <article class="viral-card" [class.rank-first]="post.rank === 1">
+
+          <!-- ENCABEZADO DE TARJETA: RANKING + RED -->
+          <div class="card-top-bar">
+            <!-- Insignia de Ranking -->
+            <div class="rank-badge" [class.rank-1]="post.rank === 1" [class.rank-2]="post.rank === 2" [class.rank-3]="post.rank === 3">
+              @if (post.rank === 1) {
+                <span class="rank-crown" aria-hidden="true">👑</span>
+              }
+              <span class="rank-number font-mono">#{{ post.rank }}</span>
+            </div>
+
+            <!-- Red social y fecha -->
+            <div class="card-meta-right">
+              <span class="post-format-badge">{{ post.format }}</span>
+              <img [src]="getNetworkIcon(post.network)" referrerpolicy="no-referrer" class="post-network-icon" [alt]="post.network">
+            </div>
+          </div>
+
+          <!-- MINIATURA MULTIMEDIA -->
+          <div class="card-media-wrapper" (click)="openPreviewModal(post)">
+            @if (post.thumbnail) {
+              <img [src]="post.thumbnail" referrerpolicy="no-referrer" class="card-thumbnail-img" [alt]="post.brand + ' viral post'" loading="lazy">
+              <div class="media-hover-overlay">
+                <span class="preview-prompt">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  Vista previa
+                </span>
+              </div>
+            } @else {
+              <div class="card-media-placeholder">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+                <span>Contenido textual</span>
+              </div>
+            }
+          </div>
+
+          <!-- CONTENIDO: FECHA Y EXTRACTO DE TEXTO -->
+          <div class="card-body">
+            <div class="card-date-row">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              <span>{{ post.dateStr }}</span>
+            </div>
+
+            <p class="card-caption" [title]="post.caption">
+              {{ post.caption }}
+            </p>
+          </div>
+
+          <!-- MÉTRICAS DE INTERACCIÓN AUDITADAS -->
+          <div class="card-metrics-grid">
+            <!-- VISTAS -->
+            <div class="metric-cell" [class.highlighted]="activeMetric() === 'views'" title="Vistas y reproducciones">
+              <div class="metric-icon-wrap">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </div>
+              <div class="metric-values">
+                <span class="cell-val font-mono">{{ post.views | number }}</span>
+                <span class="cell-lbl">Vistas</span>
+              </div>
+            </div>
+
+            <!-- LIKES -->
+            <div class="metric-cell" [class.highlighted]="activeMetric() === 'likes'" title="Likes y reacciones">
+              <div class="metric-icon-wrap text-rose-500">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+              </div>
+              <div class="metric-values">
+                <span class="cell-val font-mono">{{ post.likes | number }}</span>
+                <span class="cell-lbl">Likes</span>
+              </div>
+            </div>
+
+            <!-- COMENTARIOS -->
+            <div class="metric-cell" [class.highlighted]="activeMetric() === 'comments'" title="Comentarios">
+              <div class="metric-icon-wrap text-blue-500">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              </div>
+              <div class="metric-values">
+                <span class="cell-val font-mono">{{ post.comments | number }}</span>
+                <span class="cell-lbl">Coment.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- BOTÓN DE ENLACE DE VISTA PREVIA Y ACCESO EXTERNO -->
+          <div class="card-footer-actions">
+            <button
+              type="button"
+              (click)="openPreviewModal(post)"
+              class="action-btn preview-btn"
+              title="Abrir vista previa rápida">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+              <span>Vista rápida</span>
+            </button>
+
+            @if (post.postUrl) {
+              <a
+                [href]="post.postUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="action-btn external-link-btn"
+                title="Abrir publicación original en la red social">
+                <span>Ver en {{ post.network | titlecase }}</span>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg>
+              </a>
+            }
+          </div>
+
+        </article>
+      }
+    </div>
+  } @else {
+    <div class="empty-viral-state">
+      <p>No se encontraron publicaciones virales para <strong>{{ activeBrand() }}</strong> dentro del rango de filtros seleccionado.</p>
+    </div>
+  }
+
+  <!-- MODAL DE VISTA PREVIA IN-APP -->
+  @if (previewModalPost(); as modalPost) {
+    <div class="viral-modal-backdrop" (click)="closePreviewModal()">
+      <div class="viral-modal-container" (click)="$event.stopPropagation()">
+        <!-- Header del Modal -->
+        <div class="modal-header">
+          <div class="modal-brand-info">
+            <span class="modal-rank-badge font-mono">Rank #{{ modalPost.rank }}</span>
+            <span class="modal-brand-name">{{ modalPost.brand }}</span>
+            <span class="modal-dot">•</span>
+            <span class="modal-date">{{ modalPost.dateStr }}</span>
+          </div>
+
+          <button type="button" class="modal-close-btn" (click)="closePreviewModal()" aria-label="Cerrar vista previa">
+            ✕
+          </button>
+        </div>
+
+        <!-- Contenido del Modal -->
+        <div class="modal-body">
+          @if (modalPost.thumbnail) {
+            <div class="modal-image-wrap">
+              <img [src]="modalPost.thumbnail" referrerpolicy="no-referrer" [alt]="modalPost.brand + ' media preview'" class="modal-full-img">
+            </div>
+          }
+
+          <div class="modal-details-pane">
+            <h4 class="modal-caption-title">Texto de la Publicación</h4>
+            <p class="modal-full-caption">{{ modalPost.caption }}</p>
+
+            <div class="modal-metrics-card">
+              <div class="modal-stat">
+                <span class="stat-label">Vistas</span>
+                <span class="stat-number font-mono">{{ modalPost.views | number }}</span>
+              </div>
+              <div class="modal-stat">
+                <span class="stat-label">Likes</span>
+                <span class="stat-number font-mono text-rose-600">{{ modalPost.likes | number }}</span>
+              </div>
+              <div class="modal-stat">
+                <span class="stat-label">Comentarios</span>
+                <span class="stat-number font-mono text-blue-600">{{ modalPost.comments | number }}</span>
+              </div>
+              <div class="modal-stat">
+                <span class="stat-label">Total Interacciones</span>
+                <span class="stat-number font-mono text-indigo-600">{{ modalPost.totalInteractions | number }}</span>
+              </div>
+            </div>
+
+            @if (modalPost.postUrl) {
+              <div class="modal-cta-row">
+                <a
+                  [href]="modalPost.postUrl"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="modal-open-original-btn">
+                  <span>Abrir publicación original en {{ modalPost.network | titlecase }}</span>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg>
+                </a>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+</section>

@@ -13,6 +13,9 @@ import { ApifyChartService, ChartMetric } from '../../services/apify-chart.servi
 import { ApifyDataGridComponent } from '../apify-data-grid/apify-data-grid.component';
 import { ApifyRunsTableComponent } from '../apify-runs-table/apify-runs-table.component';
 import { DateRangePickerComponent } from '../date-range-picker/date-range-picker.component';
+import { ViralHighlightsComponent } from '../viral-highlights/viral-highlights.component';
+import { MetricInfoTooltipComponent } from '../metric-info-tooltip/metric-info-tooltip.component';
+import { MethodologyGuideComponent } from '../methodology-guide/methodology-guide.component';
 
 export type KpiSortOption = 'followers' | 'views' | 'likes' | 'posts';
 
@@ -26,7 +29,10 @@ export type KpiSortOption = 'followers' | 'views' | 'likes' | 'posts';
     NgxEchartsDirective,
     ApifyDataGridComponent,
     ApifyRunsTableComponent,
-    DateRangePickerComponent
+    DateRangePickerComponent,
+    ViralHighlightsComponent,
+    MetricInfoTooltipComponent,
+    MethodologyGuideComponent
   ],
   templateUrl: './apify-viewer.component.html',
   styleUrl: './apify-viewer.component.scss',
@@ -55,6 +61,19 @@ export class ApifyViewerComponent implements OnInit {
 
   filterStartDate = signal<string>('');
   filterEndDate = signal<string>('');
+
+  // Control de la Guía y Documentación Metodológica
+  showMethodologyModal = signal<boolean>(false);
+  selectedMethodologyTopic = signal<string>('overview');
+
+  openMethodology(topicId: string = 'overview'): void {
+    this.selectedMethodologyTopic.set(topicId);
+    this.showMethodologyModal.set(true);
+  }
+
+  closeMethodology(): void {
+    this.showMethodologyModal.set(false);
+  }
 
   gridBrandFilter = signal<string>('ALL');
   gridNetworkFilter = signal<string>('ALL');
