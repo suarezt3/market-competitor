@@ -48,6 +48,24 @@
           </nav>
         </aside>
 
+        <!-- BARRA DE PESTAÑAS HORIZONTAL PARA MÓVIL / TABLET -->
+        <div class="mobile-nav-tabs-wrapper">
+          <div class="mobile-nav-tabs custom-scrollbar">
+            @for (sec of sections; track sec.id) {
+              <button
+                type="button"
+                class="mobile-tab-chip"
+                [class.active]="activeSection() === sec.id"
+                (click)="activeSection.set(sec.id)">
+                @if (sec.badge) {
+                  <span class="tab-chip-num">{{ sec.badge }}</span>
+                }
+                <span class="tab-chip-label">{{ sec.label }}</span>
+              </button>
+            }
+          </div>
+        </div>
+
         <!-- PANEL DE LECTURA PRINCIPAL -->
         <main class="content-viewport custom-scrollbar">
 

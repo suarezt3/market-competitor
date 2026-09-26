@@ -1,61 +1,73 @@
-# Plan de Implementación: Corrección de Documentación de "Share of Voice Omnicanal" y Rediseño de Botón en Sidebar
+# Plan de Implementación: Optimización Integral de Media Queries y Adaptabilidad Responsiva
 
-Este plan aborda las dos correcciones solicitadas por el usuario:
-1. **Corrección de la Documentación del Gráfico 'Share of Voice Omnicanal':** Sustituir el tooltip erróneo de *"Evolución y Tendencia Temporal"* por la definición, fórmula matemática y campos API exactos de la comparativa multicanal por red (Facebook, Instagram, TikTok, YouTube), además de profundizar esta explicación en la guía metodológica.
-2. **Rediseño Profesional del Botón en la Barra Lateral:** Mover y rediseñar el botón de *"Guía Metodológica & Fórmulas"* para que coincida con el estilo estético del dashboard (tarjeta interactiva con micro-badge, icono vectorizado, subtítulo explicativo y micro-interacciones de hover).
+Este plan aborda la revisión y reestructuración completa del sistema de estilos responsivos para asegurar que toda la suite de Market Intelligence (sidebar, cabecera fija, tarjetas KPI, cuadrícula de gráficos ECharts, tablas de datos, visualizador de contenido viral y modal de guía metodológica) se adapte con fluidez desde dispositivos móviles de 360px hasta monitores ultra-wide de más de 1440px.
 
 ---
 
 ## User Review Required
 
 > [!IMPORTANT]
-> **Detalles de los Cambios Confirmados:**
-> 1. **Gráfico 'Share of Voice Omnicanal':**
->    - **Título del Tooltip:** *"Share of Voice Omnicanal (Comparativa Multicanal)"*
->    - **Definición:** *"Desglose del volumen generado por cada marca competidora en cada una de las redes sociales del ecosistema (Facebook, Instagram, TikTok, YouTube) para la métrica activa seleccionada."*
->    - **Fórmula Matemática:** $\text{Volumen}(\text{Marca}, \text{Red}) = \sum_{i \in \text{Posts}(\text{Marca}, \text{Red})} \text{Métrica}_i$
->    - **Campos API:** `__network`, `likes`, `comments`, `views`, `shares`.
->    - **Enlace de Documentación:** Sección 06 de la Guía Metodológica (*Cuota de Mercado y Comparativa Omnicanal*), enriquecida con la explicación de dominancia canal por canal.
-> 2. **Botón en Sidebar Lateral:**
->    - Se elimina el estilo por defecto de navegador causado por un anidamiento CSS erróneo fuera de `.dashboard-sidebar`.
->    - Se implementa como una tarjeta de acción refinada: icono de documento/fórmulas con fondo suave índigo, tipografía nítida con título y subtítulo, borde sutil (`#e2e8f0`), elevación suave y transición al pasar el cursor.
+> **Puntos Críticos de Adaptabilidad Detectados:**
+> 1. **Sidebar vs. Área Principal:** Actualmente solo existe una media query mínima en 1024px. En pantallas medianas y móviles, el sidebar y el área principal necesitan un comportamiento ergonómico (apilamiento limpio, cabecera colapsable y botones de acción accesibles con un solo dedo).
+> 2. **Cuadrículas de Gráficas (`charts-grid`):** El valor actual `minmax(450px, 1fr)` fuerza desbordamientos horizontales en pantallas menores a 500px. Se adaptará dinámicamente con `minmax(100%, 1fr)` en móviles y alturas óptimas para evitar cortes en leyendas o ejes.
+> 3. **Cabecera Fija y Selector de Métricas:** En móviles (< 768px y < 480px), la fila de métricas ("Total Interacciones", "Vistas", "Likes", "Comentarios") y el selector de fechas deben convertirse en controles táctiles fluidos (scroll horizontal suave o cuadrícula 2x2) sin desbordar la pantalla.
+> 4. **Modal de Guía Metodológica:** En resoluciones pequeñas (< 860px), el modal de 2 columnas debe reorganizarse automáticamente a pantalla completa o vista apilada con selector de secciones superior.
+> 5. **Popovers de Información `(?)`:** Los tooltips contextuales tendrán límites automáticos de ancho (`max-width: min(340px, calc(100vw - 32px))`) y posicionamiento inteligente para no salirse de la pantalla en pantallas angostas.
 
 ---
 
 ## Proposed Changes
 
-### 1. Corrección en `src/app/components/apify-viewer/apify-viewer.component.html`
-- Localizar el bloque `@if (masterChartOptions())` (línea ~732).
-- Actualizar los parámetros de `<app-metric-info-tooltip>`:
-  - `title`: `'Share of Voice Omnicanal (Comparativa por Red)'`
-  - `definition`: `'Distribución y comparativa del desempeño de cada competidor a través de las distintas redes sociales (Facebook, Instagram, TikTok, YouTube) para la métrica activa.'`
-  - `formula`: `'Volumen(Marca, Red) = Σ Métrica_Activa de publicaciones de esa marca en dicha plataforma'`
-  - `fieldsUsed`: `['__network', 'likes', 'comments', 'views', 'shares']`
-  - `topicId`: `'market_share'`
-- Mejorar el marcado del botón en el sidebar para incluir estructura de icono badge, textos jerárquicos (título + subtítulo) e icono de flecha `→`.
+### 1. Sistema de Breakpoints Estandarizado en `src/app/components/apify-viewer/apify-viewer.component.scss`
+Implementaremos una jerarquía fluida con breakpoints bien definidos:
+- **Ultra-Wide (> 1600px):** Contención de lectura máxima y cuadrículas de 3 columnas para maximizar el uso de pantalla.
+- **Desktop Estándar (1025px - 1440px):** Layout original refinado, 2 columnas de gráficos y KPIs en 4 columnas.
+- **Laptop Pequeña / Tablet Horizontal (769px - 1024px):**
+  - Layout en una columna vertical con sidebar superior compacto.
+  - KPIs en 2 columnas.
+  - Gráficas al 100% de ancho con altura ajustada (380px - 420px).
+- **Tablet Vertical / Mobile Grande (481px - 768px):**
+  - Reducción del padding del dashboard de `3rem` a `1.25rem`.
+  - Selector de métricas en scroll horizontal o wrap compacto.
+  - Botones de exportación (CSV, XLSX, PDF) agrupados con iconos concisos.
+  - Filtros de fecha en bloque vertical.
+- **Mobile Estándar (360px - 480px):**
+  - Padding de seguridad de `0.75rem` - `1rem`.
+  - KPIs en 1 columna (o 2 columnas ultracompactas con fuentes escaladas).
+  - Títulos de gráficos con soporte de saltos de línea elegantes para que el botón `(?)` no se superponga con el título ni la leyenda.
+  - Tablas de datos con contenedor `overflow-x: auto` con indicador sutil de desplazamiento.
 
-### 2. Actualización de Estilos en `src/app/components/apify-viewer/apify-viewer.component.scss`
-- Reubicar y perfeccionar la clase `.sidebar-methodology-btn` y su contenedor `.sidebar-help-section` directamente dentro del bloque `.dashboard-sidebar` para garantizar que los estilos se apliquen correctamente.
-- Aplicar:
-  - `background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.75rem;`
-  - Badge de icono SVG con gradiente o fondo `#eef2ff` y color `#4f46e5`.
-  - Estructura flex con `title` (`font-weight: 700; font-size: 0.82rem`) y `subtitle` (`color: #64748b; font-size: 0.7rem`).
-  - Efecto `:hover` con elevación (`transform: translateY(-1px)`), sombra sutil y borde `#c7d2fe`.
+### 2. Ajuste del Modal de Metodología (`src/app/components/methodology-guide/methodology-guide.component.scss`)
+- En pantallas < 768px:
+  - Rediseño del modal para ocupar `96vw` y `92vh` (o fullscreen táctil).
+  - Reemplazo de la barra lateral fija por un menú de pestañas horizontal desplazable con chips interactivos (`overflow-x: auto`).
+  - Bloques de fórmulas mono-espaciadas con scroll horizontal suave para que las fórmulas matemáticas largas no se trunquen ni rompan el layout.
 
-### 3. Profundización en `src/app/components/methodology-guide/methodology-guide.component.html`
-- En la sección **06 (Cuota de Mercado y Share of Voice)**, añadir el apartado específico de **Comparativa Omnicanal por Red Social**:
-  - Explicar cómo se construye la matriz de barras agrupadas por canal.
-  - Cómo ayuda a identificar qué marcas dominan en Facebook (ej. Royal Canin con 4.3M), cuáles en TikTok o Instagram, y cómo evaluar si la estrategia de un competidor es monoplataforma u omnicanal.
+### 3. Ajuste del Componente de Tooltip (`src/app/components/metric-info-tooltip/metric-info-tooltip.component.scss`)
+- Añadir reglas de contención de viewport:
+  - `right: 0` por defecto en pantallas móviles con `max-width: calc(100vw - 3rem)`.
+  - Sombra y z-index optimizados para evitar que elementos hermanos o canvas interfieran.
+
+### 4. Componente de Contenido Viral (`src/app/components/viral-highlights/viral-highlights.component.scss`)
+- Refuerzo de las media queries existentes para que las tarjetas de posts virales pasen de 3-4 columnas a 2 columnas en tablets y 1 columna en móviles, con previsualizaciones de video/imagen que preserven el aspect-ratio.
+
+### 5. Redimensionamiento Reactivo de ECharts (`src/app/components/apify-viewer/apify-viewer.component.ts`)
+- Asegurar que el evento `resize` de la ventana redibuje automáticamente todas las instancias activas de ECharts mediante ResizeObserver o handler debounced, evitando que los gráficos queden con anchos desactualizados tras rotar la pantalla o cambiar el tamaño de ventana.
 
 ---
 
 ## Verification Plan
 
 ### Verificación Automatizada
-- Ejecutar `compile_applet` para confirmar compilación limpia en Angular 21 y SCSS sin advertencias.
+- Ejecutar `compile_applet` para garantizar que la compilación Angular y de SCSS sea completamente exitosa sin errores de sintaxis.
 
-### Verificación Manual
-- Abrir la vista general omnicanal con data cargada.
-- Hacer clic en el icono `(?)` en la esquina superior del gráfico **Share of Voice Omnicanal** y comprobar que muestra el título, definición, fórmula y campos correctos (en lugar del texto de evolución temporal).
-- Hacer clic en *"Ver guía metodológica completa"* y verificar que lleva a la sección enriquecida de Cuota de Mercado y Desglose Omnicanal.
-- Observar el panel lateral izquierdo y verificar que el botón de *"Guía Metodológica & Fórmulas"* luce con un diseño elegante, profesional y 100% integrado con el estilo visual de la aplicación.
+### Verificación de Resoluciones (Manual / Emulada)
+- **Móvil (375px - iPhone SE / 390px - iPhone 12/14):**
+  - Comprobar que no existe desplazamiento horizontal no deseado en la página principal (`overflow-x: hidden` en el viewport raíz).
+  - Verificar que el botón de *Guía Metodológica*, los selectores de fecha y el selector de métricas se muestran alineados y son fáciles de presionar.
+  - Verificar que las tarjetas de gráficos se visualizan al 100% de ancho con leyendas y títulos legibles.
+  - Abrir el popover `(?)` y verificar que no se corta en el margen derecho.
+- **Tablet (768px - iPad):**
+  - Verificar transición fluida entre layout apilado y controles compactos.
+- **Laptop / Monitor 1080p (1024px - 1440px):**
+  - Comprobar que el sidebar permanece fijo y la cuadrícula de gráficos aprovecha el espacio en 2 columnas sin solapamientos.

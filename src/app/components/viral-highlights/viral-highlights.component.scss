@@ -718,3 +718,59 @@
   from { transform: scale(0.96); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 }
+
+@media (max-width: 640px) {
+  .viral-modal-backdrop {
+    padding: 0.5rem;
+  }
+
+  .viral-modal-container {
+    max-height: 96vh;
+    border-radius: 0.75rem;
+
+    .modal-header {
+      padding: 0.75rem 1rem;
+
+      .modal-brand-info {
+        font-size: 0.78rem;
+        gap: 0.4rem;
+
+        .modal-rank-badge {
+          font-size: 0.65rem;
+          padding: 0.15rem 0.45rem;
+        }
+      }
+    }
+
+    .modal-body {
+      padding: 1rem;
+      gap: 1rem;
+
+      .modal-image-wrap {
+        max-height: 250px;
+
+        .modal-full-img {
+          max-height: 250px;
+        }
+      }
+
+      .modal-details-pane {
+        .modal-full-caption {
+          font-size: 0.8rem;
+          max-height: 140px;
+          margin-bottom: 1rem;
+        }
+
+        .modal-metrics-card {
+          padding: 0.75rem;
+          gap: 0.5rem;
+          margin-bottom: 1rem;
+
+          .modal-stat .stat-number {
+            font-size: 0.95rem;
+          }
+        }
+      }
+    }
+  }
+}

@@ -41,12 +41,20 @@
   right: 0;
   z-index: 120;
   width: 320px;
+  max-width: min(320px, calc(100vw - 2.5rem));
   background: #ffffff;
   border: 1px solid #cbd5e1;
   border-radius: 0.75rem;
   box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.15), 0 8px 10px -6px rgba(15, 23, 42, 0.08);
   padding: 1rem;
   animation: popoverFadeIn 0.15s ease-out;
+
+  @media (max-width: 480px) {
+    right: -8px;
+    width: calc(100vw - 2rem);
+    max-width: 295px;
+    padding: 0.85rem;
+  }
 
   .popover-header {
     border-bottom: 1px solid #f1f5f9;

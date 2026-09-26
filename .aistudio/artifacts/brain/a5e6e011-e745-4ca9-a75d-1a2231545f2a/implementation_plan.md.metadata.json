@@ -1,6 +1,6 @@
 {
-  "summary":  "Plan de corrección para la documentación metodológica del gráfico 'Share of Voice Omnicanal' y rediseño visual del botón 'Guía Metodológica & Fórmulas' en la barra lateral con estilo coherente y profesional.",
-  "updatedAt":  "2026-09-26T15:02:32.361841789Z",
+  "summary":  "Plan integral para revisar, auditar y optimizar las media queries y el comportamiento responsivo en todas las resoluciones (Mobile 360-480px, Tablet 481-768px, Tablet L/Laptop 769-1024px, Desktop 1025-1440px y Pantallas Anchas 1440px+).",
+  "updatedAt":  "2026-09-26T15:15:27.039491379Z",
   "requestFeedback":  true,
   "userFacing":  true
 }
