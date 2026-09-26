@@ -461,4 +461,319 @@ export class ApifyChartService {
       series: seriesConfig
     };
   }
+
+  buildEngagementRateChart(network: string, rawData: any[]): EChartsOption {
+    const brandMap: Record<string, { posts: number; totalInteractions: number; totalViews: number; likes: number; comments: number }> = {};
+
+    rawData.forEach(item => {
+      const authorName = this.getNormalizedBrandName(item);
+      if (authorName === 'Embajadores / Creadores' || authorName === 'Medios y Eventos B2B') return;
+
+      const net = (network === 'omnicanal' ? item.__network : network) || item.__network || 'unknown';
+      const views = this.getMetricValue(item, net, 'views');
+      const likes = this.getMetricValue(item, net, 'likes');
+      const comments = this.getMetricValue(item, net, 'comments');
+      const interactions = likes + comments > 0 ? likes + comments : this.getMetricValue(item, net, 'total');
+
+      if (!brandMap[authorName]) {
+        brandMap[authorName] = { posts: 0, totalInteractions: 0, totalViews: 0, likes: 0, comments: 0 };
+      }
+      brandMap[authorName].posts += 1;
+      brandMap[authorName].totalInteractions += interactions;
+      brandMap[authorName].totalViews += views;
+      brandMap[authorName].likes += likes;
+      brandMap[authorName].comments += comments;
+    });
+
+    const brands = Object.keys(brandMap);
+    if (brands.length === 0) return {};
+
+    // Ordenar marcas por promedio de interacciones descendente
+    brands.sort((a, b) => {
+      const avgA = brandMap[a].posts ? brandMap[a].totalInteractions / brandMap[a].posts : 0;
+      const avgB = brandMap[b].posts ? brandMap[b].totalInteractions / brandMap[b].posts : 0;
+      return avgB - avgA;
+    });
+
+    const avgInteractionsData = brands.map(b => {
+      const d = brandMap[b];
+      const avg = d.posts ? Math.round(d.totalInteractions / d.posts) : 0;
+      return {
+        value: avg,
+        itemStyle: {
+          color: this.getBrandColor(b),
+          borderRadius: [6, 6, 0, 0]
+        },
+        meta: d
+      };
+    });
+
+    const erData = brands.map(b => {
+      const d = brandMap[b];
+      let rate = 0;
+      if (d.totalViews > 0) {
+        rate = Number(((d.totalInteractions / d.totalViews) * 100).toFixed(2));
+      } else if (d.posts > 0) {
+        rate = Number(((d.totalInteractions / (d.posts * 1000)) * 100).toFixed(2));
+      }
+      return rate;
+    });
+
+    return {
+      title: {
+        text: 'Engagement Rate y Promedio de Interacciones por Competidor',
+        subtext: 'Barras agrupadas: Promedio Interacciones/Post (color marca) vs Tasa Engagement % (púrpura)',
+        textStyle: { fontFamily: 'Inter', fontSize: 16, color: '#111827', fontWeight: 600 }
+      },
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: { type: 'shadow' },
+        backgroundColor: 'rgba(255, 255, 255, 0.98)',
+        borderColor: '#e2e8f0',
+        borderWidth: 1,
+        padding: 12,
+        textStyle: { fontFamily: 'Inter' },
+        formatter: (params: any) => {
+          if (!Array.isArray(params) || params.length === 0) return '';
+          const brand = params[0].name;
+          const d = brandMap[brand];
+          if (!d) return '';
+          const avg = d.posts ? Math.round(d.totalInteractions / d.posts) : 0;
+          const er = erData[brands.indexOf(brand)];
+          const brandColor = this.getBrandColor(brand);
+          return `
+            <div style="min-width: 220px; font-family: Inter, sans-serif;">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                <span style="display:inline-block; width: 10px; height: 10px; border-radius: 50%; background-color: ${brandColor};"></span>
+                <strong style="color: #111827; font-size: 14px;">${brand}</strong>
+              </div>
+              <div style="color: #64748b; font-size: 12px; margin-bottom: 6px;">
+                Publicaciones analizadas: <b style="color: #1e293b;">${d.posts}</b>
+              </div>
+              <hr style="margin: 6px 0; border: 0; border-top: 1px solid #f1f5f9;" />
+              <div style="display: flex; justify-content: space-between; gap: 12px; margin-bottom: 4px; font-size: 12px;">
+                <span style="color: #475569;">📊 Prom. Interacciones / Post:</span>
+                <b style="color: #2563eb;">${avg.toLocaleString()}</b>
+              </div>
+              <div style="display: flex; justify-content: space-between; gap: 12px; margin-bottom: 4px; font-size: 12px;">
+                <span style="color: #475569;">📈 Tasa de Engagement (ER):</span>
+                <b style="color: #8b5cf6;">${er}%</b>
+              </div>
+              <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 11px; color: #94a3b8; margin-top: 4px;">
+                <span>❤️ Likes: ${this.formatCompactNumber(d.likes)}</span>
+                <span>💬 Comentarios: ${this.formatCompactNumber(d.comments)}</span>
+              </div>
+            </div>
+          `;
+        }
+      },
+      legend: {
+        data: ['Promedio Interacciones / Post', 'Tasa Engagement (%)'],
+        top: 60,
+        textStyle: { fontFamily: 'Inter', fontSize: 12, color: '#475569' }
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '8%',
+        top: 115,
+        containLabel: true
+      },
+      xAxis: {
+        type: 'category',
+        data: brands,
+        axisLabel: {
+          fontFamily: 'Inter',
+          color: '#334155',
+          interval: 0,
+          rotate: brands.length > 5 ? 20 : 0
+        },
+        axisTick: { alignWithLabel: true }
+      },
+      yAxis: [
+        {
+          type: 'value',
+          name: 'Interacciones / Post',
+          nameTextStyle: { fontFamily: 'Inter', color: '#64748b', fontSize: 11 },
+          axisLabel: {
+            fontFamily: 'Inter',
+            formatter: (val: number) => this.formatCompactNumber(val)
+          },
+          splitLine: { lineStyle: { type: 'dashed', color: '#f1f5f9' } }
+        },
+        {
+          type: 'value',
+          name: 'Engagement Rate (%)',
+          nameTextStyle: { fontFamily: 'Inter', color: '#8b5cf6', fontSize: 11 },
+          axisLabel: {
+            fontFamily: 'Inter',
+            formatter: '{value}%'
+          },
+          splitLine: { show: false }
+        }
+      ],
+      series: [
+        {
+          name: 'Promedio Interacciones / Post',
+          type: 'bar',
+          data: avgInteractionsData,
+          yAxisIndex: 0,
+          barGap: '20%',
+          barMaxWidth: 28,
+          label: {
+            show: true,
+            position: 'top',
+            fontFamily: 'Inter',
+            fontSize: 10,
+            color: '#64748b',
+            formatter: (p: any) => p.value > 0 ? this.formatCompactNumber(p.value) : ''
+          }
+        },
+        {
+          name: 'Tasa Engagement (%)',
+          type: 'bar',
+          yAxisIndex: 1,
+          data: erData,
+          barMaxWidth: 28,
+          itemStyle: {
+            color: '#8b5cf6',
+            borderRadius: [4, 4, 0, 0]
+          },
+          label: {
+            show: true,
+            position: 'top',
+            fontFamily: 'Inter',
+            fontSize: 10,
+            fontWeight: 'bold',
+            color: '#7c3aed',
+            formatter: '{c}%'
+          }
+        }
+      ]
+    };
+  }
+
+  buildContentTypePerformanceChart(network: string, rawData: any[]): EChartsOption {
+    const formatMap: Record<string, { count: number; totalViews: number; totalInteractions: number }> = {
+      video: { count: 0, totalViews: 0, totalInteractions: 0 },
+      carousel: { count: 0, totalViews: 0, totalInteractions: 0 },
+      image: { count: 0, totalViews: 0, totalInteractions: 0 }
+    };
+
+    const formatLabels: Record<string, string> = {
+      video: 'Reels / Videos',
+      carousel: 'Carruseles',
+      image: 'Fotos / Imágenes'
+    };
+
+    rawData.forEach(item => {
+      let format = item._contentType;
+      if (!format || !formatMap[format]) {
+        if (item.videoUrl || item.playCount || item.viewsCount) format = 'video';
+        else if (item.isSlideshow || (item.mediaUrls && item.mediaUrls.length > 1)) format = 'carousel';
+        else format = 'image';
+      }
+
+      const net = (network === 'omnicanal' ? item.__network : network) || item.__network || 'unknown';
+      const views = this.getMetricValue(item, net, 'views');
+      const likes = this.getMetricValue(item, net, 'likes');
+      const comments = this.getMetricValue(item, net, 'comments');
+      const interactions = likes + comments > 0 ? likes + comments : this.getMetricValue(item, net, 'total');
+
+      if (!formatMap[format]) {
+        formatMap[format] = { count: 0, totalViews: 0, totalInteractions: 0 };
+      }
+      formatMap[format].count += 1;
+      formatMap[format].totalViews += views;
+      formatMap[format].totalInteractions += interactions;
+    });
+
+    const activeFormats = Object.keys(formatMap).filter(f => formatMap[f].count > 0);
+    if (activeFormats.length === 0) return {};
+
+    const categories = activeFormats.map(f => formatLabels[f] || f);
+    const avgViews = activeFormats.map(f => {
+      const d = formatMap[f];
+      return d.count ? Math.round(d.totalViews / d.count) : 0;
+    });
+    const avgInteractions = activeFormats.map(f => {
+      const d = formatMap[f];
+      return d.count ? Math.round(d.totalInteractions / d.count) : 0;
+    });
+
+    return {
+      title: {
+        text: 'Efectividad por Formato de Contenido',
+        subtext: 'Vistas promedio vs Interacciones promedio generadas por formato',
+        textStyle: { fontFamily: 'Inter', fontSize: 16, color: '#111827', fontWeight: 600 }
+      },
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: { type: 'shadow' },
+        backgroundColor: 'rgba(255, 255, 255, 0.98)',
+        borderColor: '#e2e8f0',
+        padding: 10,
+        textStyle: { fontFamily: 'Inter' }
+      },
+      legend: {
+        data: ['Vistas Promedio', 'Interacciones Promedio'],
+        top: 60,
+        textStyle: { fontFamily: 'Inter', fontSize: 12, color: '#475569' }
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '8%',
+        top: 110,
+        containLabel: true
+      },
+      xAxis: {
+        type: 'category',
+        data: categories,
+        axisLabel: { fontFamily: 'Inter', fontWeight: 600, color: '#334155' }
+      },
+      yAxis: [
+        {
+          type: 'value',
+          name: 'Vistas Promedio',
+          axisLabel: { formatter: (val: number) => this.formatCompactNumber(val) },
+          splitLine: { lineStyle: { type: 'dashed', color: '#f1f5f9' } }
+        },
+        {
+          type: 'value',
+          name: 'Interacciones Promedio',
+          axisLabel: { formatter: (val: number) => this.formatCompactNumber(val) },
+          splitLine: { show: false }
+        }
+      ],
+      series: [
+        {
+          name: 'Vistas Promedio',
+          type: 'bar',
+          yAxisIndex: 0,
+          data: avgViews,
+          itemStyle: { color: '#0ea5e9', borderRadius: [6, 6, 0, 0] },
+          barMaxWidth: 35,
+          label: {
+            show: true,
+            position: 'top',
+            formatter: (p: any) => p.value > 0 ? this.formatCompactNumber(p.value) : ''
+          }
+        },
+        {
+          name: 'Interacciones Promedio',
+          type: 'bar',
+          yAxisIndex: 1,
+          data: avgInteractions,
+          itemStyle: { color: '#8b5cf6', borderRadius: [6, 6, 0, 0] },
+          barMaxWidth: 35,
+          label: {
+            show: true,
+            position: 'top',
+            formatter: (p: any) => p.value > 0 ? this.formatCompactNumber(p.value) : ''
+          }
+        }
+      ]
+    };
+  }
 }

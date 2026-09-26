@@ -1,71 +1,55 @@
-# Plan de Rediseño: Selector de Ordenación en Comunidad de Marca
+# Plan de Implementación: Cabecera Fija (Sticky) de Filtros Globales y Gráfico de Barras Agrupadas de Engagement
 
-Rediseñar el selector nativo HTML `<select>` actual de la sección **Comunidad de Marca** por un selector interactivo tipo Popover Dropdown de alta gama, alineado con el lenguaje visual del dashboard y los filtros de cuadrícula existentes (`custom-filter-dropdown`), integrando iconos contextuales, badge de ordenación activa, microanimaciones y soporte para cierre al hacer clic fuera o presionar Escape.
+Este plan detalla los cambios para optimizar la experiencia de usuario trasladando los filtros globales a una **cabecera fija flotante (sticky header)** siempre visible durante el scroll, e implementando el **gráfico de barras agrupadas dobles** para visualizar en paralelo el promedio de interacciones y la tasa de engagement (%) por cada competidor.
 
 ---
 
 ## User Review Required
 
-> [!NOTE]
-> Se ha seleccionado el formato **Menú desplegable con Popover y Chevron**, con **iconos contextuales por métrica** y **check de selección activa**.
-
-- **Opciones de ordenación disponibles:**
-  1. 👥 **Mayor Comunidad** (`followers`): Ordena por volumen total de comunidad/seguidores acumulados.
-  2. 👁️ **Más Vistas** (`views`): Ordena por total de reproducciones/impresiones.
-  3. ❤️ **Más Likes** (`likes`): Ordena por interacciones de me gusta.
-  4. 📝 **Más Publicaciones** (`posts`): Ordena por volumen de posts publicados.
+> [!IMPORTANT]
+> **Decisiones de diseño acordadas con el usuario:**
+> 1. **Ubicación de Filtros Globales:**
+>    - **Cabecera fija superior (`position: sticky; top: 0; z-index: 40`)**: La barra con el selector de rango de fechas y los controles segmentados de métricas (`Total`, `Vistas`, `Likes`, `Comentarios`) se anclará en la parte superior del área de trabajo del dashboard.
+>    - Incorporará fondo translúcido con desenfoque de cristal (`backdrop-filter: blur(12px); background: rgba(255, 255, 255, 0.95)`), borde sutil inferior y sombra ligera al hacer scroll, garantizando que el usuario pueda cambiar fechas o métricas en cualquier punto sin tener que desplazarse hacia arriba.
+> 2. **Gráfico de Barras Agrupadas Dobles (Engagement vs Interacciones):**
+>    - Sustituir la visualización mixta (barra + línea) por **dos barras verticales agrupadas por competidor**:
+>      - **Barra 1 (Azul / Color Marca):** Promedio de interacciones por publicación (Likes + Comentarios).
+>      - **Barra 2 (Púrpura / Violeta):** Tasa de Engagement Rate estimada (`%`).
+>    - Doble eje Y (Eje izquierdo: valor numérico compacto de interacciones; Eje derecho: porcentaje con formato `{value}%`).
+>    - Etiquetas numéricas superiores en cada barra y tooltip detallado interactivo.
 
 ---
 
 ## Proposed Changes
 
-### `src/app/components/apify-viewer/apify-viewer.component.ts`
-- Actualizar el tipo del signal de dropdown activo o añadir `activeKpiSortDropdown = signal<boolean>(false)` (o integrar `'kpi-sort'` a `activeGridDropdown`).
-- Añadir métodos de control:
-  - `toggleKpiSortDropdown(event: MouseEvent)`
-  - `selectKpiSort(metric: KpiSortOption)`
-  - Integrar en el listener global `onDocumentClick(event: MouseEvent)` el cierre automático de este popover cuando se haga clic fuera.
-- Añadir helpers para obtener la etiqueta e icono actual de la opción seleccionada:
-  - `getKpiSortLabel(metric: KpiSortOption): string`
-  - `getKpiSortIcon(metric: KpiSortOption): string`
+### `src/app/services/apify-chart.service.ts`
+- Actualizar `buildEngagementRateChart(network: string, rawData: any[]): EChartsOption`:
+  - Configurar las dos series como tipo `'bar'` agrupadas (`barGap: '20%'`, `barMaxWidth: 28`):
+    - Serie 1: `'Promedio Interacciones / Post'` con `yAxisIndex: 0`, color de la marca respectiva y bordes superiores redondeados `borderRadius: [4, 4, 0, 0]`.
+    - Serie 2: `'Tasa Engagement (%)'` con `yAxisIndex: 1`, color violeta empresarial (`#8b5cf6`), bordes superiores redondeados `borderRadius: [4, 4, 0, 0]` y etiqueta de porcentaje visible `{c}%`.
+  - Configurar doble eje Y equilibrado para evitar solapamientos visuales.
 
 ### `src/app/components/apify-viewer/apify-viewer.component.html`
-- Sustituir el `<select>` nativo básico dentro de `<div class="kpi-controls-header">` por la estructura de Popover:
-  - Botón disparador con estilo pill/card compacto:
-    - Prefijo sutil `"Ordenar por:"`
-    - Icono de la métrica activa
-    - Nombre de la métrica en tipografía clara
-    - Indicador chevron animado (`expand_more`) con rotación a 180° al abrir
-  - Menú flotante (Popover Dropdown):
-    - Elevación suave (`box-shadow`), bordes redondeados (`rounded-xl` / `14px`), fondo blanco nítido con borde sutil.
-    - Lista de opciones accesibles con roles `menu` y `menuitem`.
-    - Cada item con:
-      - Icono temático representativo (👥 Followers, 👁️ Vistas, ❤️ Likes, 📝 Posts).
-      - Título claro y descriptivo.
-      - Checkmark activo animado (icono `check` o checkmark con color primario) cuando está seleccionado.
-      - Estados hover y active con feedback visual y transición suave.
+- Reubicar la barra de controles `.enterprise-analytics-toolbar`:
+  - Moverla a la parte superior de la sección de resultados (`@if (!isLoading() && !error() && data().length > 0)`), antes de los títulos de red y de las tablas de datos, convirtiéndola en la barra de control fija del dashboard.
+  - Asegurar que el selector `<app-date-range-picker>` y el control segmentado de métricas queden integrados limpiamente en la cabecera fija.
 
 ### `src/app/components/apify-viewer/apify-viewer.component.scss`
-- Añadir estilos personalizados para el componente selector de KPIs:
-  - `.kpi-sort-dropdown`: contenedor relativo y aislado.
-  - `.kpi-sort-trigger`: botón con acabado premium, bordes refinados, tipografía nítida e interactividad accesible.
-  - `.kpi-sort-menu`: popover flotante con animación de entrada (`fade-in` + `translateY`), z-index adecuado sobre los listados de competidores.
-  - `.kpi-sort-item`: diseño en renglón con alineación flexible, microinteracción al pasar el mouse, y estado `.is-selected` con fondo suave y acento de color.
+- Adaptar `.enterprise-analytics-toolbar`:
+  - `position: sticky; top: 0; z-index: 40;`
+  - Efecto de desenfoque de cristal (`backdrop-filter: blur(12px); background: rgba(255, 255, 255, 0.94);`)
+  - Margen negativo horizontal compensatorio o alineación con el padding del contenedor principal `.dashboard-content` para un acople perfecto de extremo a extremo.
+  - Asegurar que el popover del calendario de fechas mantenga un `z-index` superior (`z-index: 50+`) para desplegarse limpiamente sobre cualquier elemento subyacente.
 
 ---
 
 ## Verification Plan
 
 ### Verificación Automatizada
-- Ejecutar `compile_applet` para garantizar que la compilación de Angular 21 (AOT y Type-Checking estricto) sea 100% exitosa sin errores de tipado ni de sintaxis.
+- Ejecutar `compile_applet` para confirmar compilación exitosa sin errores de TypeScript, Angular ni ECharts.
 
 ### Verificación Manual / Visual
-- Abrir la sección de **Comunidad de Marca** en la vista principal.
-- Comprobar que el disparador muestra correctamente la opción seleccionada inicial (por defecto "Mayor Comunidad").
-- Hacer clic en el disparador y verificar que el menú desplegable abre con animación suave y chevron rotado.
-- Seleccionar cada métrica ("Más Vistas", "Más Likes", "Más Publicaciones", "Mayor Comunidad"):
-  - Verificar que la lista de competidores se reordena inmediatamente en tiempo real según la métrica elegida.
-  - Verificar que el check activo se actualiza a la opción seleccionada.
-  - Comprobar que el popover se cierra automáticamente al seleccionar.
-- Verificar el cierre con clic fuera del menú desplegable.
-- Validar el responsive y contraste tanto en pantallas de escritorio como en vistas compactas.
+- Comprobar que al cargar un dataset y hacer scroll hacia abajo por las tablas o por los gráficos de contenido, la barra de filtros de fechas y métricas permanece fija arriba.
+- Verificar que al hacer clic en el selector de fechas se abre el modal/dropdown sin recortes ni problemas de capas (z-index).
+- Cambiar de fecha o de métrica desde cualquier punto del scroll y confirmar que todos los gráficos y tablas se actualizan instantáneamente.
+- Verificar que el gráfico de **Engagement Rate y Promedio de Interacciones** muestra barras dobles agrupadas una al lado de la otra por cada marca competidora.

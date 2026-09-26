@@ -505,6 +505,20 @@ export class ApifyViewerComponent implements OnInit {
     return this.apifyChartService.buildMasterOmnichannelChart(data, this.selectedMetric());
   });
 
+  engagementChartOptions = computed(() => {
+    const data = this.filteredData();
+    const net = this.loadedNetwork();
+    if (!data.length || !net) return null;
+    return this.apifyChartService.buildEngagementRateChart(net, data);
+  });
+
+  formatPerformanceChartOptions = computed(() => {
+    const data = this.filteredData();
+    const net = this.loadedNetwork();
+    if (!data.length || !net) return null;
+    return this.apifyChartService.buildContentTypePerformanceChart(net, data);
+  });
+
   omnichannelStats = computed(() => {
     const currentData = this.data();
     if (this.loadedNetwork() !== 'omnicanal' || !currentData.length) return null;
