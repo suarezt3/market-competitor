@@ -1,41 +1,71 @@
-# Plan de Sincronización Global de Filtros por Red en Visión Ecosistema
+# Plan de Rediseño: Selector de Ordenación en Comunidad de Marca
 
-Armonización del flujo de filtrado en toda la plataforma para que la selección de un canal (Instagram, Facebook, TikTok, YouTube) recalcule integralmente las métricas superiores (KPIs, Cuota de Mercado, Share of Voice, Calidad de Contenido) además de la cuadrícula de contenido.
-
----
-
-## Arquitectura de Filtrado Unificado
-
-1. **Flujo de Reactividad Global (`filteredData`)**:
-   - Actualmente, `filteredData` solo evalúa el rango de fechas (`startDate`, `endDate`).
-   - Se actualizará `filteredData` para que, cuando estemos en **Visión Ecosistema (Omnicanal)** y exista un filtro de canal activo (`gridNetworkFilter !== 'ALL'`), se filtre el conjunto de datos completo por red.
-   - De este modo, todas las señales dependientes (`kpiSummary`, `kpiCompetitors`, `chartOptions`, `summaryMetrics` y `gridDisplayData`) se recalcularán automáticamente en tiempo real.
-
-2. **Sincronización Bidireccional de la Interfaz**:
-   - **Sidebar (Panel Izquierdo)**: Si el usuario ya cargó la data de Visión Ecosistema y hace clic en *Instagram*, no necesita volver a descargar datos desde Apify: se activa el filtro global de Instagram de inmediato sobre la data ya en memoria. Al hacer clic en *Visión Ecosistema*, se restablece a todos los canales.
-   - **Barra de Canales Omnicanal (Header / Badges)**: Las tarjetas y chips superiores reflejan el estado activo sincronizado con el sidebar y el dropdown.
-   - **Selector de Plataforma en Desglose de Contenido**: Comparte exactamente el mismo estado `gridNetworkFilter`, actualizando KPIs y gráficos en toda la pantalla.
-   - **Indicador Visual de Filtro Activo**: Si un canal está filtrado en modo Omnicanal, se muestra un aviso/badge elegante en la cabecera del dashboard (*"Filtrado por: Instagram (X publicaciones) — [Restablecer a Todos]"*).
-
-3. **Historial de Ejecuciones**:
-   - Mantiene su rol específico de auditoría: consultar y cargar ejecuciones históricas puntuales de Apify. Si el usuario carga una ejecución individual de una red desde la tabla, el dashboard cambia al modo monored de dicha ejecución.
+Rediseñar el selector nativo HTML `<select>` actual de la sección **Comunidad de Marca** por un selector interactivo tipo Popover Dropdown de alta gama, alineado con el lenguaje visual del dashboard y los filtros de cuadrícula existentes (`custom-filter-dropdown`), integrando iconos contextuales, badge de ordenación activa, microanimaciones y soporte para cierre al hacer clic fuera o presionar Escape.
 
 ---
 
-## Fases de Implementación
+## User Review Required
 
-### Fase 1: Actualización del Motor Reactivo en `apify-viewer.component.ts`
-- Modificar el signal computed `filteredData` para considerar `networkFilter` cuando `loadedNetwork() === 'omnicanal'`.
-- Adaptar las llamadas y helpers para que los KPIs de seguidores/audiencia muestren las métricas de la red seleccionada o el consolidado cuando esté en `ALL`.
-- Asegurar que la función `handleNavSelection(net)` alterne el filtro sin recargas innecesarias.
+> [!NOTE]
+> Se ha seleccionado el formato **Menú desplegable con Popover y Chevron**, con **iconos contextuales por métrica** y **check de selección activa**.
 
-### Fase 2: Sincronización Visual en la Plantilla HTML (`apify-viewer.component.html`)
-- Sincronizar los botones/chips de canal del panel superior omnicanal con `gridNetworkFilter`.
-- Agregar un banner/chip informativo de estado cuando hay un canal filtrado en Omnicanal para dar retroalimentación visual inmediata y un botón directo de "Ver Todos los Canales".
+- **Opciones de ordenación disponibles:**
+  1. 👥 **Mayor Comunidad** (`followers`): Ordena por volumen total de comunidad/seguidores acumulados.
+  2. 👁️ **Más Vistas** (`views`): Ordena por total de reproducciones/impresiones.
+  3. ❤️ **Más Likes** (`likes`): Ordena por interacciones de me gusta.
+  4. 📝 **Más Publicaciones** (`posts`): Ordena por volumen de posts publicados.
 
-### Fase 3: Ajustes Estilísticos en SCSS (`apify-viewer.component.scss`)
-- Estilos para el chip de filtro activo global en el header del dashboard.
+---
 
-### Fase 4: Compilación y Verificación
-- Ejecutar `compile_applet`.
-- Probar el comportamiento de filtrado entre Omnicanal (todos) y cada canal individual (Instagram, Facebook, TikTok, YouTube).
+## Proposed Changes
+
+### `src/app/components/apify-viewer/apify-viewer.component.ts`
+- Actualizar el tipo del signal de dropdown activo o añadir `activeKpiSortDropdown = signal<boolean>(false)` (o integrar `'kpi-sort'` a `activeGridDropdown`).
+- Añadir métodos de control:
+  - `toggleKpiSortDropdown(event: MouseEvent)`
+  - `selectKpiSort(metric: KpiSortOption)`
+  - Integrar en el listener global `onDocumentClick(event: MouseEvent)` el cierre automático de este popover cuando se haga clic fuera.
+- Añadir helpers para obtener la etiqueta e icono actual de la opción seleccionada:
+  - `getKpiSortLabel(metric: KpiSortOption): string`
+  - `getKpiSortIcon(metric: KpiSortOption): string`
+
+### `src/app/components/apify-viewer/apify-viewer.component.html`
+- Sustituir el `<select>` nativo básico dentro de `<div class="kpi-controls-header">` por la estructura de Popover:
+  - Botón disparador con estilo pill/card compacto:
+    - Prefijo sutil `"Ordenar por:"`
+    - Icono de la métrica activa
+    - Nombre de la métrica en tipografía clara
+    - Indicador chevron animado (`expand_more`) con rotación a 180° al abrir
+  - Menú flotante (Popover Dropdown):
+    - Elevación suave (`box-shadow`), bordes redondeados (`rounded-xl` / `14px`), fondo blanco nítido con borde sutil.
+    - Lista de opciones accesibles con roles `menu` y `menuitem`.
+    - Cada item con:
+      - Icono temático representativo (👥 Followers, 👁️ Vistas, ❤️ Likes, 📝 Posts).
+      - Título claro y descriptivo.
+      - Checkmark activo animado (icono `check` o checkmark con color primario) cuando está seleccionado.
+      - Estados hover y active con feedback visual y transición suave.
+
+### `src/app/components/apify-viewer/apify-viewer.component.scss`
+- Añadir estilos personalizados para el componente selector de KPIs:
+  - `.kpi-sort-dropdown`: contenedor relativo y aislado.
+  - `.kpi-sort-trigger`: botón con acabado premium, bordes refinados, tipografía nítida e interactividad accesible.
+  - `.kpi-sort-menu`: popover flotante con animación de entrada (`fade-in` + `translateY`), z-index adecuado sobre los listados de competidores.
+  - `.kpi-sort-item`: diseño en renglón con alineación flexible, microinteracción al pasar el mouse, y estado `.is-selected` con fondo suave y acento de color.
+
+---
+
+## Verification Plan
+
+### Verificación Automatizada
+- Ejecutar `compile_applet` para garantizar que la compilación de Angular 21 (AOT y Type-Checking estricto) sea 100% exitosa sin errores de tipado ni de sintaxis.
+
+### Verificación Manual / Visual
+- Abrir la sección de **Comunidad de Marca** en la vista principal.
+- Comprobar que el disparador muestra correctamente la opción seleccionada inicial (por defecto "Mayor Comunidad").
+- Hacer clic en el disparador y verificar que el menú desplegable abre con animación suave y chevron rotado.
+- Seleccionar cada métrica ("Más Vistas", "Más Likes", "Más Publicaciones", "Mayor Comunidad"):
+  - Verificar que la lista de competidores se reordena inmediatamente en tiempo real según la métrica elegida.
+  - Verificar que el check activo se actualiza a la opción seleccionada.
+  - Comprobar que el popover se cierra automáticamente al seleccionar.
+- Verificar el cierre con clic fuera del menú desplegable.
+- Validar el responsive y contraste tanto en pantallas de escritorio como en vistas compactas.

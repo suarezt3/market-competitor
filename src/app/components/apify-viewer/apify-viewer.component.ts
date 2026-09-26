@@ -62,7 +62,59 @@ export class ApifyViewerComponent implements OnInit {
   gridSortMetric = signal<string>('date_desc');
   gridSearchQuery = signal<string>('');
 
-  activeGridDropdown = signal<'brand' | 'network' | 'format' | 'sort' | null>(null);
+  activeGridDropdown = signal<'brand' | 'network' | 'format' | 'sort' | 'kpi-sort' | null>(null);
+
+  readonly kpiSortOptions: Array<{
+    value: KpiSortOption;
+    label: string;
+    sublabel: string;
+    icon: string;
+    color: string;
+    bgTint: string;
+  }> = [
+    {
+      value: 'followers',
+      label: 'Mayor Comunidad',
+      sublabel: 'Audiencia consolidada',
+      icon: 'followers',
+      color: '#2563eb',
+      bgTint: '#eff6ff'
+    },
+    {
+      value: 'views',
+      label: 'Más Vistas',
+      sublabel: 'Reproducciones totales',
+      icon: 'views',
+      color: '#9333ea',
+      bgTint: '#faf5ff'
+    },
+    {
+      value: 'likes',
+      label: 'Más Likes',
+      sublabel: 'Interacciones y likes',
+      icon: 'likes',
+      color: '#e11d48',
+      bgTint: '#fff1f2'
+    },
+    {
+      value: 'posts',
+      label: 'Más Publicaciones',
+      sublabel: 'Volumen de publicaciones',
+      icon: 'posts',
+      color: '#059669',
+      bgTint: '#ecfdf5'
+    }
+  ];
+
+  selectedKpiSortOption = computed(() => {
+    const current = this.kpiSortMetric();
+    return this.kpiSortOptions.find(opt => opt.value === current) ?? this.kpiSortOptions[0];
+  });
+
+  selectKpiSort(metric: KpiSortOption) {
+    this.kpiSortMetric.set(metric);
+    this.closeGridDropdowns();
+  }
 
   hasActiveGridFilters = computed(() => {
     return this.gridBrandFilter() !== 'ALL' ||
@@ -72,7 +124,7 @@ export class ApifyViewerComponent implements OnInit {
            this.gridSearchQuery().trim() !== '';
   });
 
-  toggleGridDropdown(menu: 'brand' | 'network' | 'format' | 'sort', event: MouseEvent) {
+  toggleGridDropdown(menu: 'brand' | 'network' | 'format' | 'sort' | 'kpi-sort', event: MouseEvent) {
     event.stopPropagation();
     if (this.activeGridDropdown() === menu) {
       this.activeGridDropdown.set(null);
@@ -87,7 +139,7 @@ export class ApifyViewerComponent implements OnInit {
 
   onDocumentClick(event: MouseEvent) {
     const target = event.target as HTMLElement;
-    if (!target.closest('.custom-filter-dropdown')) {
+    if (!target.closest('.custom-filter-dropdown') && !target.closest('.kpi-sort-dropdown')) {
       this.closeGridDropdowns();
     }
   }

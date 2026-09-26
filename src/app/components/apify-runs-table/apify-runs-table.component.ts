@@ -348,6 +348,27 @@ export class ApifyRunsTableComponent {
     }
   }
 
+  isHybrid(runId?: string): boolean {
+    return !!runId && runId.startsWith('HYBRID|');
+  }
+
+  getHybridSubRuns(runId?: string): { postsRunId?: string; pagesRunId?: string } {
+    if (!runId || !runId.startsWith('HYBRID|')) return {};
+    const parts = runId.split('|');
+    return {
+      postsRunId: parts[1] && parts[1] !== 'none' ? parts[1] : undefined,
+      pagesRunId: parts[2] && parts[2] !== 'none' ? parts[2] : undefined
+    };
+  }
+
+  formatBytes(bytes?: number): string {
+    if (!bytes || isNaN(bytes)) return '-';
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+  }
+
   // Helpers de visualización y formateo
   getPlatformName(actorId: string): string {
     if (!actorId) return 'Desconocido';

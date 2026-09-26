@@ -10,6 +10,21 @@ export type ApifyAction = 'run' | 'get-latest' | 'list-runs' | 'get-run-data' | 
 // Definición estricta de mercados soportados
 export type MarketCountry = 'Colombia' | 'México';
 
+export interface ApifyRunOptions {
+  memoryMbytes?: number;
+  timeoutSecs?: number;
+  [key: string]: any;
+}
+
+export interface ApifyRunStats {
+  computeUnits?: number;
+  memAvgBytes?: number;
+  memMaxBytes?: number;
+  cpuAvgUsage?: number;
+  durationMillis?: number;
+  [key: string]: any;
+}
+
 export interface ApifyRunRecord {
   id: string;
   status: string;
@@ -20,6 +35,17 @@ export interface ApifyRunRecord {
   country?: MarketCountry;
   inputStartDate?: string;
   inputEndDate?: string;
+  defaultDatasetId?: string;
+  defaultKeyValueStoreId?: string;
+  defaultRequestQueueId?: string;
+  buildId?: string;
+  buildNumber?: string;
+  exitCode?: number;
+  statusMessage?: string;
+  stats?: ApifyRunStats;
+  usage?: Record<string, any>;
+  options?: ApifyRunOptions;
+  [key: string]: any;
 }
 
 export interface ApifyPayload {

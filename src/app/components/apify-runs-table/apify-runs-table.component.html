@@ -508,9 +508,38 @@
       <!-- Drawer Header -->
       <div class="drawer-header">
         <div class="drawer-header-top">
-          <div class="drawer-eyebrow">
-            <img [src]="getPlatformIcon(run.actorId)" referrerpolicy="no-referrer" class="h-4 w-4 object-contain" alt="">
-            <span>Detalle de Ejecución Apify</span>
+          <div class="drawer-header-brand">
+            <div class="drawer-platform-badge">
+              <img [src]="getPlatformIcon(run.actorId)" referrerpolicy="no-referrer" class="platform-icon-clean" alt="">
+            </div>
+            <div class="drawer-header-titles">
+              <div class="drawer-badge-row">
+                <span class="drawer-tag">DETALLE DE EJECUCIÓN APIFY</span>
+                <span class="drawer-platform-tag">{{ getPlatformName(run.actorId) }}</span>
+                @if (isHybrid(run.id)) {
+                  <span class="drawer-hybrid-tag">HÍBRIDO CONSOLIDADO</span>
+                }
+              </div>
+              <div class="drawer-id-row">
+                <span id="drawer-title" class="drawer-run-id font-mono">{{ run.id }}</span>
+                <button
+                  type="button"
+                  (click)="copyToClipboard(run.id, 'runId')"
+                  class="btn-copy-id"
+                  [class.copied]="copiedField() === 'runId'"
+                  title="Copiar ID completo">
+                  @if (copiedField() === 'runId') {
+                    <span>✓ ¡Copiado!</span>
+                  } @else {
+                    <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                    <span>Copiar ID</span>
+                  }
+                </button>
+              </div>
+            </div>
           </div>
 
           <button
@@ -519,36 +548,6 @@
             class="drawer-close-btn"
             title="Cerrar panel (Esc)">
             ✕
-          </button>
-        </div>
-
-        <div class="drawer-header-main">
-          <div>
-            <h3 id="drawer-title" class="drawer-title font-mono">
-              {{ run.id }}
-            </h3>
-            <div class="drawer-subtitle">
-              <span>Actor: </span>
-              <strong class="text-slate-800">{{ getPlatformName(run.actorId) }}</strong>
-            </div>
-          </div>
-
-          <!-- Botón de copia rápida de Run ID -->
-          <button
-            type="button"
-            (click)="copyToClipboard(run.id, 'runId')"
-            class="btn-copy-id"
-            [class.copied]="copiedField() === 'runId'"
-            title="Copiar ID completo">
-            @if (copiedField() === 'runId') {
-              <span>✓ ¡Copiado!</span>
-            } @else {
-              <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-              </svg>
-              <span>Copiar ID</span>
-            }
           </button>
         </div>
 
@@ -562,7 +561,7 @@
               } @else if (run.status === 'RUNNING') {
                 <span class="status-pill status-running">⏳ En curso</span>
               } @else {
-                <span class="status-pill status-failed">✗ Fallido</span>
+                <span class="status-pill status-failed">✗ {{ run.status || 'Fallido' }}</span>
               }
             </div>
           </div>
@@ -570,7 +569,7 @@
           <div class="metric-card">
             <span class="metric-label">Costo Total</span>
             <div class="metric-value font-mono font-bold text-slate-900">
-              ${{ run.usageTotalUsd | number:'1.4-4' }} USD
+              ${{ (run.usageTotalUsd || 0) | number:'1.4-4' }} USD
             </div>
           </div>
 
@@ -584,7 +583,7 @@
           <div class="metric-card">
             <span class="metric-label">Mercado</span>
             <div class="metric-value font-semibold text-slate-800">
-              Colombia
+              {{ run.country || 'Colombia' }}
             </div>
           </div>
         </div>
@@ -604,7 +603,7 @@
             (click)="setDrawerTab('params')"
             class="drawer-tab-btn"
             [class.active]="drawerTab() === 'params'">
-            Parámetros & Fechas
+            Parámetros & Infraestructura
           </button>
 
           <button
@@ -622,12 +621,39 @@
         <!-- TAB 1: RESUMEN OPERATIVO -->
         @if (drawerTab() === 'overview') {
           <div class="drawer-section">
-            <h4 class="section-title">Información de Ejecución</h4>
+            <h4 class="section-title">Información de Ejecución Apify</h4>
             <div class="detail-list">
               <div class="detail-row">
-                <span class="detail-key">ID de Corrida:</span>
+                <span class="detail-key">ID de Corrida Principal:</span>
                 <span class="detail-val font-mono">{{ run.id }}</span>
               </div>
+
+              @if (isHybrid(run.id)) {
+                @let hybrid = getHybridSubRuns(run.id);
+                @if (hybrid.postsRunId) {
+                  <div class="detail-row">
+                    <span class="detail-key">Sub-Corrida (Posts):</span>
+                    <span class="detail-val font-mono">
+                      {{ hybrid.postsRunId }}
+                      <button type="button" (click)="copyToClipboard(hybrid.postsRunId, 'postsSubRun')" class="btn-copy-mini">
+                        {{ copiedField() === 'postsSubRun' ? '✓' : 'Copiar' }}
+                      </button>
+                    </span>
+                  </div>
+                }
+                @if (hybrid.pagesRunId) {
+                  <div class="detail-row">
+                    <span class="detail-key">Sub-Corrida (Páginas):</span>
+                    <span class="detail-val font-mono">
+                      {{ hybrid.pagesRunId }}
+                      <button type="button" (click)="copyToClipboard(hybrid.pagesRunId, 'pagesSubRun')" class="btn-copy-mini">
+                        {{ copiedField() === 'pagesSubRun' ? '✓' : 'Copiar' }}
+                      </button>
+                    </span>
+                  </div>
+                }
+              }
+
               <div class="detail-row">
                 <span class="detail-key">Identificador de Actor:</span>
                 <span class="detail-val font-mono">{{ run.actorId }}</span>
@@ -637,8 +663,20 @@
                 <span class="detail-val font-semibold text-slate-800">{{ getPlatformName(run.actorId) }}</span>
               </div>
               <div class="detail-row">
-                <span class="detail-key">Mercado:</span>
-                <span class="detail-val font-semibold text-slate-800">Colombia</span>
+                <span class="detail-key">Mercado Asignado:</span>
+                <span class="detail-val font-semibold text-slate-800">{{ run.country || 'Colombia' }}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-key">Estado de Ejecución:</span>
+                <span class="detail-val font-semibold">
+                  @if (run.status === 'SUCCEEDED') {
+                    <span style="color: #059669;">Exitoso (SUCCEEDED)</span>
+                  } @else if (run.status === 'RUNNING') {
+                    <span style="color: #d97706;">En curso (RUNNING)</span>
+                  } @else {
+                    <span style="color: #dc2626;">{{ run.status || 'Fallido' }}</span>
+                  }
+                </span>
               </div>
               <div class="detail-row">
                 <span class="detail-key">Fecha y Hora de Inicio:</span>
@@ -649,48 +687,83 @@
                 <span class="detail-val font-mono">{{ run.finishedAt ? (run.finishedAt | date:'medium') : 'En ejecución' }}</span>
               </div>
               <div class="detail-row">
+                <span class="detail-key">Duración Total:</span>
+                <span class="detail-val font-mono">{{ getDuration(run.startedAt, run.finishedAt) }}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-key">Costo Estimado de Ejecución:</span>
+                <span class="detail-val font-mono font-bold text-slate-800">${{ (run.usageTotalUsd || 0) | number:'1.4-4' }} USD</span>
+              </div>
+
+              @if (run.defaultDatasetId) {
+                <div class="detail-row">
+                  <span class="detail-key">Default Dataset ID:</span>
+                  <span class="detail-val font-mono">
+                    {{ run.defaultDatasetId }}
+                    <button type="button" (click)="copyToClipboard(run.defaultDatasetId, 'datasetId')" class="btn-copy-mini">
+                      {{ copiedField() === 'datasetId' ? '✓' : 'Copiar' }}
+                    </button>
+                  </span>
+                </div>
+              }
+
+              @if (run.defaultKeyValueStoreId) {
+                <div class="detail-row">
+                  <span class="detail-key">Default Key-Value Store ID:</span>
+                  <span class="detail-val font-mono">{{ run.defaultKeyValueStoreId }}</span>
+                </div>
+              }
+
+              @if (run.defaultRequestQueueId) {
+                <div class="detail-row">
+                  <span class="detail-key">Default Request Queue ID:</span>
+                  <span class="detail-val font-mono">{{ run.defaultRequestQueueId }}</span>
+                </div>
+              }
+
+              @if (run.buildNumber || run.buildId) {
+                <div class="detail-row">
+                  <span class="detail-key">Versión de Build Apify:</span>
+                  <span class="detail-val font-mono">#{{ run.buildNumber || run.buildId }}</span>
+                </div>
+              }
+
+              @if (run.exitCode !== undefined) {
+                <div class="detail-row">
+                  <span class="detail-key">Código de Salida (Exit Code):</span>
+                  <span class="detail-val font-mono">{{ run.exitCode }}</span>
+                </div>
+              }
+
+              @if (run.statusMessage) {
+                <div class="detail-row">
+                  <span class="detail-key">Mensaje del Sistema:</span>
+                  <span class="detail-val">{{ run.statusMessage }}</span>
+                </div>
+              }
+
+              <div class="detail-row">
                 <span class="detail-key">Tipo de Pipeline:</span>
                 <span class="detail-val">
                   @if (run.id.startsWith('HYBRID|')) {
                     <span class="badge-hybrid">Ecosistema Híbrido Consolidado</span>
                   } @else {
-                    <span>Actor Directo Apify Cloud</span>
+                    <span class="text-slate-700 font-medium">Actor Directo Apify Cloud</span>
                   }
                 </span>
               </div>
             </div>
-
-            <!-- Botón CTA de Carga Directa dentro del Drawer -->
-            <div class="drawer-cta-wrapper">
-              <button
-                type="button"
-                (click)="loadRunFromDrawer(run)"
-                [disabled]="run.status !== 'SUCCEEDED' && !run.id.startsWith('HYBRID')"
-                class="btn-drawer-cta">
-                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M5 12h14"></path>
-                  <path d="m12 5 7 7-7 7"></path>
-                </svg>
-                <span>Cargar este Reporte en el Dashboard</span>
-              </button>
-
-              @if (run.status !== 'SUCCEEDED' && !run.id.startsWith('HYBRID')) {
-                <p class="drawer-warning">
-                  ⚠️ Esta corrida no terminó con estado EXITOSO. No es posible consolidar datos de una corrida fallida.
-                </p>
-              }
-            </div>
           </div>
         }
 
-        <!-- TAB 2: PARÁMETROS Y TEMPORALIDAD -->
+        <!-- TAB 2: PARÁMETROS E INFRAESTRUCTURA -->
         @if (drawerTab() === 'params') {
           <div class="drawer-section">
             <h4 class="section-title">Parámetros de Extracción</h4>
             <div class="detail-list">
               <div class="detail-row">
                 <span class="detail-key">Mercado Objetivo:</span>
-                <span class="detail-val font-semibold text-slate-800">Colombia</span>
+                <span class="detail-val font-semibold text-slate-800">{{ run.country || 'Colombia' }}</span>
               </div>
               <div class="detail-row">
                 <span class="detail-key">Inicio Temporal Solicitado:</span>
@@ -710,10 +783,52 @@
                   @if (run.inputStartDate && run.inputEndDate) {
                     {{ run.inputStartDate | date:'dd/MM/yyyy' }} — {{ run.inputEndDate | date:'dd/MM/yyyy' }}
                   } @else {
-                    Extracción histórica abierta
+                    Extracción histórica continua
                   }
                 </span>
               </div>
+
+              @if (run.options?.memoryMbytes) {
+                <div class="detail-row">
+                  <span class="detail-key">Memoria RAM Asignada:</span>
+                  <span class="detail-val font-mono">{{ run.options.memoryMbytes }} MB</span>
+                </div>
+              }
+
+              @if (run.options?.timeoutSecs) {
+                <div class="detail-row">
+                  <span class="detail-key">Timeout de Ejecución:</span>
+                  <span class="detail-val font-mono">{{ run.options.timeoutSecs }} segundos</span>
+                </div>
+              }
+
+              @if (run.stats?.computeUnits) {
+                <div class="detail-row">
+                  <span class="detail-key">Unidades de Cómputo (CU):</span>
+                  <span class="detail-val font-mono font-bold text-slate-800">{{ run.stats.computeUnits | number:'1.4-4' }}</span>
+                </div>
+              }
+
+              @if (run.stats?.memAvgBytes) {
+                <div class="detail-row">
+                  <span class="detail-key">Memoria Promedio Usada:</span>
+                  <span class="detail-val font-mono">{{ formatBytes(run.stats.memAvgBytes) }}</span>
+                </div>
+              }
+
+              @if (run.stats?.memMaxBytes) {
+                <div class="detail-row">
+                  <span class="detail-key">Memoria Máxima Alcanzada:</span>
+                  <span class="detail-val font-mono">{{ formatBytes(run.stats.memMaxBytes) }}</span>
+                </div>
+              }
+
+              @if (run.stats?.cpuAvgUsage) {
+                <div class="detail-row">
+                  <span class="detail-key">Uso Promedio de CPU:</span>
+                  <span class="detail-val font-mono">{{ run.stats.cpuAvgUsage | number:'1.1-1' }}%</span>
+                </div>
+              }
             </div>
 
             <div class="info-callout">
@@ -723,7 +838,7 @@
                 <line x1="12" y1="8" x2="12.01" y2="8"></line>
               </svg>
               <p class="text-xs text-slate-600 leading-relaxed m-0">
-                Los parámetros temporales son auditados contra los datasets almacenados para asegurar consistencia en las comparativas de cuota de voz (SOV) entre marcas competidoras.
+                Los parámetros y telemetría de contenedor son auditados en tiempo real contra los registros de Apify Cloud para garantizar consistencia operativa e integridad en el benchmark competitivo.
               </p>
             </div>
           </div>
@@ -733,7 +848,7 @@
         @if (drawerTab() === 'json') {
           <div class="drawer-section">
             <div class="json-header">
-              <span class="text-xs font-semibold text-slate-700">Objeto de Registro Apify</span>
+              <span class="text-xs font-semibold text-slate-700">Objeto de Registro Apify (Raw Payload)</span>
               <button
                 type="button"
                 (click)="copyToClipboard(formatJson(run), 'jsonRaw')"
@@ -746,21 +861,13 @@
         }
       </div>
 
-      <!-- Drawer Footer -->
+      <!-- Drawer Footer (Solo botón de Cerrar) -->
       <div class="drawer-footer">
         <button
           type="button"
           (click)="closeDrawer()"
           class="btn-footer-secondary">
           Cerrar
-        </button>
-
-        <button
-          type="button"
-          (click)="loadRunFromDrawer(run)"
-          [disabled]="run.status !== 'SUCCEEDED' && !run.id.startsWith('HYBRID')"
-          class="btn-footer-primary">
-          Cargar en Dashboard
         </button>
       </div>
 

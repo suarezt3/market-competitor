@@ -18,7 +18,7 @@ export type PresetKey = 'all' | '7d' | '14d' | '30d' | 'this_month' | 'last_mont
 @Component({
   selector: 'app-date-range-picker',
   standalone: true,
-  imports: [CommonModule, DatePipe],
+  imports: [CommonModule],
   templateUrl: './date-range-picker.component.html',
   styleUrl: './date-range-picker.component.scss',
   host: {
