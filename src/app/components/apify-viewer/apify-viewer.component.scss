@@ -326,6 +326,42 @@ $primary-hover: #4f46e5;
             border-color: #fecaca;
           }
         }
+
+        &.nav-item-gemini {
+          background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%);
+          border-color: #cbd5e1;
+          border-left: 3px solid #3b82f6;
+
+          &:hover {
+            background: linear-gradient(135deg, #eff6ff 0%, #e0e7ff 100%);
+            border-color: #93c5fd;
+            transform: translateY(-1px);
+          }
+
+          .gemini-icon-bg {
+            background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+            border-color: #3b82f6;
+            color: #ffffff;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          .nav-item-content .nav-item-title {
+            color: #1e3a8a;
+            font-weight: 700;
+          }
+
+          .gemini-badge {
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            color: #ffffff;
+            border: none;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            box-shadow: 0 2px 4px rgba(59, 130, 246, 0.25);
+          }
+        }
       }
     }
   }

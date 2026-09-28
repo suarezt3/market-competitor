@@ -106,6 +106,23 @@
           </div>
           <span class="nav-item-badge">{{ getChannelBadge('youtube') }}</span>
         </button>
+
+        <div class="nav-divider"></div>
+
+        <!-- Asistente Inteligente Gemini AI -->
+        <button type="button"
+                (click)="openGeminiChat()"
+                class="nav-item nav-item-gemini"
+                title="Abrir Asistente Interactivo Gemini 3.8 AI">
+          <div class="nav-item-icon gemini-icon-bg">
+            <span class="ai-sparkle-icon">✨</span>
+          </div>
+          <div class="nav-item-content">
+            <span class="nav-item-title">Asistente Gemini AI</span>
+            <span class="nav-item-desc">Insights & Consultas</span>
+          </div>
+          <span class="nav-item-badge gemini-badge">IA 3.8</span>
+        </button>
       </nav>
     </div>
 
@@ -301,6 +318,15 @@
         </div>
 
       </div>
+
+      <!-- TARJETA INTELIGENTE DE INSIGHTS CON GEMINI 3.8 AI -->
+      <app-ai-insights-card
+        [insights]="geminiService.insights()"
+        [isLoading]="geminiService.isGeneratingInsights()"
+        [lastUpdated]="geminiService.lastUpdated()"
+        (refreshRequested)="triggerGeminiInsights(true)"
+        (openChatRequested)="openGeminiChat($event)">
+      </app-ai-insights-card>
 
       <div class="results-header fade-in enterprise-header" style="margin-top: 1rem;">
         <div>
@@ -1303,3 +1329,15 @@
   [initialTopic]="selectedMethodologyTopic()"
   (closeModal)="closeMethodology()">
 </app-methodology-guide>
+
+<!-- DRAWER LATERAL DEL ASISTENTE INTELIGENTE GEMINI 3.8 AI -->
+<app-ai-assistant-drawer
+  [isOpen]="geminiService.isChatOpen()"
+  [isSending]="geminiService.isChatSending()"
+  [messages]="geminiService.chatHistory()"
+  [context]="datasetContextPayload()"
+  (closeRequested)="closeGeminiChat()"
+  (clearChatRequested)="clearGeminiChat()"
+  (sendMessageRequested)="sendChatMessage($event)"
+  (cancelRequested)="cancelGeminiChat()">
+</app-ai-assistant-drawer>

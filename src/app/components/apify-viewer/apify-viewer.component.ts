@@ -9,6 +9,7 @@ import { catchError } from 'rxjs/operators';
 
 import { ApifyService, ApifyRunRecord, ApifyResponse, MarketCountry } from '../../services/apify.service';
 import { ApifyChartService, ChartMetric } from '../../services/apify-chart.service';
+import { GeminiService, DatasetContextPayload } from '../../services/gemini.service';
 
 import { ApifyDataGridComponent } from '../apify-data-grid/apify-data-grid.component';
 import { ApifyRunsTableComponent } from '../apify-runs-table/apify-runs-table.component';
@@ -16,6 +17,8 @@ import { DateRangePickerComponent } from '../date-range-picker/date-range-picker
 import { ViralHighlightsComponent } from '../viral-highlights/viral-highlights.component';
 import { MetricInfoTooltipComponent } from '../metric-info-tooltip/metric-info-tooltip.component';
 import { MethodologyGuideComponent } from '../methodology-guide/methodology-guide.component';
+import { AiInsightsCardComponent } from '../ai-insights-card/ai-insights-card.component';
+import { AiAssistantDrawerComponent } from '../ai-assistant-drawer/ai-assistant-drawer.component';
 
 export type KpiSortOption = 'followers' | 'views' | 'likes' | 'posts';
 
@@ -32,7 +35,9 @@ export type KpiSortOption = 'followers' | 'views' | 'likes' | 'posts';
     DateRangePickerComponent,
     ViralHighlightsComponent,
     MetricInfoTooltipComponent,
-    MethodologyGuideComponent
+    MethodologyGuideComponent,
+    AiInsightsCardComponent,
+    AiAssistantDrawerComponent
   ],
   templateUrl: './apify-viewer.component.html',
   styleUrl: './apify-viewer.component.scss',
@@ -44,6 +49,7 @@ export type KpiSortOption = 'followers' | 'views' | 'likes' | 'posts';
 export class ApifyViewerComponent implements OnInit {
   private apifyService = inject(ApifyService);
   public apifyChartService = inject(ApifyChartService);
+  public geminiService = inject(GeminiService);
 
   isLoading = signal<boolean>(false);
   error = signal<string | null>(null);
@@ -419,6 +425,113 @@ export class ApifyViewerComponent implements OnInit {
       return itemMs >= startMs && itemMs <= endMs;
     });
   });
+
+  // ==========================================
+  // CONTEXTO REACTIVO PARA GEMINI AI INTELLIGENCE
+  // ==========================================
+  datasetContextPayload = computed<DatasetContextPayload>(() => {
+    const currentData = this.filteredData();
+    const platform = this.loadedNetwork() || 'Omnicanal';
+    const start = this.filterStartDate();
+    const end = this.filterEndDate();
+
+    // Top 10 posts ordenados por reproducciones / views
+    const topPosts = [...currentData]
+      .sort((a, b) => (b._kpi?.postViews || b.views || b.playCount || 0) - (a._kpi?.postViews || a.views || a.playCount || 0))
+      .slice(0, 10)
+      .map((item, idx) => {
+        const brand = this.apifyChartService.getNormalizedBrandName(item) || item.ownerUsername || 'Marca';
+        const views = item._kpi?.postViews || item.views || item.playCount || 0;
+        const likes = item._kpi?.postLikes || item.likes || item.likesCount || 0;
+        const comments = item.commentsCount || item.commentCount || item.comments || 0;
+        const er = views > 0 ? Number(((likes + comments) / views * 100).toFixed(2)) : 0;
+
+        return {
+          id: item.id || `post_${idx}`,
+          brand,
+          author: item.ownerUsername || item.authorMeta?.name || item.channelName || brand,
+          caption: item.caption || item.text || item.title || item.cleanText || '',
+          url: item.url || item.webVideoUrl || item.topLevelUrl || '#',
+          views,
+          likes,
+          comments,
+          engagementRate: er,
+          type: item._contentType || (item.videoUrl ? 'Video' : 'Post'),
+          date: item.time || item.timestamp || item.date || item.createdAt || ''
+        };
+      });
+
+    // Rendimiento por marca
+    const brandPerfMap = new Map<string, { brand: string; postCount: number; totalViews: number; totalLikes: number; totalComments: number }>();
+    for (const item of currentData) {
+      const b = this.apifyChartService.getNormalizedBrandName(item) || 'Otros';
+      if (b === 'Embajadores / Creadores' || b === 'Medios y Eventos B2B') continue;
+      const entry = brandPerfMap.get(b) || { brand: b, postCount: 0, totalViews: 0, totalLikes: 0, totalComments: 0 };
+      entry.postCount++;
+      entry.totalViews += (item._kpi?.postViews || item.views || item.playCount || 0);
+      entry.totalLikes += (item._kpi?.postLikes || item.likes || item.likesCount || 0);
+      entry.totalComments += (item.commentsCount || item.commentCount || item.comments || 0);
+      brandPerfMap.set(b, entry);
+    }
+
+    const brandPerformance = Array.from(brandPerfMap.values()).map(b => ({
+      brand: b.brand,
+      postCount: b.postCount,
+      totalViews: b.totalViews,
+      avgLikes: b.postCount > 0 ? Math.round(b.totalLikes / b.postCount) : 0,
+      avgEngagement: b.totalViews > 0 ? Number(((b.totalLikes + b.totalComments) / b.totalViews * 100).toFixed(2)) : 0
+    })).sort((a, b) => b.totalViews - a.totalViews);
+
+    const totalViews = brandPerformance.reduce((acc, curr) => acc + curr.totalViews, 0);
+    const totalLikes = brandPerformance.reduce((acc, curr) => acc + (curr.avgLikes * curr.postCount), 0);
+    const totalComments = currentData.reduce((acc, curr) => acc + (curr.commentsCount || curr.commentCount || 0), 0);
+    const avgEngagementRate = totalViews > 0 ? Number(((totalLikes + totalComments) / totalViews * 100).toFixed(2)) : 4.5;
+
+    return {
+      platform,
+      dateRange: { start, end },
+      totalPosts: currentData.length,
+      brands: brandPerformance.map(b => b.brand),
+      metricsSummary: {
+        totalViews,
+        totalLikes,
+        totalComments,
+        avgEngagementRate
+      },
+      brandPerformance,
+      topPosts
+    };
+  });
+
+  triggerGeminiInsights(force = false): void {
+    const payload = this.datasetContextPayload();
+    if (payload.totalPosts > 0) {
+      this.geminiService.fetchInsights(payload, force);
+    }
+  }
+
+  openGeminiChat(initialPrompt?: string | void): void {
+    this.geminiService.toggleChatDrawer(true);
+    if (typeof initialPrompt === 'string' && initialPrompt.trim()) {
+      this.geminiService.sendChatMessage(initialPrompt, this.datasetContextPayload());
+    }
+  }
+
+  closeGeminiChat(): void {
+    this.geminiService.toggleChatDrawer(false);
+  }
+
+  sendChatMessage(text: string): void {
+    this.geminiService.sendChatMessage(text, this.datasetContextPayload());
+  }
+
+  cancelGeminiChat(): void {
+    this.geminiService.cancelChatMessage();
+  }
+
+  clearGeminiChat(): void {
+    this.geminiService.clearChat();
+  }
 
   // ==========================================
   // MOTOR REACTIVO ESPECÍFICO PARA EL GRID
@@ -1173,6 +1286,9 @@ export class ApifyViewerComponent implements OnInit {
       (item.commentsCount && item.commentsCount > 0)
     );
     this.selectedMetric.set(hasEngagement ? 'total' : 'views');
+
+    // Disparo automático de insights predictivos con Gemini AI
+    setTimeout(() => this.triggerGeminiInsights(), 100);
   }
 
   applyFilter(metric: ChartMetric) {

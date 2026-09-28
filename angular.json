@@ -21,6 +21,11 @@
           "builder": "@angular/build:application",
           "options": {
             "browser": "src/main.ts",
+            "server": "src/main.server.ts",
+            "outputMode": "server",
+            "ssr": {
+              "entry": "src/server.ts"
+            },
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": [
@@ -43,8 +48,8 @@
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "25kB",
-                  "maximumError": "50kB"
+                  "maximumWarning": "60kB",
+                  "maximumError": "100kB"
                 }
               ],
               "outputHashing": "all"
@@ -52,7 +57,10 @@
             "development": {
               "optimization": false,
               "extractLicenses": false,
-              "sourceMap": true
+              "sourceMap": true,
+              "externalDependencies": [
+                "@google/genai"
+              ]
             }
           },
           "defaultConfiguration": "production"
@@ -61,7 +69,8 @@
           "builder": "@angular/build:dev-server",
           "options": {
             "port": 3000,
-            "host": "0.0.0.0"
+            "host": "0.0.0.0",
+            "allowedHosts": true
           },
           "configurations": {
             "production": {
