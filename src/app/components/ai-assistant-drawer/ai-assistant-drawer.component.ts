@@ -1,5 +1,5 @@
 // src/app/components/ai-assistant-drawer/ai-assistant-drawer.component.ts
-import { Component, ChangeDetectionStrategy, input, output, signal, ElementRef, ViewChild, AfterViewChecked } from '@angular/core';
+import { Component, ChangeDetectionStrategy, input, output, signal, ElementRef, ViewChild, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormControl, Validators } from '@angular/forms';
 import { ChatMessage, DatasetContextPayload } from '../../services/gemini.service';
@@ -652,7 +652,7 @@ import { ChatMessage, DatasetContextPayload } from '../../services/gemini.servic
     }
   `]
 })
-export class AiAssistantDrawerComponent implements AfterViewChecked {
+export class AiAssistantDrawerComponent {
   @ViewChild('scrollContainer') private scrollContainer?: ElementRef<HTMLDivElement>;
 
   public isOpen = input<boolean>(false);
@@ -690,8 +690,15 @@ export class AiAssistantDrawerComponent implements AfterViewChecked {
     }
   ];
 
-  ngAfterViewChecked(): void {
-    this.scrollToBottom();
+  constructor() {
+    // Desacoplar el scroll automático del ciclo sincrónico de cambio para evitar errores 'changed after checked'
+    effect(() => {
+      this.messages();
+      this.isSending();
+      if (this.isOpen()) {
+        setTimeout(() => this.scrollToBottom(), 50);
+      }
+    });
   }
 
   onClose(): void {
