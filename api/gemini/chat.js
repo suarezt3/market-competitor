@@ -1,9 +1,8 @@
-// api/gemini/chat.ts - Vercel Serverless Function para Chat con Gemini (Zero dependencies)
-declare const process: any;
+// api/gemini/chat.js - Vercel Serverless Function (CommonJS Universal, Zero Dependencies)
 
 const CANDIDATE_MODELS = ['gemini-3.8-flash', 'gemini-3.1-flash-lite', 'gemini-flash-latest'];
 
-export default async function handler(req: any, res: any) {
+async function handler(req, res) {
   // Configuración de encabezados CORS
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -36,15 +35,14 @@ export default async function handler(req: any, res: any) {
     return res.status(400).json({ error: 'Mensaje requerido.' });
   }
 
-  const apiKey = process.env['GEMINI_API_KEY'];
+  const apiKey = process.env.GEMINI_API_KEY;
 
-  // Si no hay GEMINI_API_KEY en Vercel, responder con el motor analítico y avisar claramente
   if (!apiKey) {
     console.warn('[Vercel API] GEMINI_API_KEY no encontrada en variables de entorno.');
     const localReply = generateDataDrivenReply(message, context);
     return res.status(200).json({
       success: true,
-      reply: `${localReply}\n\n> ⚠️ **Aviso de configuración en Vercel:** La variable de entorno \`GEMINI_API_KEY\` no fue detectada en esta ejecución. Si acabas de agregar la variable en Vercel, recuerda ir a **Deployments > [...] > Redeploy** para que los cambios surtan efecto en las funciones del servidor.`,
+      reply: `${localReply}\n\n> ⚠️ **Aviso de configuración en Vercel:** La variable de entorno \`GEMINI_API_KEY\` no fue detectada. Verifica en Vercel > Settings > Environment Variables y haz un Redeploy.`,
       timestamp: new Date().toISOString(),
       source: 'dataset_analytics_no_key'
     });
@@ -70,7 +68,7 @@ Contexto actual de datos en pantalla:
 - Resumen de Top Publicaciones: ${JSON.stringify(context?.topPostsSummary || [], null, 2)}
 - Desempeño por Marca: ${JSON.stringify(context?.brandPerformance || [], null, 2)}`;
 
-  const formattedContents: any[] = [];
+  const formattedContents = [];
 
   if (Array.isArray(history) && history.length > 0) {
     for (const item of history.slice(-6)) {
@@ -96,7 +94,7 @@ Contexto actual de datos en pantalla:
     }
   };
 
-  let lastModelError: any = null;
+  let lastModelError = null;
 
   for (const model of CANDIDATE_MODELS) {
     try {
@@ -114,7 +112,7 @@ Contexto actual de datos en pantalla:
         const errorJson = await response.json().catch(() => ({}));
         const msg = errorJson?.error?.message || `HTTP ${response.status}`;
         lastModelError = new Error(msg);
-        console.warn(`[Vercel API] Modelo ${model} respondió error: ${msg}. Probando siguiente modelo...`);
+        console.warn(`[Vercel API] Modelo ${model} error: ${msg}. Probando siguiente modelo...`);
         continue;
       }
 
@@ -129,27 +127,26 @@ Contexto actual de datos en pantalla:
           modelUsed: model
         });
       }
-    } catch (err: any) {
+    } catch (err) {
       lastModelError = err;
-      console.warn(`[Vercel API] Error conectando con modelo ${model}:`, err?.message);
+      console.warn(`[Vercel API] Excepción al llamar modelo ${model}:`, err?.message);
     }
   }
 
-  // Si todos los modelos de Gemini fallan, entregar respuesta analítica directa con aviso
   const fallbackReply = generateDataDrivenReply(message, context);
   const errMsg = lastModelError?.message || 'Error de conexión con Gemini';
   return res.status(200).json({
     success: true,
-    reply: `${fallbackReply}\n\n> ⚠️ **Aviso de Gemini en Vercel:** No se pudo completar la llamada al modelo (${errMsg}). Verifica que tu \`GEMINI_API_KEY\` sea válida y tenga la API habilitada.`,
+    reply: `${fallbackReply}\n\n> ⚠️ **Aviso de Gemini en Vercel:** No se pudo completar la llamada al modelo (${errMsg}).`,
     timestamp: new Date().toISOString(),
     source: 'dataset_analytics_fallback'
   });
 }
 
-function generateDataDrivenReply(userQuery: string, context: any): string {
+function generateDataDrivenReply(userQuery, context) {
   const query = (userQuery || '').toLowerCase();
-  const posts: any[] = context?.topPostsSummary || context?.topPosts || [];
-  const brands: any[] = context?.brandPerformance || [];
+  const posts = context?.topPostsSummary || context?.topPosts || [];
+  const brands = context?.brandPerformance || [];
 
   let matchedPosts = posts;
   let targetBrand = '';
@@ -157,7 +154,7 @@ function generateDataDrivenReply(userQuery: string, context: any): string {
   for (const b of context?.brands || []) {
     const brandLower = b.toLowerCase();
     const cleanBrandWords = brandLower.split(/[\s-]+/);
-    if (query.includes(brandLower) || cleanBrandWords.some((w: string) => w.length > 3 && query.includes(w))) {
+    if (query.includes(brandLower) || cleanBrandWords.some((w) => w.length > 3 && query.includes(w))) {
       targetBrand = b;
       matchedPosts = posts.filter(
         (p) => (p.brand || '').toLowerCase().includes(brandLower) || (p.author || '').toLowerCase().includes(brandLower)
@@ -279,8 +276,11 @@ ${top.url && top.url !== '#' ? `\n🔗 **[Ver publicación original](${top.url})
 - **Total de Interacciones (Likes):** **${(context?.metricsSummary?.totalLikes || 0).toLocaleString()}**
 - **Tasa de Engagement Promedio:** **${(context?.metricsSummary?.avgEngagementRate || 0).toFixed(2)}%**
 
-Puedes preguntarme por métricas específicas de marcas como:
+Puedes hacerme consultas directas como:
+- *"¿Cuál es la publicación o video con más visualizaciones?"*
 - *"¿Cuál es el post con más likes de Royal Canin?"*
-- *"¿Qué formato rinde mejor entre videos y fotos?"*
-- *"¿Quién lidera en visualizaciones?"*`;
+- *"¿Quién lidera el benchmark?"*`;
 }
+
+module.exports = handler;
+module.exports.default = handler;
