@@ -1,7 +1,7 @@
-// api/gemini/insights.ts - Vercel Serverless Function para Insights con Gemini
-import { GoogleGenAI, Type } from '@google/genai';
+// api/gemini/insights.ts - Vercel Serverless Function para Insights con Gemini (Zero dependencies)
+declare const process: any;
 
-const CANDIDATE_MODELS = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.1-flash-lite'];
+const CANDIDATE_MODELS = ['gemini-3.8-flash', 'gemini-3.1-flash-lite', 'gemini-flash-latest'];
 
 export default async function handler(req: any, res: any) {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -20,7 +20,14 @@ export default async function handler(req: any, res: any) {
     return res.status(405).json({ error: 'Método no permitido. Solo se acepta POST.' });
   }
 
-  const payload = req.body;
+  let payload = req.body;
+  if (typeof payload === 'string') {
+    try {
+      payload = JSON.parse(payload);
+    } catch (e) {
+      console.error('[Vercel API] Error parseando payload JSON:', e);
+    }
+  }
 
   if (!payload || !payload.metricsSummary) {
     return res.status(400).json({ error: 'Contexto de datos requerido.' });
@@ -38,19 +45,10 @@ export default async function handler(req: any, res: any) {
     });
   }
 
-  const ai = new GoogleGenAI({
-    apiKey,
-    httpOptions: {
-      headers: {
-        'User-Agent': 'aistudio-build'
-      }
-    }
-  });
-
   const systemInstruction = `Eres un Director de Estrategia de Marketing Intelligence y Analítica Digital Senior.
 Tu tarea es analizar el dataset estructurado de competidores en redes sociales y generar un análisis ejecutivo de alto impacto.
 Enfócate en identificar claramente el post o video más exitoso/visto, explicar la razón de su viralidad, evaluar el liderazgo entre marcas y formular recomendaciones tácticas directas.
-Sé preciso con las métricas y responde exclusivamente en formato JSON estructurado según el schema especificado.`;
+Sé preciso con las métricas y responde exclusivamente en formato JSON estructurado con los campos: topOutlierContent, executiveSummary, leaderVsCompetitors, actionableRecommendations.`;
 
   const promptText = `Analiza los siguientes datos de rendimiento de competidores:
 Red Social / Plataforma: ${payload.platform || 'Omnicanal'}
@@ -70,73 +68,54 @@ ${JSON.stringify(payload.brandPerformance || [], null, 2)}
 Top Publicaciones con Mayor Impacto y Visualizaciones:
 ${JSON.stringify(payload.topPosts || [], null, 2)}
 
-Genera los insights completos destacando el post/video estrella, resumen ejecutivo, benchmarking de marcas y 3 recomendaciones tácticas.`;
+Genera los insights completos destacando el post/video estrella, resumen ejecutivo, benchmarking de marcas y 3 recomendaciones tácticas en JSON puro.`;
+
+  const requestPayload = {
+    systemInstruction: {
+      parts: [{ text: systemInstruction }]
+    },
+    contents: [
+      {
+        role: 'user',
+        parts: [{ text: promptText }]
+      }
+    ],
+    generationConfig: {
+      temperature: 0.3,
+      responseMimeType: 'application/json'
+    }
+  };
 
   for (const model of CANDIDATE_MODELS) {
     try {
-      const response = await ai.models.generateContent({
-        model,
-        contents: promptText,
-        config: {
-          systemInstruction,
-          temperature: 0.3,
-          responseMimeType: 'application/json',
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              topOutlierContent: {
-                type: Type.OBJECT,
-                properties: {
-                  brand: { type: Type.STRING, description: 'Marca o cuenta creadora' },
-                  type: { type: Type.STRING, description: 'Formato: Reel, TikTok, Video, Carousel, Post' },
-                  views: { type: Type.NUMBER, description: 'Número total de visualizaciones' },
-                  likes: { type: Type.NUMBER, description: 'Número total de likes' },
-                  comments: { type: Type.NUMBER, description: 'Número total de comentarios' },
-                  engagementRate: { type: Type.NUMBER, description: 'Tasa de interacción porcentual' },
-                  captionSnippet: { type: Type.STRING, description: 'Breve fragmento o título del contenido' },
-                  url: { type: Type.STRING, description: 'Enlace al post original si está disponible' },
-                  viralFactorReason: {
-                    type: Type.STRING,
-                    description: 'Explicación clara de por qué este post/video superó a los demás.'
-                  }
-                },
-                required: ['brand', 'type', 'views', 'viralFactorReason']
-              },
-              executiveSummary: {
-                type: Type.ARRAY,
-                items: { type: Type.STRING },
-                description: '3 bullets ejecutivos con hallazgos numéricos clave'
-              },
-              leaderVsCompetitors: {
-                type: Type.OBJECT,
-                properties: {
-                  leaderBrand: { type: Type.STRING, description: 'Marca líder en cuota de atención/views' },
-                  shareOfAttention: { type: Type.STRING, description: 'Ej: 46% del total de reproducciones' },
-                  competitiveEdge: { type: Type.STRING, description: 'Ventaja diferencial del líder' },
-                  competitorOpportunities: { type: Type.STRING, description: 'Oportunidades no aprovechadas' }
-                },
-                required: ['leaderBrand', 'shareOfAttention', 'competitiveEdge', 'competitorOpportunities']
-              },
-              actionableRecommendations: {
-                type: Type.ARRAY,
-                items: { type: Type.STRING },
-                description: '3 recomendaciones accionables'
-              }
-            },
-            required: ['topOutlierContent', 'executiveSummary', 'leaderVsCompetitors', 'actionableRecommendations']
-          }
-        }
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'aistudio-build'
+        },
+        body: JSON.stringify(requestPayload)
       });
 
-      const parsedJson = JSON.parse(response.text || '{}');
-      return res.status(200).json({
-        success: true,
-        timestamp: new Date().toISOString(),
-        insights: parsedJson,
-        modelUsed: model
-      });
+      if (!response.ok) {
+        console.warn(`[Vercel API] Error en insights con modelo ${model}: HTTP ${response.status}`);
+        continue;
+      }
+
+      const resJson = await response.json();
+      const rawText = resJson?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (rawText) {
+        const parsed = JSON.parse(rawText);
+        return res.status(200).json({
+          success: true,
+          timestamp: new Date().toISOString(),
+          insights: parsed,
+          modelUsed: model
+        });
+      }
     } catch (err: any) {
-      console.warn(`[Vercel API] Error con modelo ${model} en insights: ${err?.message}`);
+      console.warn(`[Vercel API] Excepción en insights con modelo ${model}: ${err?.message}`);
     }
   }
 

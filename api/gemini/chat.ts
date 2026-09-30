@@ -1,7 +1,7 @@
-// api/gemini/chat.ts - Vercel Serverless Function para Chat con Gemini
-import { GoogleGenAI } from '@google/genai';
+// api/gemini/chat.ts - Vercel Serverless Function para Chat con Gemini (Zero dependencies)
+declare const process: any;
 
-const CANDIDATE_MODELS = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.1-flash-lite'];
+const CANDIDATE_MODELS = ['gemini-3.8-flash', 'gemini-3.1-flash-lite', 'gemini-flash-latest'];
 
 export default async function handler(req: any, res: any) {
   // Configuración de encabezados CORS
@@ -50,15 +50,6 @@ export default async function handler(req: any, res: any) {
     });
   }
 
-  const ai = new GoogleGenAI({
-    apiKey,
-    httpOptions: {
-      headers: {
-        'User-Agent': 'aistudio-build'
-      }
-    }
-  });
-
   const systemInstruction = `Eres el Asistente Senior de Inteligencia de Mercado y Analítica Competitiva de la plataforma.
 Tu misión es responder preguntas sobre el dataset de publicaciones, marcas, métricas de engagement, visualizaciones, creativos con más likes y videos virales.
 
@@ -95,28 +86,52 @@ Contexto actual de datos en pantalla:
     parts: [{ text: message }]
   });
 
+  const requestPayload = {
+    systemInstruction: {
+      parts: [{ text: systemInstruction }]
+    },
+    contents: formattedContents,
+    generationConfig: {
+      temperature: 0.4
+    }
+  };
+
   let lastModelError: any = null;
 
   for (const model of CANDIDATE_MODELS) {
     try {
-      const response = await ai.models.generateContent({
-        model,
-        contents: formattedContents,
-        config: {
-          systemInstruction,
-          temperature: 0.4
-        }
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'aistudio-build'
+        },
+        body: JSON.stringify(requestPayload)
       });
 
-      return res.status(200).json({
-        success: true,
-        reply: response.text || 'No pude procesar una respuesta en este momento.',
-        timestamp: new Date().toISOString(),
-        modelUsed: model
-      });
+      if (!response.ok) {
+        const errorJson = await response.json().catch(() => ({}));
+        const msg = errorJson?.error?.message || `HTTP ${response.status}`;
+        lastModelError = new Error(msg);
+        console.warn(`[Vercel API] Modelo ${model} respondió error: ${msg}. Probando siguiente modelo...`);
+        continue;
+      }
+
+      const resData = await response.json();
+      const reply = resData?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      if (reply) {
+        return res.status(200).json({
+          success: true,
+          reply,
+          timestamp: new Date().toISOString(),
+          modelUsed: model
+        });
+      }
     } catch (err: any) {
       lastModelError = err;
-      console.warn(`[Vercel API] Modelo ${model} error: ${err?.message}. Probando siguiente modelo...`);
+      console.warn(`[Vercel API] Error conectando con modelo ${model}:`, err?.message);
     }
   }
 
