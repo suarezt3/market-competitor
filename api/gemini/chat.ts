@@ -21,7 +21,16 @@ export default async function handler(req: any, res: any) {
     return res.status(405).json({ error: 'Método no permitido. Solo se acepta POST.' });
   }
 
-  const { message, context, history = [] } = req.body || {};
+  let body = req.body;
+  if (typeof body === 'string') {
+    try {
+      body = JSON.parse(body);
+    } catch (e) {
+      console.error('[Vercel API] Error parseando body JSON:', e);
+    }
+  }
+
+  const { message, context, history = [] } = body || {};
 
   if (!message || typeof message !== 'string') {
     return res.status(400).json({ error: 'Mensaje requerido.' });
@@ -29,13 +38,13 @@ export default async function handler(req: any, res: any) {
 
   const apiKey = process.env['GEMINI_API_KEY'];
 
-  // Si no hay GEMINI_API_KEY en Vercel, responder inmediatamente con el motor analítico del dataset
+  // Si no hay GEMINI_API_KEY en Vercel, responder con el motor analítico y avisar claramente
   if (!apiKey) {
-    console.warn('[Vercel API] GEMINI_API_KEY no encontrada en variables de entorno. Generando respuesta analítica del dataset...');
+    console.warn('[Vercel API] GEMINI_API_KEY no encontrada en variables de entorno.');
     const localReply = generateDataDrivenReply(message, context);
     return res.status(200).json({
       success: true,
-      reply: localReply,
+      reply: `${localReply}\n\n> ⚠️ **Aviso de configuración en Vercel:** La variable de entorno \`GEMINI_API_KEY\` no fue detectada en esta ejecución. Si acabas de agregar la variable en Vercel, recuerda ir a **Deployments > [...] > Redeploy** para que los cambios surtan efecto en las funciones del servidor.`,
       timestamp: new Date().toISOString(),
       source: 'dataset_analytics_no_key'
     });
@@ -55,10 +64,11 @@ Tu misión es responder preguntas sobre el dataset de publicaciones, marcas, mé
 
 Reglas de respuesta:
 1. Responde siempre en español claro, profesional y estructurado con markdown.
-2. Si te preguntan cuál es el post, creativo o video con más vistas o más likes (por ejemplo de una marca específica como Royal Canin, Monello, Hills, etc.), busca en el resumen de publicaciones y proporciona: autor/marca, cantidad exacta de likes, views, comentarios, formato, fragmento del texto y enlace.
-3. Utiliza negritas para cifras clave (ej. **14,520 likes**, **1.4M views**, **8.5% engagement**).
-4. Proporciona contexto estratégico y recomendaciones prácticas cuando aplique.
-5. Mantén las respuestas concisas pero de alto valor analítico.
+2. Si el usuario saluda (ej: "Hola", "Buenos días", "¿Qué tal?"), responde de manera cordial y preséntate brevemente explicando qué datos tienes disponibles para analizar.
+3. Si te preguntan cuál es el post, creativo o video con más vistas o más likes (por ejemplo de una marca específica como Royal Canin, Monello, Hills, etc.), busca en el resumen de publicaciones y proporciona: autor/marca, cantidad exacta de likes, views, comentarios, formato, fragmento del texto y enlace.
+4. Utiliza negritas para cifras clave (ej. **14,520 likes**, **1.4M views**, **8.5% engagement**).
+5. Proporciona contexto estratégico y recomendaciones prácticas cuando aplique.
+6. Mantén las respuestas concisas pero de alto valor analítico.
 
 Contexto actual de datos en pantalla:
 - Plataforma: ${context?.platform || 'Omnicanal'}
@@ -85,6 +95,8 @@ Contexto actual de datos en pantalla:
     parts: [{ text: message }]
   });
 
+  let lastModelError: any = null;
+
   for (const model of CANDIDATE_MODELS) {
     try {
       const response = await ai.models.generateContent({
@@ -103,15 +115,17 @@ Contexto actual de datos en pantalla:
         modelUsed: model
       });
     } catch (err: any) {
+      lastModelError = err;
       console.warn(`[Vercel API] Modelo ${model} error: ${err?.message}. Probando siguiente modelo...`);
     }
   }
 
-  // Si todos los modelos de Gemini fallan por demanda alta en Google, entregar respuesta analítica directa
+  // Si todos los modelos de Gemini fallan, entregar respuesta analítica directa con aviso
   const fallbackReply = generateDataDrivenReply(message, context);
+  const errMsg = lastModelError?.message || 'Error de conexión con Gemini';
   return res.status(200).json({
     success: true,
-    reply: fallbackReply,
+    reply: `${fallbackReply}\n\n> ⚠️ **Aviso de Gemini en Vercel:** No se pudo completar la llamada al modelo (${errMsg}). Verifica que tu \`GEMINI_API_KEY\` sea válida y tenga la API habilitada.`,
     timestamp: new Date().toISOString(),
     source: 'dataset_analytics_fallback'
   });
@@ -157,11 +171,46 @@ function generateDataDrivenReply(userQuery: string, context: any): string {
     }
   }
 
+  const trimmed = query.trim();
+  const isGreeting =
+    /^(hola|buen[oa]s\s*(d[ií]as|tardes|noches)?|saludos|qu[eé]\s*tal|hey|hi)\b/i.test(trimmed) ||
+    trimmed === 'hola' ||
+    trimmed === 'hola!' ||
+    trimmed === 'holaa';
+
+  if (isGreeting) {
+    const brandsList = context?.brands?.length > 0 ? context.brands.join(', ') : 'las marcas analizadas';
+    const totalPosts = context?.totalPosts || 0;
+    return `¡Hola! ¿En qué puedo apoyarte hoy?
+
+Tengo a mi disposición los datos analíticos de **${context?.platform || 'Redes Sociales'}** con un total de **${totalPosts} publicaciones** monitoreadas para marcas como: **${brandsList}**.
+
+Puedo ayudarte con:
+* 🏆 **Top creativos y videos** con más reproducciones, likes o interacción.
+* 📊 **Comparativas de rendimiento** entre competidores (Views, Likes, Engagement Rate).
+* 🎬 **Análisis de formatos** (Reels vs Videos vs Posts estáticos).
+* 💡 **Estrategias y recomendaciones tácticas** para tus contenidos.
+
+Dime qué consulta estratégica o dato específico necesitas revisar.`;
+  }
+
   const isLikesQuery = query.includes('like') || query.includes('me gusta') || query.includes('corazon');
   const isViewsQuery = query.includes('view') || query.includes('reproduccion') || query.includes('visto') || query.includes('visualiza');
   const isCommentsQuery = query.includes('comentario') || query.includes('interaccion');
+  const isContentQuery =
+    isLikesQuery ||
+    isViewsQuery ||
+    isCommentsQuery ||
+    Boolean(targetBrand) ||
+    query.includes('post') ||
+    query.includes('video') ||
+    query.includes('creativo') ||
+    query.includes('contenido') ||
+    query.includes('mas') ||
+    query.includes('mejor') ||
+    query.includes('top');
 
-  if (matchedPosts.length > 0) {
+  if (matchedPosts.length > 0 && isContentQuery) {
     let sortedPosts = [...matchedPosts];
     if (isLikesQuery) {
       sortedPosts.sort((a, b) => (b.likes || 0) - (a.likes || 0));

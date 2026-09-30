@@ -293,12 +293,47 @@ function generateDataDrivenReply(userQuery: string, context: any): string {
     }
   }
 
+  const trimmed = query.trim();
+  const isGreeting =
+    /^(hola|buen[oa]s\s*(d[ií]as|tardes|noches)?|saludos|qu[eé]\s*tal|hey|hi)\b/i.test(trimmed) ||
+    trimmed === 'hola' ||
+    trimmed === 'hola!' ||
+    trimmed === 'holaa';
+
+  if (isGreeting) {
+    const brandsList = context?.brands?.length > 0 ? context.brands.join(', ') : 'las marcas monitoreadas';
+    const totalPosts = context?.totalPosts || 0;
+    return `¡Hola! ¿En qué puedo apoyarte hoy?
+
+Tengo a mi disposición los datos analíticos de **${context?.platform || 'Redes Sociales'}** con un total de **${totalPosts} publicaciones** monitoreadas para marcas como: **${brandsList}**.
+
+Puedo ayudarte con:
+* 🏆 **Top creativos y videos** con más reproducciones, likes o interacción.
+* 📊 **Comparativas de rendimiento** entre competidores (Views, Likes, Engagement Rate).
+* 🎬 **Análisis de formatos** (Reels vs Videos vs Posts estáticos).
+* 💡 **Estrategias y recomendaciones tácticas** para tus contenidos.
+
+Dime qué consulta estratégica o dato específico necesitas revisar.`;
+  }
+
   // 2. Determinar si busca por LIKES, VIEWS, COMMENTS o GENERAL
   const isLikesQuery = query.includes('like') || query.includes('me gusta') || query.includes('corazon');
   const isViewsQuery = query.includes('view') || query.includes('reproduccion') || query.includes('visto') || query.includes('visualiza');
   const isCommentsQuery = query.includes('comentario') || query.includes('interaccion');
+  const isContentQuery =
+    isLikesQuery ||
+    isViewsQuery ||
+    isCommentsQuery ||
+    Boolean(targetBrand) ||
+    query.includes('post') ||
+    query.includes('video') ||
+    query.includes('creativo') ||
+    query.includes('contenido') ||
+    query.includes('mas') ||
+    query.includes('mejor') ||
+    query.includes('top');
 
-  if (matchedPosts.length > 0) {
+  if (matchedPosts.length > 0 && isContentQuery) {
     let sortedPosts = [...matchedPosts];
     if (isLikesQuery) {
       sortedPosts.sort((a, b) => (b.likes || 0) - (a.likes || 0));
