@@ -206,22 +206,28 @@ export class GeminiService {
         this.chatSubscription = undefined;
       },
       error: (err: any) => {
-        console.error('Error en sendChatMessage:', err);
-        let errorDetail = 'Los servidores de Gemini están experimentando alta demanda momentánea. Por favor intenta de nuevo en unos segundos.';
-        
-        if (err?.error?.error && typeof err.error.error === 'string') {
-          if (!err.error.error.includes('{') && !err.error.error.includes('UNAVAILABLE')) {
-            errorDetail = err.error.error;
-          }
+        console.warn('Error en la llamada al endpoint /api/gemini/chat:', err);
+
+        // Generar respuesta analítica directa utilizando el dataset en memoria del cliente
+        const clientAnswer = this.generateClientDataDrivenReply(userText, context);
+
+        let diagNotice = '';
+        if (err.status === 404) {
+          diagNotice = '\n\n> ℹ️ *Respuesta obtenida del dataset local. El endpoint `/api/gemini/chat` no fue encontrado (404) en este dominio de Vercel. Asegúrate de incluir la carpeta `/api` y el archivo `vercel.json` en tu repositorio.*';
+        } else if (err.status === 500) {
+          diagNotice = '\n\n> ℹ️ *Respuesta obtenida del dataset local. El servidor reportó error 500 (posible ausencia de la variable `GEMINI_API_KEY` en Vercel > Settings > Environment Variables).*';
+        } else {
+          diagNotice = '\n\n> ℹ️ *Respuesta generada a partir del dataset analítico activo.*';
         }
 
-        const errorMessage: ChatMessage = {
-          id: `error_${Date.now()}`,
+        const modelMessage: ChatMessage = {
+          id: `model_${Date.now()}`,
           role: 'model',
-          text: `⚠️ **Aviso de Conexión:** ${errorDetail}`,
+          text: `${clientAnswer}${diagNotice}`,
           timestamp: new Date()
         };
-        this.chatHistory.update(prev => [...prev, errorMessage]);
+
+        this.chatHistory.update(prev => [...prev, modelMessage]);
         this.isChatSending.set(false);
         this.chatSubscription = undefined;
       }
@@ -315,5 +321,112 @@ export class GeminiService {
         'Monitorear la frecuencia semanal del competidor líder para cubrir los días con menor actividad de su parte.'
       ]
     };
+  }
+
+  /**
+   * Motor analítico del cliente para responder preguntas sobre el dataset en caso de que el backend falle o no esté disponible (ej. Vercel)
+   */
+  public generateClientDataDrivenReply(userQuery: string, context: DatasetContextPayload): string {
+    const query = (userQuery || '').toLowerCase();
+    const posts = context?.topPosts || [];
+    const brands = context?.brandPerformance || [];
+
+    let matchedPosts = posts;
+    let targetBrand = '';
+
+    for (const b of context?.brands || []) {
+      const brandLower = b.toLowerCase();
+      const cleanBrandWords = brandLower.split(/[\s-]+/);
+      if (query.includes(brandLower) || cleanBrandWords.some(w => w.length > 3 && query.includes(w))) {
+        targetBrand = b;
+        matchedPosts = posts.filter(
+          p => (p.brand || '').toLowerCase().includes(brandLower) || (p.author || '').toLowerCase().includes(brandLower)
+        );
+        break;
+      }
+    }
+
+    if (!targetBrand) {
+      if (query.includes('royal') || query.includes('cannin') || query.includes('canin')) {
+        targetBrand = 'Royal Canin';
+        matchedPosts = posts.filter(
+          p =>
+            (p.brand || '').toLowerCase().includes('royal') ||
+            (p.caption || '').toLowerCase().includes('royal') ||
+            (p.author || '').toLowerCase().includes('royal')
+        );
+      } else if (query.includes('hill') || query.includes('hills')) {
+        targetBrand = "Hill's Pet Nutrition";
+        matchedPosts = posts.filter(
+          p =>
+            (p.brand || '').toLowerCase().includes('hill') ||
+            (p.caption || '').toLowerCase().includes('hill') ||
+            (p.author || '').toLowerCase().includes('hill')
+        );
+      }
+    }
+
+    const isLikesQuery = query.includes('like') || query.includes('me gusta') || query.includes('corazon');
+    const isViewsQuery = query.includes('view') || query.includes('reproduccion') || query.includes('visto') || query.includes('visualiza');
+    const isCommentsQuery = query.includes('comentario') || query.includes('interaccion');
+
+    if (matchedPosts.length > 0) {
+      const sortedPosts = [...matchedPosts];
+      if (isLikesQuery) {
+        sortedPosts.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+      } else if (isCommentsQuery) {
+        sortedPosts.sort((a, b) => (b.comments || 0) - (a.comments || 0));
+      } else {
+        sortedPosts.sort((a, b) => (b.views || 0) - (a.views || 0));
+      }
+
+      const top = sortedPosts[0];
+      const metricName = isLikesQuery
+        ? 'mayor número de Likes'
+        : isCommentsQuery
+          ? 'mayor número de Comentarios'
+          : 'mayor número de Reproducciones';
+
+      return `### 🏆 Creativo Destacado: ${top.brand || targetBrand || 'Competidor'}
+
+El contenido con **${metricName}** en el periodo analizado es:
+
+- **❤️ Likes:** **${(top.likes || 0).toLocaleString()}**
+- **👁️ Reproducciones:** **${(top.views || 0).toLocaleString()}**
+- **💬 Comentarios:** **${(top.comments || 0).toLocaleString()}**
+- **📈 Engagement Rate:** **${(top.engagementRate || 0).toFixed(2)}%**
+- **🎬 Formato:** ${top.type || 'Video / Post'}
+- **👤 Cuenta / Autor:** \`${top.author || top.brand || 'Competidor'}\`
+- **📝 Descripción / Copy:** *"${(top.caption || 'Publicación analizada').slice(0, 150)}..."*
+${top.url && top.url !== '#' ? `\n🔗 **[Ver publicación original](${top.url})**` : ''}
+
+> 💡 **Hallazgo Estratégico:** Esta publicación lidera la interacción orgánica dentro del benchmark activo.`;
+    }
+
+    if (query.includes('lider') || query.includes('gana') || query.includes('primer') || query.includes('benchmark')) {
+      const leader = brands[0];
+      if (leader) {
+        return `### 👑 Marca Líder del Benchmark: **${leader.brand}**
+
+- **👁️ Total Visualizaciones:** **${(leader.totalViews || 0).toLocaleString()}**
+- **📊 Total Publicaciones:** **${leader.postCount || 0} posts**
+- **❤️ Promedio de Likes por Post:** **${(leader.avgLikes || 0).toLocaleString()}**
+- **📈 Tasa de Engagement Promedio:** **${(leader.avgEngagement || 0).toFixed(2)}%**
+
+> **Análisis:** ${leader.brand} concentra la mayor atención del público objetivo en el periodo seleccionado.`;
+      }
+    }
+
+    return `### 📊 Resumen Analítico del Dataset
+
+- **Publicaciones Analizadas:** **${context?.totalPosts || 0}**
+- **Total de Visualizaciones:** **${(context?.metricsSummary?.totalViews || 0).toLocaleString()}**
+- **Total de Interacciones (Likes):** **${(context?.metricsSummary?.totalLikes || 0).toLocaleString()}**
+- **Tasa de Engagement Promedio:** **${(context?.metricsSummary?.avgEngagementRate || 0).toFixed(2)}%**
+
+Puedes hacerme consultas directas como:
+- *"¿Cuál es la publicación o video con más visualizaciones?"*
+- *"¿Cuál es el post con más likes de Royal Canin?"*
+- *"¿Quién lidera el benchmark?"*`;
   }
 }
