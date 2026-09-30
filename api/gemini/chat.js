@@ -1,6 +1,6 @@
 // api/gemini/chat.js - Vercel Serverless Function (CommonJS Universal, Zero Dependencies)
 
-const CANDIDATE_MODELS = ['gemini-3.8-flash', 'gemini-3.1-flash-lite', 'gemini-flash-latest'];
+const CANDIDATE_MODELS = ['gemini-3.1-flash-lite', 'gemini-3.8-flash', 'gemini-flash-latest'];
 
 async function handler(req, res) {
   // Configuración de encabezados CORS

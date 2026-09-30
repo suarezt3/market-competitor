@@ -125,11 +125,11 @@ export class GeminiService {
       );
 
       if (res && res.insights) {
-        this.insights.set(res.insights);
+        this.insights.set(this.normalizeInsights(res.insights, context));
         this.lastUpdated.set(new Date());
         this.lastContextKey = contextKey;
       } else if (res && res.fallbackInsights) {
-        this.insights.set(res.fallbackInsights);
+        this.insights.set(this.normalizeInsights(res.fallbackInsights, context));
         this.lastUpdated.set(new Date());
       }
     } catch (err: any) {
@@ -278,6 +278,110 @@ export class GeminiService {
         timestamp: new Date()
       }
     ]);
+  }
+
+  private normalizeInsights(raw: any, context: DatasetContextPayload): GeminiInsightsData {
+    const fallback = this.generateLocalFallback(context);
+    if (!raw || typeof raw !== 'object') {
+      return fallback;
+    }
+
+    // 1. Normalizar executiveSummary (prevenir que un string se itere carácter por carácter)
+    let executiveSummary: string[] = [];
+    if (Array.isArray(raw.executiveSummary)) {
+      const isCharArray =
+        raw.executiveSummary.length > 10 &&
+        raw.executiveSummary.every((item: any) => typeof item === 'string' && item.length <= 1);
+
+      if (isCharArray) {
+        const fullText = raw.executiveSummary.join('');
+        executiveSummary = fullText
+          .split(/\n+|•|- /)
+          .map((s: string) => s.trim())
+          .filter((s: string) => s.length > 5);
+      } else {
+        executiveSummary = raw.executiveSummary
+          .map((item: any) => (typeof item === 'string' ? item.trim() : JSON.stringify(item)))
+          .filter((item: string) => item.length > 0);
+      }
+    } else if (typeof raw.executiveSummary === 'string') {
+      const text = raw.executiveSummary.trim();
+      const splitLines = text
+        .split(/\n+|•|- |\.\s+/)
+        .map((s: string) => s.trim())
+        .filter((s: string) => s.length > 5);
+      executiveSummary = splitLines.length > 0 ? splitLines.slice(0, 4) : [text];
+    }
+
+    if (executiveSummary.length === 0) {
+      executiveSummary = fallback.executiveSummary;
+    }
+
+    // 2. Normalizar topOutlierContent y garantizar que las métricas numéricas existan
+    const realTop = context.topPosts[0] || fallback.topOutlierContent;
+    const rawTop = raw.topOutlierContent || {};
+
+    const parseNumber = (val: any, fallbackVal: number): number => {
+      if (typeof val === 'number' && !isNaN(val)) return val;
+      if (typeof val === 'string') {
+        const cleaned = val.replace(/[^0-9.]/g, '');
+        const n = parseFloat(cleaned);
+        if (!isNaN(n)) return n;
+      }
+      return fallbackVal;
+    };
+
+    const views = parseNumber(rawTop.views ?? rawTop.reproducciones ?? rawTop.visualizaciones, realTop.views);
+    const likes = parseNumber(rawTop.likes ?? rawTop.me_gusta, realTop.likes);
+    const comments = parseNumber(rawTop.comments ?? rawTop.comentarios, realTop.comments);
+    const engagementRate = parseNumber(rawTop.engagementRate ?? rawTop.engagement, realTop.engagementRate);
+
+    const topOutlierContent: TopOutlierContent = {
+      brand: rawTop.brand || realTop.brand || 'Líder del Benchmark',
+      type: rawTop.type || realTop.type || 'Video / Reel',
+      views,
+      likes,
+      comments,
+      engagementRate,
+      captionSnippet:
+        rawTop.captionSnippet || rawTop.caption || (realTop as any).captionSnippet || (realTop as any).caption || 'Publicación destacada en captación de reproducciones.',
+      url: rawTop.url || realTop.url || '#',
+      viralFactorReason:
+        rawTop.viralFactorReason || rawTop.motivo || fallback.topOutlierContent.viralFactorReason
+    };
+
+    // 3. Normalizar leaderVsCompetitors
+    const leaderRaw = raw.leaderVsCompetitors || {};
+    const leaderVsCompetitors: LeaderVsCompetitors = {
+      leaderBrand: leaderRaw.leaderBrand || leaderRaw.brand || fallback.leaderVsCompetitors.leaderBrand,
+      shareOfAttention: leaderRaw.shareOfAttention || fallback.leaderVsCompetitors.shareOfAttention,
+      competitiveEdge: leaderRaw.competitiveEdge || fallback.leaderVsCompetitors.competitiveEdge,
+      competitorOpportunities: leaderRaw.competitorOpportunities || fallback.leaderVsCompetitors.competitorOpportunities
+    };
+
+    // 4. Normalizar actionableRecommendations
+    let actionableRecommendations: string[] = [];
+    if (Array.isArray(raw.actionableRecommendations)) {
+      actionableRecommendations = raw.actionableRecommendations
+        .map((item: any) => (typeof item === 'string' ? item.trim() : JSON.stringify(item)))
+        .filter((item: string) => item.length > 0);
+    } else if (typeof raw.actionableRecommendations === 'string') {
+      actionableRecommendations = raw.actionableRecommendations
+        .split(/\n+|\d+\.\s+|•|- /)
+        .map((s: string) => s.trim())
+        .filter((s: string) => s.length > 5);
+    }
+
+    if (actionableRecommendations.length === 0) {
+      actionableRecommendations = fallback.actionableRecommendations;
+    }
+
+    return {
+      topOutlierContent,
+      executiveSummary,
+      leaderVsCompetitors,
+      actionableRecommendations
+    };
   }
 
   private generateLocalFallback(context: DatasetContextPayload): GeminiInsightsData {

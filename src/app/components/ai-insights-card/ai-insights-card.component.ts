@@ -1,5 +1,4 @@
-// src/app/components/ai-insights-card/ai-insights-card.component.ts
-import { Component, ChangeDetectionStrategy, input, output } from '@angular/core';
+import { Component, ChangeDetectionStrategy, input, output, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { GeminiInsightsData } from '../../services/gemini.service';
 
@@ -100,22 +99,22 @@ import { GeminiInsightsData } from '../../services/gemini.service';
                   <div class="metrics-chips-row">
                     <div class="metric-chip views-chip">
                       <span class="chip-label">👀 Visualizaciones</span>
-                      <strong class="chip-value">{{ topPost.views | number }}</strong>
+                      <strong class="chip-value">{{ (topPost.views || 0) | number }}</strong>
                     </div>
 
                     <div class="metric-chip likes-chip">
                       <span class="chip-label">❤️ Likes</span>
-                      <strong class="chip-value">{{ topPost.likes | number }}</strong>
+                      <strong class="chip-value">{{ (topPost.likes || 0) | number }}</strong>
                     </div>
 
                     <div class="metric-chip comments-chip">
                       <span class="chip-label">💬 Comentarios</span>
-                      <strong class="chip-value">{{ topPost.comments | number }}</strong>
+                      <strong class="chip-value">{{ (topPost.comments || 0) | number }}</strong>
                     </div>
 
                     <div class="metric-chip er-chip">
                       <span class="chip-label">⚡ Engagement</span>
-                      <strong class="chip-value">{{ topPost.engagementRate | number:'1.2-2' }}%</strong>
+                      <strong class="chip-value">{{ (topPost.engagementRate || 0) | number:'1.2-2' }}%</strong>
                     </div>
                   </div>
                 </div>
@@ -127,7 +126,7 @@ import { GeminiInsightsData } from '../../services/gemini.service';
                     <h4>¿Por qué este contenido se convirtió en el ganador?</h4>
                   </div>
                   <p class="viral-reason-text">
-                    {{ topPost.viralFactorReason }}
+                    {{ topPost.viralFactorReason || 'Este contenido lidera la interacción orgánica dentro del benchmark gracias a un alto ratio de retención y formato dinámico.' }}
                   </p>
                   <div class="viral-box-footer">
                     @if (topPost.url && topPost.url !== '#') {
@@ -156,7 +155,7 @@ import { GeminiInsightsData } from '../../services/gemini.service';
                 <h4>Resumen Ejecutivo del Periodo</h4>
               </div>
               <ul class="pillar-list">
-                @for (bullet of insights()?.executiveSummary; track $index) {
+                @for (bullet of executiveBullets(); track $index) {
                   <li>
                     <span class="list-bullet">•</span>
                     <span>{{ bullet }}</span>
@@ -174,16 +173,16 @@ import { GeminiInsightsData } from '../../services/gemini.service';
               <div class="benchmark-info">
                 <div class="leader-row">
                   <span class="leader-label">Marca Líder:</span>
-                  <strong class="leader-name">{{ insights()?.leaderVsCompetitors?.leaderBrand }}</strong>
-                  <span class="share-badge">{{ insights()?.leaderVsCompetitors?.shareOfAttention }}</span>
+                  <strong class="leader-name">{{ insights()?.leaderVsCompetitors?.leaderBrand || 'Marca Líder' }}</strong>
+                  <span class="share-badge">{{ insights()?.leaderVsCompetitors?.shareOfAttention || 'Mayor cuota de views' }}</span>
                 </div>
                 <div class="edge-block">
                   <span class="edge-title">Ventaja Competitiva:</span>
-                  <p>{{ insights()?.leaderVsCompetitors?.competitiveEdge }}</p>
+                  <p>{{ insights()?.leaderVsCompetitors?.competitiveEdge || 'Consistencia en ritmo de publicación y alto impacto de formato audiovisual.' }}</p>
                 </div>
                 <div class="opportunity-block">
                   <span class="opp-title">Oportunidad para Competidores:</span>
-                  <p>{{ insights()?.leaderVsCompetitors?.competitorOpportunities }}</p>
+                  <p>{{ insights()?.leaderVsCompetitors?.competitorOpportunities || 'Aprovechar ganchos en los primeros 3 segundos e incentivar conversación comunitaria.' }}</p>
                 </div>
               </div>
             </div>
@@ -195,7 +194,7 @@ import { GeminiInsightsData } from '../../services/gemini.service';
                 <h4>Recomendaciones Tácticas</h4>
               </div>
               <ul class="pillar-list numbered-list">
-                @for (tip of insights()?.actionableRecommendations; track $index) {
+                @for (tip of recommendations(); track $index) {
                   <li>
                     <span class="list-number">{{ $index + 1 }}</span>
                     <span>{{ tip }}</span>
@@ -748,6 +747,45 @@ export class AiInsightsCardComponent {
 
   public refreshRequested = output<void>();
   public openChatRequested = output<string | void>();
+
+  public executiveBullets = computed(() => {
+    const raw = this.insights()?.executiveSummary;
+    if (!raw) return [];
+    if (Array.isArray(raw)) {
+      if (raw.length > 10 && raw.every((x: any) => typeof x === 'string' && x.length <= 1)) {
+        const full = raw.join('');
+        return full
+          .split(/\n+|•|- /)
+          .map((s: string) => s.trim())
+          .filter((s: string) => s.length > 5);
+      }
+      return raw.map((x: any) => (typeof x === 'string' ? x : String(x))).filter((s: string) => s.length > 0);
+    }
+    if (typeof raw === 'string') {
+      const split = (raw as string)
+        .split(/\n+|•|- |\.\s+/)
+        .map((s: string) => s.trim())
+        .filter((s: string) => s.length > 5);
+      return split.length > 0 ? split : [raw];
+    }
+    return [];
+  });
+
+  public recommendations = computed(() => {
+    const raw = this.insights()?.actionableRecommendations;
+    if (!raw) return [];
+    if (Array.isArray(raw)) {
+      return raw.map((x: any) => (typeof x === 'string' ? x : String(x))).filter((s: string) => s.length > 0);
+    }
+    if (typeof raw === 'string') {
+      const split = (raw as string)
+        .split(/\n+|\d+\.\s+|•|- /)
+        .map((s: string) => s.trim())
+        .filter((s: string) => s.length > 5);
+      return split.length > 0 ? split : [raw];
+    }
+    return [];
+  });
 
   onRefresh(): void {
     this.refreshRequested.emit();

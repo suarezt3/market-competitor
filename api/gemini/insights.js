@@ -1,6 +1,6 @@
 // api/gemini/insights.js - Vercel Serverless Function (CommonJS Universal, Zero Dependencies)
 
-const CANDIDATE_MODELS = ['gemini-3.8-flash', 'gemini-3.1-flash-lite', 'gemini-flash-latest'];
+const CANDIDATE_MODELS = ['gemini-3.1-flash-lite', 'gemini-3.8-flash', 'gemini-flash-latest'];
 
 async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -81,7 +81,51 @@ Genera los insights completos destacando el post/video estrella, resumen ejecuti
     ],
     generationConfig: {
       temperature: 0.3,
-      responseMimeType: 'application/json'
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: 'OBJECT',
+        properties: {
+          topOutlierContent: {
+            type: 'OBJECT',
+            properties: {
+              brand: { type: 'STRING', description: 'Nombre de la marca o cuenta del creador' },
+              type: { type: 'STRING', description: 'Formato: video, reel, post, carrusel' },
+              views: { type: 'NUMBER', description: 'Visualizaciones o reproducciones numéricas' },
+              likes: { type: 'NUMBER', description: 'Número total de likes' },
+              comments: { type: 'NUMBER', description: 'Número total de comentarios' },
+              engagementRate: { type: 'NUMBER', description: 'Tasa porcentual de engagement' },
+              captionSnippet: { type: 'STRING', description: 'Fragmento del copy de la publicación' },
+              url: { type: 'STRING', description: 'Enlace del post' },
+              viralFactorReason: {
+                type: 'STRING',
+                description: 'Explicación clara de por qué este contenido fue el ganador'
+              }
+            },
+            required: ['brand', 'type', 'views', 'viralFactorReason']
+          },
+          executiveSummary: {
+            type: 'ARRAY',
+            items: { type: 'STRING' },
+            description: '3 conclusiones ejecutivas completas en párrafos u oraciones claras'
+          },
+          leaderVsCompetitors: {
+            type: 'OBJECT',
+            properties: {
+              leaderBrand: { type: 'STRING', description: 'Marca líder en cuota' },
+              shareOfAttention: { type: 'STRING', description: 'Porcentaje o descripción del alcance' },
+              competitiveEdge: { type: 'STRING', description: 'Ventaja diferencial del líder' },
+              competitorOpportunities: { type: 'STRING', description: 'Oportunidades para rivales' }
+            },
+            required: ['leaderBrand', 'shareOfAttention', 'competitiveEdge', 'competitorOpportunities']
+          },
+          actionableRecommendations: {
+            type: 'ARRAY',
+            items: { type: 'STRING' },
+            description: '3 recomendaciones tácticas de contenido'
+          }
+        },
+        required: ['topOutlierContent', 'executiveSummary', 'leaderVsCompetitors', 'actionableRecommendations']
+      }
     }
   };
 
