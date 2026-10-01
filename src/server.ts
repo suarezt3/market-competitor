@@ -439,6 +439,65 @@ function generateFallbackInsights(data: any) {
 }
 
 // ============================================================================
+// ENDPOINT PROXY DE IMÁGENES PARA CDNs PROTEGIDOS (TIKTOK, INSTAGRAM, FACEBOOK)
+// ============================================================================
+app.get('/api/proxy-image', async (req, res) => {
+  const imageUrl = req.query['url'] as string;
+  if (!imageUrl) {
+    return res.status(400).send('Missing url parameter');
+  }
+
+  try {
+    const parsed = new URL(imageUrl);
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      return res.status(400).send('Invalid protocol');
+    }
+
+    // Cabeceras que emulan una petición de navegador directo para evitar bloqueos por hotlinking
+    const headers: Record<string, string> = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+      'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+      'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
+      'Sec-Fetch-Dest': 'image',
+      'Sec-Fetch-Mode': 'no-cors',
+      'Sec-Fetch-Site': 'cross-site'
+    };
+
+    const host = parsed.hostname.toLowerCase();
+    if (host.includes('tiktok') || host.includes('byteoversea')) {
+      headers['Referer'] = 'https://www.tiktok.com/';
+    } else if (host.includes('instagram') || host.includes('cdninstagram')) {
+      headers['Referer'] = 'https://www.instagram.com/';
+    } else if (host.includes('facebook') || host.includes('fbcdn')) {
+      headers['Referer'] = 'https://www.facebook.com/';
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 6000);
+
+    const response = await fetch(imageUrl, {
+      headers,
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      return res.status(response.status).send('CDN access error');
+    }
+
+    const contentType = response.headers.get('content-type') || 'image/jpeg';
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=86400');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+
+    const arrayBuffer = await response.arrayBuffer();
+    return res.send(Buffer.from(arrayBuffer));
+  } catch (err: any) {
+    return res.status(502).send('Error proxying image');
+  }
+});
+
+// ============================================================================
 // RUTAS ESTÁTICAS Y MANEJADOR SSR DE ANGULAR
 // ============================================================================
 app.use(

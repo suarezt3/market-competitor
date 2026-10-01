@@ -1,6 +1,6 @@
 {
-  "summary":  "Plan integral para la estandarización y auditoría de métricas de los 4 scrapers (Facebook, Instagram, TikTok, YouTube), corrección de páginas vs posts en Facebook, reformulación del Engagement Rate sobre visualizaciones, recálculo de cuota de mercado y actualización completa de la documentación metodológica.",
-  "updatedAt":  "2026-10-01T12:19:07.824618457Z",
+  "summary":  "Plan para transformar la experiencia visual de portadas en la sección de Contenido Viral y en el Desglose de Contenido (Instagram, TikTok, Facebook), implementando un endpoint de proxy backend y un diseño editorial de marca con gradientes, citas tipográficas y logos ante bloqueos de CDN.",
+  "updatedAt":  "2026-10-01T12:54:52.787490458Z",
   "requestFeedback":  true,
   "userFacing":  true
 }

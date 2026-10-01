@@ -1,94 +1,66 @@
-# Plan de Estandarización de Métricas, Normalización de Scrapers y Actualización Documental
+# Plan de Rediseño Editorial y Blindaje Visual de Tarjetas Multimedia
 
-## 1. Diagnóstico del Problema y Objetivos Ejecutivos
+## 1. Diagnóstico del Problema y Objetivos Visuales
 
-Para la presentación ante los directivos de la compañía, las métricas deben ser **100% confiables, auditables y con rigor estadístico y publicitario**. Hemos identificado los siguientes puntos críticos a resolver:
+En las capturas suministradas se aprecian dos problemas críticos de cara a la presentación directiva:
+1. **Contenido Viral:** Varias tarjetas de TikTok muestran un recuadro oscuro con el icono de "imagen rota" del navegador (`img` sin carga exitosa o con URL de CDN expirada/bloqueada con error 403).
+2. **Desglose de Contenido:** Las tarjetas de Instagram, Facebook y TikTok muestran un contenedor gris genérico con el texto *"Media Protegido"*, lo que genera una apariencia de error técnico o contenido incompleto.
 
-1. **Confusión en Facebook (Seguidores vs. Likes):**
-   * El scraper de Facebook en ocasiones extrae registros de páginas/perfiles institucionales (como la página de *Agility Gold*) donde el campo `likes` o `followers` indica los seguidores de la fanpage (11,110 seguidores), confundiéndose con un post individual con 11,110 "me gusta".
-   * **Solución acordada:** Separar y **excluir los registros de páginas o perfiles del feed/grid de publicaciones**, utilizándolos exclusivamente para la ficha de seguidores y presencia de marca. En el grid de publicaciones solo participarán posts y reels reales con sus interacciones directas.
-
-2. **Estandarización Canónica de los 4 Scrapers:**
-   * Cada plataforma y actor de Apify nombra sus campos de manera dispar (`diggCount` en TikTok, `reactionLikeCount` en Facebook, `videoViewCount` en Instagram, `viewCount` en YouTube).
-   * Unificar el objeto normalizado `_kpi` y los extractores de `apify-chart.service.ts` para que cada métrica represente con certeza matemática su dimensión real.
-
-3. **Revisión y Ajuste del Engagement Rate (ER):**
-   * **Fórmula actual:** En algunos tooltips y gráficos se referenciaba `(Interacciones / Seguidores) * 100`, la cual en publicaciones con alcance viral algorítmico (Reels, TikTok, Shorts) distorsiona la realidad, ya que las vistas provienen de usuarios que no necesariamente son seguidores.
-   * **Fórmula ejecutiva aprobada:** 
-     $$\text{Engagement Rate (ER)} = \left(\frac{\text{Likes} + \text{Comentarios}}{\text{Visualizaciones (Views)}}\right) \times 100$$
-     (Proporciona a la junta directiva la tasa real de conversión de reproducciones en interacciones activas).
-
-4. **Claridad en Cuota de Mercado e Interacciones Totales:**
-   * Desglose explícito de la Cuota de Mercado (Share of Interactions / Share of Views) para que quede claro si el porcentaje mide volumen de interacción acumulado o cuota de reproducciones.
-
-5. **Actualización Integral de la Guía Metodológica y Tooltips:**
-   * Reflejar con precisión las nuevas fórmulas y definiciones en el modal interactivo `app-methodology-guide` y en todos los tooltips `[formula]` de la vista principal.
+### Objetivo
+Transformar estas tarjetas en **piezas editoriales premium y de alta gama directiva**:
+* Implementar un **proxy backend seguro** (`/api/proxy-image`) que añade cabeceras limpias (`Referer`, `User-Agent`, `Cache-Control`) para intentar rescatar y retransmitir las miniaturas de CDNs protegidos de TikTok, Instagram y Facebook.
+* Si el CDN bloquea la imagen de forma definitiva o el enlace expira, presentar automáticamente una **portada editorial de marca con gradiente corporativo**, logotipo oficial, cita tipográfica destacada, marca de agua de la red y píldora de duración/formato, eliminando por completo cualquier mensaje de error, icono roto o caja gris de *"Media Protegido"*.
 
 ---
 
-## 2. Matriz Canónica de Normalización de Scrapers
+## 2. Arquitectura de la Solución
 
-Se define la siguiente matriz de ingestión para garantizar que **likes son likes, comentarios son comentarios y vistas son vistas**:
+### A. Endpoint Proxy de Imágenes en el Servidor (`src/server.ts`)
+* Endpoint `/api/proxy-image?url=...`
+* Realiza peticiones del lado del servidor con User-Agent estándar de navegador, evitando los bloqueos de hotlinking y CORS de navegadores.
+* Almacena en caché (`Cache-Control: public, max-age=86400`) para minimizar latencia y consumo de red.
 
-| Red Social | Publicación Válida | Vistas (`postViews`) | Me Gusta (`postLikes`) | Comentarios (`comments`) | Compartidos (`shares`) | Seguidores (`followers`) |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Instagram** | Posts, Reels, Carruseles (`id`, `shortCode`, `url`) | `videoViewCount` \|\| `videoPlayCount` \|\| `viewsCount` \|\| `playCount` | `likesCount` \|\| `likes` | `commentsCount` \|\| `comments` | `sharesCount` \|\| 0 | `owner.followersCount` \|\| `followersCount` |
-| **TikTok** | Videos / TikToks (`webVideoUrl`, `videoUrl`, `id`) | `playCount` \|\| `stats.playCount` \|\| `videoMeta.playCount` | `diggCount` \|\| `stats.diggCount` \|\| `videoMeta.diggCount` | `commentCount` \|\| `stats.commentCount` | `shareCount` \|\| `stats.shareCount` | `authorMeta.fans` \|\| `authorStats.followerCount` |
-| **YouTube** | Videos largos / Shorts (`videoId`, `url` con `/watch` o `/shorts/`) | `viewCount` \|\| `views` | `likes` \|\| `likeCount` | `commentsCount` \|\| `commentCount` | 0 (no provisto por scraper estándar) | `numberOfSubscribers` \|\| `subscriberCount` |
-| **Facebook** | **Únicamente posts reales** (`postId`, o URLs con `/posts/`, `/videos/`, `permalinkUrl`) | `viewsCount` \|\| `videoPostViewCount` \|\| `views` | `reactionLikeCount` \|\| `postLikes` \|\| `reactionsCount` *(nunca `page.likes`)* | `commentsCount` \|\| `comments` | `sharesCount` \|\| `shares` | `followers` \|\| `pageFollowers` *(a nivel de marca)* |
-
-> **Regla de Filtrado para Facebook:** Si un registro no posee `postId`, o su URL apunta a `facebook.com/[pagina]` sin identificador de post, y solo contiene contadores de fanpage, se catalogará como registro de perfil institucional (`_isPageProfile = true`), extrayendo sus seguidores para el ranking de competidores pero omitiéndolo del ranking y grid de publicaciones.
-
----
-
-## 3. Plan de Acción y Tareas de Implementación
-
-### Tarea 1: Normalización de Scrapers y Aislamiento de Perfiles Facebook
-* **Archivo:** `src/app/components/apify-viewer/apify-viewer.component.ts`
-  * Perfeccionar la función `processRawItems()`:
-    * Detección estricta de posts reales de Facebook frente a fichas de página institucional.
-    * Mapeo blindado de campos numéricos (convirtiendo strings con formato o nulos a números enteros limpios).
-    * Asignación inequívoca de `_kpi.postLikes` (exclusivamente likes del post, excluyendo seguidores o page likes).
-    * Filtrado en `filteredData()` para que el feed y tablas de publicaciones solo muestren publicaciones reales.
-
-### Tarea 2: Sincronización en el Servicio de Métricas y Gráficos
-* **Archivo:** `src/app/services/apify-chart.service.ts`
-  * Actualizar `getMetricValue(item, network, metric)`:
-    * Reemplazar la condición ambigua `item.likes` en Facebook por la comprobación estricta de métricas de post (`item.reactionLikeCount || item._kpi?.postLikes || item.postLikes`).
-    * Reforzar el cálculo del total de interacciones: `Interacciones = Likes + Comentarios + Compartidos` (o `Likes + Comentarios` según disponibilidad de canal).
-  * Actualizar el gráfico de dispersión (Scatter Plot) y la evolución temporal para utilizar la fórmula oficial de **Engagement Rate sobre Visualizaciones**:
-    $$\text{ER} = \left(\frac{\text{Interacciones Totales}}{\text{Views}}\right) \times 100$$
-  * Garantizar que si un post no tiene visualizaciones (ej. imagen estática sin métrica de alcance público), se calcule el ratio sobre la media o se indique explícitamente para no desvirtuar el promedio.
-
-### Tarea 3: Actualización de la Guía Metodológica Oficial
-* **Archivo:** `src/app/components/methodology-guide/methodology-guide.component.html`
-  * Actualizar la **Sección 3: Fórmulas de Interacciones Base**:
-    * Detallar la procedencia exacta de Likes, Comentarios, Vistas y Compartidos por red social.
-  * Actualizar la **Sección 4: Cálculo del Engagement Rate**:
-    * Documentar la fórmula oficial aprobada por la dirección basada en visualizaciones reales ($ER = (\text{Interacciones} / \text{Views}) \times 100$).
-    * Explicar el fundamento de negocio (evaluación de la eficacia creativa y retención de la atención por cada mil reproducciones).
-  * Actualizar la **Sección 6: Cuota de Mercado (Share of Voice)**:
-    * Clarificar la fórmula de participación sobre interacciones acumuladas frente a participación sobre visualizaciones.
-  * Actualizar la **Sección 8: Diccionario Técnico de Campos JSON**:
-    * Incluir la tabla comparativa con los nombres de campos de cada scraper de Apify (Facebook, Instagram, TikTok, YouTube) y cómo se convierten en el modelo canónico.
-
-### Tarea 4: Actualización de Tooltips de Fórmulas en el Dashboard
-* **Archivo:** `src/app/components/apify-viewer/apify-viewer.component.html`
-  * Actualizar los componentes `<app-metric-info-tooltip>` para que las descripciones emergentes coincidan exactamente con la nueva fórmula de Engagement Rate sobre vistas y la cuota de interacciones.
+### B. Fallback Editorial Elegante en la UI
+Tanto en `viral-highlights` como en `apify-data-grid`:
+* **Gestor de estado de carga por ítem:** Si la imagen falla (`(error)`), la tarjeta cambia instantáneamente a su modo **Portada Editorial**.
+* **Composición visual de la Portada Editorial:**
+  * Fondo: Gradiente cromático suave generado a partir del color corporativo de la marca (ej. Royal Canin, Agility Gold, Bonat, True Blue, Bancolombia, Nu).
+  * Cabecera: Monograma o logotipo oficial de la marca junto con la insignia de la red social (TikTok, Instagram, Facebook).
+  * Cuerpo: Cita tipográfica estilizada con comillas sutiles (`“...”`) extrayendo el gancho principal del copy o caption del post.
+  * Pie: Duración del video (ej. `▶ 2:28`), badge de formato (`Reel`, `Video`, `Carrusel`) y marca de agua translúcida.
 
 ---
 
-## 4. Plan de Verificación y Pruebas
+## 3. Tareas de Implementación
 
-1. **Verificación de Facebook y Agility Gold:**
-   * Cargar el dataset de Facebook o el conjunto unificado y comprobar que la página de *Agility Gold* ya no figure como un "post de 11,110 likes", sino que sus publicaciones muestren sus likes reales (ej. 15, 45, 120 likes) y los 11,110 figuren correctamente como comunidad/seguidores de marca.
-2. **Validación Numérica en los 4 Canales:**
-   * Verificar en el inspector que Instagram muestre views y likes de publicaciones.
-   * Verificar que TikTok muestre `playCount` como vistas y `diggCount` como likes.
-   * Verificar que YouTube Shorts y Videos muestren `viewCount` como vistas y `likes` como likes.
-3. **Validación de la Fórmula de Engagement:**
-   * Comprobar que en las tarjetas KPI y el gráfico de engagement se aplique la fórmula sobre vistas.
-4. **Verificación de la Guía Metodológica:**
-   * Abrir el modal de la Guía Metodológica desde el botón superior y revisar que todas las secciones reflejen las nuevas fórmulas y el diccionario de campos.
-5. **Compilación y Build:**
-   * Ejecutar `compile_applet` para certificar cero errores de compilación de TypeScript y Angular.
+### Tarea 1: Implementar Endpoint `/api/proxy-image`
+* **Archivo:** `src/server.ts`
+  * Añadir ruta Express `/api/proxy-image` para solventar restricciones de CORS y referrer de CDNs de Meta (`*.cdninstagram.com`, `*.fbcdn.net`) y TikTok (`*.tiktokcdn.com`).
+  * Validación segura de protocolo (`https:`) y gestión de errores con fallback a 404 para que el cliente active el diseño editorial.
+
+### Tarea 2: Rediseño Editorial en Contenido Viral Destacado
+* **Archivos:** `src/app/components/viral-highlights/viral-highlights.component.html`, `.ts`, `.scss`
+  * Enriquecer el helper de miniaturas para priorizar rutas proxy cuando corresponda.
+  * Añadir listener reactivo de error `onThumbnailError(postId)` en el componente TS.
+  * Reemplazar el contenedor oscuro por el diseño editorial con gradiente corporativo, avatar/logo de marca, texto citado en tipografía legible y badge de duración.
+
+### Tarea 3: Rediseño Editorial en el Desglose de Contenido (Data Grid)
+* **Archivos:** `src/app/components/apify-data-grid/apify-data-grid.component.html`, `.ts`, `.scss`
+  * Erradicar la caja gris de *"Media Protegido"*.
+  * Implementar el bloque editorial de marca integrado con la paleta de colores del competidor (`getBrandInfo(item).color`).
+  * Optimizar la visualización de duración (`0:30`, `2:28`) e insignia de formato sobre el gradiente editorial.
+
+---
+
+## 4. Plan de Verificación
+
+1. **Prueba de Carga con Proxy:**
+   * Cargar datasets de TikTok e Instagram y verificar si las imágenes que antes daban error 403 ahora se renderizan mediante el proxy.
+2. **Prueba de Fallback Editorial:**
+   * Simular una imagen fallida o bloqueada y certificar que la tarjeta muestra la portada editorial con logo, colores de marca y cita destacada.
+   * Certificar que NUNCA aparezca un icono roto de imagen ni el texto "Media Protegido".
+3. **Verificación en Ambos Módulos:**
+   * Comprobar la sección "Contenido Viral Destacado" (Top 5).
+   * Comprobar la sección "Desglose de Contenido Auditado" (Grid de publicaciones).
+4. **Compilación y Build:**
+   * Ejecutar `compile_applet` para confirmar cero errores en TypeScript, Angular y SSR.

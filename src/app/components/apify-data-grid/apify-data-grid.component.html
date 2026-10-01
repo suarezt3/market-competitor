@@ -19,12 +19,48 @@
                (error)="handleImageError($event, getYouTubeId(item.url), postImg, fallbackPost)">
         }
 
-        <!-- Fallback elegante unificado con icono oficial de la red social -->
-        <div #fallbackPost class="placeholder-thumbnail" [style.display]="!mediaThumb ? 'flex' : 'none'" style="flex-direction: column; background: #f3f4f6; align-items: center; justify-content: center; gap: 0.5rem;">
-          <img [src]="getNetworkIcon(itemNetwork)" referrerpolicy="no-referrer"
-               style="width: 32px; height: 32px; object-fit: contain; filter: grayscale(100%); opacity: 0.45;"
-               [alt]="itemNetwork">
-          <span style="font-size: 0.75rem; color: #6b7280; font-weight: 600;">Media Protegido</span>
+        <!-- Portada Editorial de Marca cuando la imagen está protegida o no disponible -->
+        <div #fallbackPost
+             class="editorial-grid-cover"
+             [style.display]="!mediaThumb ? 'flex' : 'none'"
+             [style.background]="getBrandGradient(getBrandInfo(item).name)">
+
+          <!-- Marca de agua sutil de la plataforma -->
+          <div class="editorial-grid-watermark">
+            <img [src]="getNetworkIcon(itemNetwork)" referrerpolicy="no-referrer" [alt]="itemNetwork">
+          </div>
+
+          <!-- Cabecera de portada: Logo de marca y red social -->
+          <div class="editorial-grid-top">
+            <div class="editorial-grid-brand-pill">
+              @if (getBrandInfo(item).logoUrl) {
+                <img [src]="getBrandInfo(item).logoUrl" referrerpolicy="no-referrer" class="grid-logo-img" [alt]="getBrandInfo(item).name">
+              } @else {
+                <span class="grid-logo-mono" [style.color]="getBrandInfo(item).color">
+                  {{ getBrandInfo(item).name.charAt(0) }}
+                </span>
+              }
+              <span class="grid-brand-name">{{ getBrandInfo(item).name }}</span>
+            </div>
+            <span class="grid-network-badge">
+              {{ itemNetwork | uppercase }}
+            </span>
+          </div>
+
+          <!-- Cita editorial / Hook del contenido -->
+          <div class="editorial-grid-quote">
+            <span class="quote-char" [style.color]="getBrandInfo(item).color">“</span>
+            <p class="quote-text">{{ getPostExcerpt(item) }}</p>
+          </div>
+
+          <!-- Pie: Formato -->
+          <div class="editorial-grid-bottom">
+            <span class="grid-format-pill">
+              @if (item._contentType === 'video') { 🎥 Video }
+              @else if (item._contentType === 'carousel') { 📑 Carrusel }
+              @else { 🖼️ Imagen }
+            </span>
+          </div>
         </div>
 
         <!-- UX: Insignia de duración inteligente tipo YouTube/Netflix -->

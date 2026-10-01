@@ -72,32 +72,43 @@ export class ApifyDataGridComponent {
   getMediaThumbnail(item: any): string | null {
     if (!item) return null;
     const net = this.getItemNetwork(item);
+    let rawUrl: string | null = null;
 
     if (net === 'youtube') {
-      if (item.thumbnailUrl) return item.thumbnailUrl;
-      const id = this.getYouTubeId(item.url);
-      return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : null;
-    }
-
-    if (net === 'facebook') {
+      if (item.thumbnailUrl) rawUrl = item.thumbnailUrl;
+      else {
+        const id = this.getYouTubeId(item.url);
+        rawUrl = id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : null;
+      }
+    } else if (net === 'facebook') {
       if (item.media && Array.isArray(item.media)) {
         const validMedia = item.media.find((m: any) => m.thumbnail || m.image?.uri || m.photo_image?.uri);
         if (validMedia) {
-          return validMedia.thumbnail || validMedia.image?.uri || validMedia.photo_image?.uri;
+          rawUrl = validMedia.thumbnail || validMedia.image?.uri || validMedia.photo_image?.uri;
         }
       }
-      return item.displayUrl || item.thumbnailUrl || item.imageUrl || null;
+      if (!rawUrl) rawUrl = item.displayUrl || item.thumbnailUrl || item.imageUrl || null;
+    } else if (net === 'instagram') {
+      rawUrl = item.displayUrl || item.thumbnailUrl || item.imageUrl || (item.images && item.images[0]) || null;
+    } else if (net === 'tiktok') {
+      rawUrl = item.videoMeta?.coverUrl || item.coverUrl || item.authorMeta?.avatar || item.imageUrl || null;
+    } else {
+      rawUrl = item.displayUrl || item.thumbnailUrl || item.videoMeta?.coverUrl || item.coverUrl || (item.images && item.images[0]) || null;
     }
 
-    if (net === 'instagram') {
-      return item.displayUrl || item.thumbnailUrl || item.imageUrl || (item.images && item.images[0]) || null;
-    }
+    return this.apifyChartService.getProxiedImageUrl(rawUrl);
+  }
 
-    if (net === 'tiktok') {
-      return item.videoMeta?.coverUrl || item.coverUrl || item.authorMeta?.avatar || item.imageUrl || null;
-    }
+  getBrandGradient(brandName: string): string {
+    return this.apifyChartService.getBrandGradient(brandName);
+  }
 
-    return item.displayUrl || item.thumbnailUrl || item.videoMeta?.coverUrl || item.coverUrl || (item.images && item.images[0]) || null;
+  getPostExcerpt(item: any, maxLen = 85): string {
+    const raw = item.caption || item.text || item.title || item.cleanText || '';
+    if (!raw) return 'Publicación visual auditada sin texto descriptivo';
+    const clean = raw.replace(/\s+/g, ' ').trim();
+    if (clean.length <= maxLen) return clean;
+    return clean.substring(0, maxLen).trim() + '...';
   }
 
   getPostTitle(item: any): string {

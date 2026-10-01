@@ -100,10 +100,15 @@
             </div>
           </div>
 
-          <!-- MINIATURA MULTIMEDIA -->
+          <!-- MINIATURA MULTIMEDIA / PORTADA EDITORIAL DE MARCA -->
           <div class="card-media-wrapper" (click)="openPreviewModal(post)">
-            @if (post.thumbnail) {
-              <img [src]="post.thumbnail" referrerpolicy="no-referrer" class="card-thumbnail-img" [alt]="post.brand + ' viral post'" loading="lazy">
+            @if (post.thumbnail && !failedThumbnailIds().has(post.id)) {
+              <img [src]="getProxiedThumbnail(post.thumbnail)"
+                   referrerpolicy="no-referrer"
+                   class="card-thumbnail-img"
+                   [alt]="post.brand + ' viral post'"
+                   loading="lazy"
+                   (error)="onThumbnailError(post.id)">
               <div class="media-hover-overlay">
                 <span class="preview-prompt">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -111,9 +116,46 @@
                 </span>
               </div>
             } @else {
-              <div class="card-media-placeholder">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
-                <span>Contenido textual</span>
+              <!-- PORTADA EDITORIAL CON GRADIENTE DE LA MARCA Y CITA DESTACADA -->
+              <div class="card-editorial-cover" [style.background]="getBrandGradient(post.brand)">
+                <!-- Marca de agua de la red social -->
+                <div class="editorial-watermark">
+                  <img [src]="getNetworkIcon(post.network)" referrerpolicy="no-referrer" [alt]="post.network">
+                </div>
+
+                <!-- Cabecera de la portada con logo y marca -->
+                <div class="editorial-top-row">
+                  <div class="editorial-brand-pill">
+                    @if (post.brandLogo) {
+                      <img [src]="post.brandLogo" referrerpolicy="no-referrer" class="editorial-logo-img" [alt]="post.brand">
+                    } @else if (post.brandAvatar) {
+                      <img [src]="post.brandAvatar" referrerpolicy="no-referrer" class="editorial-logo-img" [alt]="post.brand">
+                    } @else {
+                      <span class="editorial-logo-mono" [style.color]="post.brandColor">{{ post.brand.charAt(0) }}</span>
+                    }
+                    <span class="editorial-brand-name">{{ post.brand }}</span>
+                  </div>
+                  <span class="editorial-network-chip">
+                    {{ post.network | uppercase }}
+                  </span>
+                </div>
+
+                <!-- Cita editorial tipográfica destacada -->
+                <div class="editorial-quote-block">
+                  <span class="quote-symbol" [style.color]="post.brandColor">“</span>
+                  <p class="quote-text">{{ getQuoteExcerpt(post.caption) }}</p>
+                </div>
+
+                <!-- Pie de portada editorial: Formato y duración -->
+                <div class="editorial-footer-row">
+                  <span class="editorial-format-badge">
+                    {{ post.format }}
+                  </span>
+                  <span class="editorial-preview-action">
+                    <span>Ver detalle</span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                  </span>
+                </div>
               </div>
             }
           </div>

@@ -795,4 +795,24 @@ export class ApifyChartService {
       ]
     };
   }
+
+  public getProxiedImageUrl(url: string | null | undefined): string | null {
+    if (!url) return null;
+    const lower = url.toLowerCase();
+    if (
+      lower.includes('tiktokcdn') ||
+      lower.includes('byteoversea') ||
+      lower.includes('cdninstagram') ||
+      lower.includes('fbcdn.net') ||
+      lower.includes('instagram.com')
+    ) {
+      return `/api/proxy-image?url=${encodeURIComponent(url)}`;
+    }
+    return url;
+  }
+
+  public getBrandGradient(brandName: string): string {
+    const color = this.getBrandColor(brandName);
+    return `linear-gradient(135deg, #090d16 0%, #172033 55%, ${color}45 100%)`;
+  }
 }

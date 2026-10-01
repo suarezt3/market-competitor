@@ -60,6 +60,32 @@ export class ViralHighlightsComponent {
   // Post activo para vista previa modal in-app
   previewModalPost = signal<ViralPostItem | null>(null);
 
+  // Registro de miniaturas que fallaron al cargar para activar la portada editorial
+  failedThumbnailIds = signal<Set<string>>(new Set());
+
+  onThumbnailError(postId: string): void {
+    this.failedThumbnailIds.update(set => {
+      const next = new Set(set);
+      next.add(postId);
+      return next;
+    });
+  }
+
+  getProxiedThumbnail(url: string | null): string | null {
+    return this.apifyChartService.getProxiedImageUrl(url);
+  }
+
+  getBrandGradient(brand: string): string {
+    return this.apifyChartService.getBrandGradient(brand);
+  }
+
+  getQuoteExcerpt(caption: string, maxLen = 85): string {
+    if (!caption) return 'Publicación destacada sin texto descriptivo';
+    const clean = caption.replace(/\s+/g, ' ').trim();
+    if (clean.length <= maxLen) return clean;
+    return clean.substring(0, maxLen).trim() + '...';
+  }
+
   // Agrupación y lista de competidores disponibles
   competitorTabs = computed<CompetitorViralTab[]>(() => {
     const rawList = this.data();

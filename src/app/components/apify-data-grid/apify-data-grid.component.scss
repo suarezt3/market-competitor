@@ -39,20 +39,146 @@
   object-fit: cover; /* Asegura que la imagen llene el espacio sin deformarse */
 }
 
-.placeholder-thumbnail {
-  width: 100%;
-  height: 100%;
+.editorial-grid-cover {
+  position: absolute;
+  inset: 0;
+  padding: 0.75rem 0.85rem;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  color: #9ca3af;
-  font-weight: 600;
-  gap: 0.5rem;
+  justify-content: space-between;
+  overflow: hidden;
+  color: #ffffff;
+  user-select: none;
+  transition: filter 0.2s ease;
 
-  .network-icon {
-    font-size: 2rem;
+  .editorial-grid-watermark {
+    position: absolute;
+    right: -10px;
+    bottom: -10px;
+    opacity: 0.08;
+    pointer-events: none;
+
+    img {
+      width: 95px;
+      height: 95px;
+      object-fit: contain;
+      filter: grayscale(100%) brightness(200%);
+    }
   }
+
+  .editorial-grid-top {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+
+    .editorial-grid-brand-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 0.15rem 0.5rem;
+      border-radius: 9999px;
+      max-width: 75%;
+
+      .grid-logo-img {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        object-fit: contain;
+        background: #ffffff;
+        padding: 1px;
+        flex-shrink: 0;
+      }
+
+      .grid-logo-mono {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.2);
+        font-size: 0.65rem;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+
+      .grid-brand-name {
+        font-size: 0.68rem;
+        font-weight: 700;
+        color: #f8fafc;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+
+    .grid-network-badge {
+      font-size: 0.58rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      color: #cbd5e1;
+      background: rgba(255, 255, 255, 0.12);
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+    }
+  }
+
+  .editorial-grid-quote {
+    position: relative;
+    z-index: 2;
+    margin: 0.2rem 0;
+    display: flex;
+    flex-direction: column;
+
+    .quote-char {
+      font-family: Georgia, serif;
+      font-size: 1.6rem;
+      line-height: 1;
+      margin-bottom: -0.35rem;
+      opacity: 0.95;
+    }
+
+    .quote-text {
+      margin: 0;
+      font-size: 0.76rem;
+      line-height: 1.35;
+      font-weight: 500;
+      color: #f8fafc;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+    }
+  }
+
+  .editorial-grid-bottom {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+
+    .grid-format-pill {
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: #e2e8f0;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      backdrop-filter: blur(4px);
+    }
+  }
+}
+
+.media-card:hover .editorial-grid-cover {
+  filter: brightness(1.08);
 }
 
 .duration-badge {
