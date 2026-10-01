@@ -171,44 +171,52 @@ export class ApifyChartService {
   }
 
   public getMetricValue(item: any, network: string, metric: ChartMetric): number {
+    if (item._isPageProfile) {
+      return 0;
+    }
+
     const net = (network === 'omnicanal' ? item.__network : network) || item.__network || 'unknown';
 
     if (metric === 'views') {
+      if (item._kpi?.postViews !== undefined) return item._kpi.postViews;
       if (net === 'instagram') return item.videoPlayCount || item.videoViewCount || item.playCount || item.viewsCount || 0;
       if (net === 'tiktok') return item.playCount || item.stats?.playCount || item.videoMeta?.playCount || 0;
       if (net === 'youtube') return item.viewCount || 0;
+      if (net === 'facebook') return item.viewsCount || item.videoPostViewCount || item.views || 0;
       return item.viewsCount || item.viewCount || item.playCount || item.videoPostViewCount || 0;
     }
+
     if (metric === 'likes') {
+      if (item._kpi?.postLikes !== undefined) return item._kpi.postLikes;
       if (net === 'tiktok') return item.diggCount || item.stats?.diggCount || item.videoMeta?.diggCount || 0;
-      if (net === 'facebook') return item.likes || item.reactionLikeCount || 0;
-      return item.likesCount || item.likes || item.diggCount || item.reactionLikeCount || 0;
+      if (net === 'facebook') {
+        // En Facebook los likes de post son reactionLikeCount, reactionsCount o postLikes.
+        // NUNCA tomar item.likes si es un perfil de página o carece de postId.
+        return item.reactionLikeCount || item.reactionsCount || item.postLikes || (item.postId ? item.likes : 0) || 0;
+      }
+      if (net === 'youtube') return item.likes || item.likeCount || 0;
+      return item.likesCount || item.likes || item.diggCount || 0;
     }
+
     if (metric === 'comments') {
-      if (net === 'tiktok') return item.commentCount || item.stats?.commentCount || item.videoMeta?.commentCount || 0;
+      if (net === 'tiktok') return item.commentCount || item.stats?.commentCount || item.videoMeta?.commentCount || item.commentsCount || 0;
       return item.commentsCount || item.commentCount || item.comments || 0;
     }
 
-    // Métricas para Total (Engagement)
-    if (net === 'youtube') {
-      const likes = item.likes || 0;
-      const comments = item.commentCount || 0;
-      return (likes + comments > 0) ? (likes + comments) : (item.viewCount || 0);
-    }
+    // Métrica para Total (Interacciones = Likes + Comentarios + Shares)
+    const likes = this.getMetricValue(item, net, 'likes');
+    const comments = this.getMetricValue(item, net, 'comments');
+    let shares = 0;
+
     if (net === 'tiktok') {
-      const likes = item.diggCount || item.stats?.diggCount || item.videoMeta?.diggCount || 0;
-      const comments = item.commentCount || item.stats?.commentCount || item.videoMeta?.commentCount || 0;
-      const shares = item.shareCount || item.stats?.shareCount || item.videoMeta?.shareCount || 0;
-      return likes + comments + shares;
-    }
-    if (net === 'facebook') {
-      const likes = item.likes || item.reactionLikeCount || 0;
-      const comments = item.comments || item.commentsCount || 0;
-      const shares = item.shares || 0;
-      return likes + comments + shares;
+      shares = item.shareCount || item.stats?.shareCount || item.videoMeta?.shareCount || 0;
+    } else if (net === 'facebook') {
+      shares = item.sharesCount || item.shareCount || item.shares || 0;
+    } else if (net === 'instagram') {
+      shares = item.sharesCount || item.shareCount || 0;
     }
 
-    return (item.likesCount || item.likes || 0) + (item.commentsCount || item.comments || 0);
+    return likes + comments + shares;
   }
 
   private getMetricLabel(metric: ChartMetric): string {
@@ -258,6 +266,7 @@ export class ApifyChartService {
     const groupedData: Record<string, Record<string, number>> = {};
 
     rawData.forEach(item => {
+      if (item._isPageProfile) return;
       const authorName = this.getNormalizedBrandName(item);
       if (authorName === 'Embajadores / Creadores' || authorName === 'Medios y Eventos B2B') return;
 
@@ -313,6 +322,7 @@ export class ApifyChartService {
     let hasData = false;
 
     rawData.forEach(item => {
+      if (item._isPageProfile) return;
       const authorName = this.getNormalizedBrandName(item);
       if (authorName === 'Embajadores / Creadores' || authorName === 'Medios y Eventos B2B') return;
 
@@ -362,6 +372,7 @@ export class ApifyChartService {
     const groupedData: Record<string, any[]> = {};
 
     rawData.forEach(item => {
+      if (item._isPageProfile) return;
       const authorName = this.getNormalizedBrandName(item);
       if (!groupedData[authorName]) groupedData[authorName] = [];
       groupedData[authorName].push(item);
@@ -421,6 +432,7 @@ export class ApifyChartService {
     const brandNetworkMap: Record<string, Record<string, number>> = {};
 
     aggregatedData.forEach(item => {
+       if (item._isPageProfile) return;
        const authorName = this.getNormalizedBrandName(item);
        if (authorName === 'Embajadores / Creadores' || authorName === 'Medios y Eventos B2B') return;
 
@@ -466,6 +478,7 @@ export class ApifyChartService {
     const brandMap: Record<string, { posts: number; totalInteractions: number; totalViews: number; likes: number; comments: number }> = {};
 
     rawData.forEach(item => {
+      if (item._isPageProfile) return;
       const authorName = this.getNormalizedBrandName(item);
       if (authorName === 'Embajadores / Creadores' || authorName === 'Medios y Eventos B2B') return;
 
@@ -473,7 +486,7 @@ export class ApifyChartService {
       const views = this.getMetricValue(item, net, 'views');
       const likes = this.getMetricValue(item, net, 'likes');
       const comments = this.getMetricValue(item, net, 'comments');
-      const interactions = likes + comments > 0 ? likes + comments : this.getMetricValue(item, net, 'total');
+      const interactions = this.getMetricValue(item, net, 'total');
 
       if (!brandMap[authorName]) {
         brandMap[authorName] = { posts: 0, totalInteractions: 0, totalViews: 0, likes: 0, comments: 0 };
@@ -508,13 +521,12 @@ export class ApifyChartService {
       };
     });
 
+    // Fórmula oficial ejecutiva acordada: ER = (Interacciones Totales / Vistas) * 100
     const erData = brands.map(b => {
       const d = brandMap[b];
       let rate = 0;
       if (d.totalViews > 0) {
         rate = Number(((d.totalInteractions / d.totalViews) * 100).toFixed(2));
-      } else if (d.posts > 0) {
-        rate = Number(((d.totalInteractions / (d.posts * 1000)) * 100).toFixed(2));
       }
       return rate;
     });
@@ -522,7 +534,7 @@ export class ApifyChartService {
     return {
       title: {
         text: 'Engagement Rate y Promedio de Interacciones por Competidor',
-        subtext: 'Barras agrupadas: Promedio Interacciones/Post (color marca) vs Tasa Engagement % (púrpura)',
+        subtext: 'Barras agrupadas: Promedio Interacciones/Post (color marca) vs Tasa Engagement % sobre vistas (púrpura)',
         textStyle: { fontFamily: 'Inter', fontSize: 16, color: '#111827', fontWeight: 600 }
       },
       tooltip: {
@@ -542,7 +554,7 @@ export class ApifyChartService {
           const er = erData[brands.indexOf(brand)];
           const brandColor = this.getBrandColor(brand);
           return `
-            <div style="min-width: 220px; font-family: Inter, sans-serif;">
+            <div style="min-width: 230px; font-family: Inter, sans-serif;">
               <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
                 <span style="display:inline-block; width: 10px; height: 10px; border-radius: 50%; background-color: ${brandColor};"></span>
                 <strong style="color: #111827; font-size: 14px;">${brand}</strong>
@@ -556,8 +568,11 @@ export class ApifyChartService {
                 <b style="color: #2563eb;">${avg.toLocaleString()}</b>
               </div>
               <div style="display: flex; justify-content: space-between; gap: 12px; margin-bottom: 4px; font-size: 12px;">
-                <span style="color: #475569;">📈 Tasa de Engagement (ER):</span>
+                <span style="color: #475569;">📈 Tasa de Engagement (ER s/ Vistas):</span>
                 <b style="color: #8b5cf6;">${er}%</b>
+              </div>
+              <div style="font-size: 10px; color: #94a3b8; margin-top: 4px; margin-bottom: 4px;">
+                Fórmula: (Interacciones / Vistas) × 100
               </div>
               <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 11px; color: #94a3b8; margin-top: 4px;">
                 <span>❤️ Likes: ${this.formatCompactNumber(d.likes)}</span>
@@ -657,21 +672,25 @@ export class ApifyChartService {
     const formatMap: Record<string, { count: number; totalViews: number; totalInteractions: number }> = {
       video: { count: 0, totalViews: 0, totalInteractions: 0 },
       carousel: { count: 0, totalViews: 0, totalInteractions: 0 },
-      image: { count: 0, totalViews: 0, totalInteractions: 0 }
+      image: { count: 0, totalViews: 0, totalInteractions: 0 },
+      text: { count: 0, totalViews: 0, totalInteractions: 0 }
     };
 
     const formatLabels: Record<string, string> = {
       video: 'Reels / Videos',
       carousel: 'Carruseles',
-      image: 'Fotos / Imágenes'
+      image: 'Fotos / Imágenes',
+      text: 'Solo Texto'
     };
 
     rawData.forEach(item => {
+      if (item._isPageProfile) return;
       let format = item._contentType;
       if (!format || !formatMap[format]) {
         if (item.videoUrl || item.playCount || item.viewsCount) format = 'video';
         else if (item.isSlideshow || (item.mediaUrls && item.mediaUrls.length > 1)) format = 'carousel';
-        else format = 'image';
+        else if (item.imageUrl || (item.images && item.images.length > 0)) format = 'image';
+        else format = 'text';
       }
 
       const net = (network === 'omnicanal' ? item.__network : network) || item.__network || 'unknown';

@@ -577,9 +577,9 @@
                 </div>
                 <app-metric-info-tooltip
                   [title]="'Comunidad y Métricas por Competidor'"
-                  [definition]="'Consolida seguidores, publicaciones indexadas y volumen total de interacciones acumuladas.'"
-                  [formula]="'Interacciones = Likes + Comentarios | ER = (Promedio_Interacciones / Seguidores) × 100'"
-                  [fieldsUsed]="['followersCount', 'fans', 'numberOfSubscribers', 'likes', 'comments']"
+                  [definition]="'Consolida seguidores de perfil, publicaciones reales indexadas e interacciones acumuladas de post.'"
+                  [formula]="'Interacciones = Likes + Comentarios (+ Shares) | ER = (Interacciones / Vistas) × 100'"
+                  [fieldsUsed]="['followers', 'likes', 'comments', 'views']"
                   [topicId]="'engagement'"
                   (openFullDoc)="openMethodology($event)">
                 </app-metric-info-tooltip>
@@ -800,9 +800,9 @@
             <div class="chart-card-top-action">
               <app-metric-info-tooltip
                 [title]="'Tasa de Engagement & Promedio por Post'"
-                [definition]="'Relación entre el promedio de interacciones por post y el tamaño de la comunidad de seguidores.'"
-                [formula]="'ER = [ (Promedio_Interacciones / Seguidores) ] × 100'"
-                [fieldsUsed]="['followers', 'likes', 'comments']"
+                [definition]="'Relación porcentual de interacción activa (likes + comentarios) generada por cada reproducción o visualización.'"
+                [formula]="'ER = [ (Interacciones_Totales / Vistas_Totales) ] × 100'"
+                [fieldsUsed]="['views', 'likes', 'comments', 'shares']"
                 [topicId]="'engagement'"
                 (openFullDoc)="openMethodology($event)">
               </app-metric-info-tooltip>

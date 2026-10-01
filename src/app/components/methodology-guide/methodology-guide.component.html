@@ -158,18 +158,30 @@
                     </tr>
                     <tr>
                       <td><strong>Facebook</strong></td>
-                      <td><code>apify/facebook-pages-scraper</code></td>
-                      <td>Publicaciones en páginas públicas, Reacciones, Comentarios, Compartidos y Metadatos de la página.</td>
+                      <td><code>apify/facebook-pages-scraper</code> & <code>apify/facebook-posts-scraper</code></td>
+                      <td>Posts legítimos (Reacciones, Comentarios, Compartidos, Vistas) y perfiles de fanpage (seguidores de marca).</td>
                       <td>En vivo / Historiales en caché</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
 
+              <div class="tech-card mt-4" style="border-left: 3px solid #2563eb;">
+                <h4>Diferenciación Estricta: Páginas Institucionales vs. Publicaciones Reales (Facebook)</h4>
+                <p>
+                  Para garantizar la absoluta veracidad ante los directivos de la compañía, el sistema implementa un filtro de segregación estructural para Facebook:
+                </p>
+                <ul class="styled-list" style="margin-top: 0.5rem;">
+                  <li><strong>Perfiles de Página (Fanpages):</strong> Los registros institucionales que contienen únicamente seguidores de página o likes acumulados de la fanpage (ej. los 11,110 seguidores de <em>Agility Gold</em>) se catalogan como perfil y se dirigen <strong>exclusivamente al cálculo de seguidores de la comunidad</strong>.</li>
+                  <li><strong>Exclusión del Feed de Publicaciones:</strong> Estos registros de página son excluidos del grid de publicaciones y de los rankings de posts virales, evitando que los seguidores de una página se muestren equívocamente como "likes de una publicación".</li>
+                  <li><strong>Publicaciones Reales (Posts):</strong> Solo los registros con identificador de publicación (<code>postId</code>, URLs con <code>/posts/</code> o <code>/videos/</code>) y reacciones individuales (<code>reactionLikeCount</code>) se procesan como posts legítimos en el feed y en las tasas de interacción.</li>
+                </ul>
+              </div>
+
               <div class="tech-card mt-4">
                 <h4>Resolución de Entidades y Normalización de Marcas</h4>
                 <p>
-                  Debido a que los scrapers traen múltiples perfiles, variaciones de nombres de usuario (ej. <code>@bancodebogota_oficial</code>, <code>banco-de-bogota</code>) o menciones de creadores, el servicio central <code>ApifyChartService</code> implementa un motor de <strong>Brand Entity Resolution</strong> con expresiones regulares y diccionarios de alias. Esto garantiza que todos los perfiles se agrupen bajo la marca matriz correcta (ej. <em>Banco de Bogotá, Bancolombia, Davivienda, Nu</em>).
+                  Debido a que los scrapers traen múltiples perfiles, variaciones de nombres de usuario (ej. <code>@bancodebogota_oficial</code>, <code>banco-de-bogota</code>) o menciones de creadores, el servicio central <code>ApifyChartService</code> implementa un motor de <strong>Brand Entity Resolution</strong> con expresiones regulares y diccionarios de alias. Esto garantiza que todos los perfiles se agrupen bajo la marca matriz correcta.
                 </p>
               </div>
 
@@ -257,43 +269,43 @@
               </div>
 
               <p class="lead-text">
-                El <strong>Engagement Rate (ER)</strong> es el estándar de la industria publicitaria para evaluar la conexión genuina entre una comunidad y el contenido emitido. En este dashboard calculamos dos variantes complementarias:
+                El <strong>Engagement Rate (ER)</strong> es el estándar corporativo para evaluar la conexión genuina y capacidad de activación del contenido frente a la audiencia alcanzada.
               </p>
 
-              <div class="formula-card">
+              <div class="formula-card" style="border-left: 3px solid #8b5cf6;">
                 <div class="formula-header">
-                  <span class="formula-badge">MÉTODO ESTÁNDAR</span>
-                  <h4>1. Engagement Rate por Comunidad (Basado en Seguidores)</h4>
+                  <span class="formula-badge" style="background: #f5f3ff; color: #7c3aed;">MÉTODO OFICIAL DIRECTIVO</span>
+                  <h4>1. Engagement Rate por Visualizaciones (Basado en Vistas)</h4>
+                </div>
+                <div class="formula-display font-mono">
+                  ER_Vistas = [ (Interacciones_Totales) / (Vistas_Totales) ] × 100
+                </div>
+                <p class="formula-notes">
+                  <strong>Definición & Razón de Negocio:</strong> En el ecosistema social contemporáneo (TikTok, Instagram Reels, YouTube Shorts y Videos de Facebook), el algoritmo de recomendación distribuye el contenido a millones de usuarios que no necesariamente siguen a la marca. Por ello, la junta directiva evalúa el ratio sobre <strong>impactos visuales reales</strong>: mide qué porcentaje exacto de personas que vieron el contenido se sintieron motivadas a interactuar (Likes, Comentarios o Compartidos).
+                </p>
+                <div class="example-box">
+                  <strong>Ejemplo ejecutivo:</strong> Si un reel de la marca genera 50,000 reproducciones y acumula 2,200 likes + 300 comentarios:<br>
+                  <code>ER = (2,500 / 50,000) × 100 = 5.00%</code>
+                </div>
+              </div>
+
+              <div class="formula-card mt-4">
+                <div class="formula-header">
+                  <span class="formula-badge">MÉTODO COMPLEMENTARIO</span>
+                  <h4>2. Engagement Rate por Comunidad (Basado en Seguidores)</h4>
                 </div>
                 <div class="formula-display font-mono">
                   ER_Seguidores = [ (Promedio_Interacciones_por_Post) / (Total_Seguidores) ] × 100
                 </div>
                 <p class="formula-notes">
-                  <strong>Interpretación:</strong> Mide qué porcentaje de la base de seguidores reacciona o comenta en promedio en cada publicación. Permite comparar de forma justa a marcas con millones de seguidores frente a marcas emergentes más pequeñas.
-                </p>
-                <div class="example-box">
-                  <strong>Ejemplo práctico:</strong> Si una marca tiene 100,000 seguidores y sus publicaciones promedian 2,500 interacciones:<br>
-                  <code>ER = (2,500 / 100,000) × 100 = 2.50%</code>
-                </div>
-              </div>
-
-              <div class="formula-card">
-                <div class="formula-header">
-                  <span class="formula-badge">MÉTODO DE ALCANCE</span>
-                  <h4>2. Engagement Rate por Reproducciones (Basado en Vistas)</h4>
-                </div>
-                <div class="formula-display font-mono">
-                  ER_Vistas = [ (Interacciones_Totales) / (Vistas_Totales_de_Video) ] × 100
-                </div>
-                <p class="formula-notes">
-                  <strong>Interpretación:</strong> Específico para TikTok, Reels de Instagram y Shorts de YouTube. Como los algoritmos de recomendación impulsan videos a usuarios que no necesariamente siguen a la cuenta, este ratio mide la <em>capacidad de conversión</em> del contenido que fue visto.
+                  <strong>Interpretación:</strong> Mide la lealtad de la base instalada de seguidores. Se calcula dividiendo las interacciones promedio de los posts publicados entre el número total de seguidores auditados de la marca.
                 </p>
               </div>
 
               <div class="callout-box">
-                <h4>Auditoría de consistencia:</h4>
+                <h4>Auditoría de consistencia y rigor técnico:</h4>
                 <p>
-                  Si los seguidores de una marca no están disponibles en la API de la red para una ejecución histórica específica, el dashboard evita generar cifras ficticias o divisiones por cero mostrando un indicador transparente y priorizando el <strong>Promedio de Interacciones por Publicación</strong>.
+                  Para publicaciones estáticas o canales donde no se registran reproducciones de video públicas, el sistema evita divisiones por cero o valores distorsionados, priorizando el <strong>Promedio de Interacciones por Publicación</strong> y manteniendo el rigor en los comparativos del sector.
                 </p>
               </div>
             </article>
@@ -482,70 +494,82 @@
                   </thead>
                   <tbody>
                     <tr>
-                      <td><code>likesCount</code></td>
+                      <td><code>likesCount</code> / <code>likes</code></td>
                       <td>Instagram</td>
-                      <td><code>likes</code></td>
-                      <td>Número entero de "Me gusta" registrados.</td>
+                      <td><code>postLikes</code></td>
+                      <td>Número entero de "Me gusta" de la publicación.</td>
                     </tr>
                     <tr>
-                      <td><code>diggCount</code></td>
+                      <td><code>diggCount</code> / <code>stats.diggCount</code></td>
                       <td>TikTok</td>
-                      <td><code>likes</code></td>
+                      <td><code>postLikes</code></td>
                       <td>Contador oficial de corazones del video.</td>
                     </tr>
                     <tr>
-                      <td><code>commentsCount</code></td>
-                      <td>Instagram / YouTube</td>
-                      <td><code>comments</code></td>
-                      <td>Total de comentarios de primer nivel y respuestas.</td>
+                      <td><code>likes</code> / <code>likeCount</code></td>
+                      <td>YouTube</td>
+                      <td><code>postLikes</code></td>
+                      <td>Me gusta registrados en el video o short.</td>
                     </tr>
                     <tr>
-                      <td><code>commentCount</code></td>
-                      <td>TikTok</td>
-                      <td><code>comments</code></td>
-                      <td>Contador de comentarios en el video.</td>
+                      <td><code>reactionLikeCount</code> / <code>reactionsCount</code></td>
+                      <td>Facebook (Post)</td>
+                      <td><code>postLikes</code></td>
+                      <td>Reacciones activas exclusivas del post (nunca fans de página).</td>
                     </tr>
                     <tr>
                       <td><code>videoViewCount</code> / <code>videoPlayCount</code></td>
                       <td>Instagram</td>
-                      <td><code>views</code></td>
+                      <td><code>postViews</code></td>
                       <td>Reproducciones de Reels / Videos.</td>
                     </tr>
                     <tr>
-                      <td><code>playCount</code></td>
+                      <td><code>playCount</code> / <code>stats.playCount</code></td>
                       <td>TikTok</td>
-                      <td><code>views</code></td>
+                      <td><code>postViews</code></td>
                       <td>Total de reproducciones del video en TikTok.</td>
                     </tr>
                     <tr>
                       <td><code>viewCount</code></td>
                       <td>YouTube</td>
-                      <td><code>views</code></td>
-                      <td>Vistas registradas por el reproductor de YouTube.</td>
+                      <td><code>postViews</code></td>
+                      <td>Vistas auditadas por el reproductor de YouTube.</td>
                     </tr>
                     <tr>
-                      <td><code>displayUrl</code> / <code>thumbnailUrl</code></td>
-                      <td>Instagram</td>
-                      <td><code>thumbnail</code></td>
-                      <td>URL de CDN para visualización multimedia.</td>
+                      <td><code>viewsCount</code> / <code>videoPostViewCount</code></td>
+                      <td>Facebook (Post)</td>
+                      <td><code>postViews</code></td>
+                      <td>Reproducciones de video del post en Facebook.</td>
                     </tr>
                     <tr>
-                      <td><code>videoMeta.coverUrl</code></td>
-                      <td>TikTok</td>
-                      <td><code>thumbnail</code></td>
-                      <td>Fotograma de portada oficial generado por TikTok.</td>
+                      <td><code>commentsCount</code> / <code>commentCount</code></td>
+                      <td>Todas las redes</td>
+                      <td><code>comments</code></td>
+                      <td>Total de comentarios y respuestas generadas.</td>
                     </tr>
                     <tr>
-                      <td><code>timestamp</code> / <code>createTimeISO</code></td>
-                      <td>Instagram / TikTok</td>
-                      <td><code>date</code></td>
-                      <td>Cadena ISO o timestamp UNIX milisegundos.</td>
+                      <td><code>shareCount</code> / <code>sharesCount</code></td>
+                      <td>TikTok / Facebook</td>
+                      <td><code>shares</code></td>
+                      <td>Veces compartido por la comunidad (suma al Total Interacciones).</td>
+                    </tr>
+                    <tr>
+                      <td><code>followers</code> / <code>pageFollowers</code> / <code>likes</code></td>
+                      <td>Facebook (Página)</td>
+                      <td><code>followers</code></td>
+                      <td>Comunidad institucional (aislada de métricas de publicaciones).</td>
                     </tr>
                     <tr>
                       <td><code>followersCount</code> / <code>fans</code> / <code>numberOfSubscribers</code></td>
                       <td>IG / TikTok / YT</td>
                       <td><code>followers</code></td>
-                      <td>Tamaño de la comunidad / Suscriptores.</td>
+                      <td>Comunidad oficial y base de suscriptores del canal.</td>
+                    </tr>
+                    <tr>
+                      <td><code>postId</code> / <code>url</code> (con /posts/ o /videos/)</td>
+                      <td>Facebook</td>
+                      <td><code>_isPageProfile = false</code></td>
+                      <td>Identificador que valida una publicación legítima frente a un perfil.</td>
                     </tr>
                   </tbody>
                 </table>

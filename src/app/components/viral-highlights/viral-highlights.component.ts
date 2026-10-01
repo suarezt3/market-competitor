@@ -68,6 +68,7 @@ export class ViralHighlightsComponent {
     const map: Record<string, { brand: string; color: string; logo: string | null; avatar: string | null; postsCount: number; totalInteractions: number }> = {};
 
     rawList.forEach(item => {
+      if (item._isPageProfile) return;
       const brand = this.apifyChartService.getNormalizedBrandName(item);
       if (brand === 'Embajadores / Creadores' || brand === 'Medios y Eventos B2B') return;
 
@@ -116,8 +117,9 @@ export class ViralHighlightsComponent {
     const metric = this.activeMetric();
     const netContext = this.loadedNetwork();
 
-    // Filtrar publicaciones de la marca seleccionada
+    // Filtrar publicaciones legítimas de la marca seleccionada (excluyendo perfiles de página)
     const brandPosts = rawList.filter(item => {
+      if (item._isPageProfile) return false;
       const brand = this.apifyChartService.getNormalizedBrandName(item);
       return brand === targetBrand;
     });

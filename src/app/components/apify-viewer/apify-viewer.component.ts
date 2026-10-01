@@ -430,7 +430,7 @@ export class ApifyViewerComponent implements OnInit {
   // CONTEXTO REACTIVO PARA GEMINI AI INTELLIGENCE
   // ==========================================
   datasetContextPayload = computed<DatasetContextPayload>(() => {
-    const currentData = this.filteredData();
+    const currentData = this.filteredData().filter(item => !item._isPageProfile);
     const platform = this.loadedNetwork() || 'Omnicanal';
     const start = this.filterStartDate();
     const end = this.filterEndDate();
@@ -538,7 +538,7 @@ export class ApifyViewerComponent implements OnInit {
   // ==========================================
 
   availableBrands = computed(() => {
-    const data = this.filteredData();
+    const data = this.filteredData().filter(item => !item._isPageProfile);
     const brands = new Set<string>();
 
     data.forEach(item => {
@@ -552,7 +552,7 @@ export class ApifyViewerComponent implements OnInit {
   });
 
   gridDisplayData = computed(() => {
-    let data = [...this.filteredData()];
+    let data = [...this.filteredData()].filter(item => !item._isPageProfile);
     const brandFilter = this.gridBrandFilter();
     const networkFilter = this.gridNetworkFilter();
     const contentTypeFilter = this.gridContentTypeFilter();
@@ -610,42 +610,42 @@ export class ApifyViewerComponent implements OnInit {
   // ==========================================
 
   chartOptions = computed(() => {
-    const data = this.filteredData();
+    const data = this.filteredData().filter(item => !item._isPageProfile);
     const net = this.loadedNetwork();
     if (!data.length || !net) return null;
     return this.apifyChartService.buildChartOptions(net, data, this.selectedMetric());
   });
 
   marketShareChartOptions = computed(() => {
-    const data = this.filteredData();
+    const data = this.filteredData().filter(item => !item._isPageProfile);
     const net = this.loadedNetwork();
     if (!data.length || !net) return null;
     return this.apifyChartService.buildMarketShareChart(net, data, this.selectedMetric());
   });
 
   performanceChartOptions = computed(() => {
-    const data = this.filteredData();
+    const data = this.filteredData().filter(item => !item._isPageProfile);
     const net = this.loadedNetwork();
     if (!data.length || !net || net === 'omnicanal') return null;
     return this.apifyChartService.buildPerformanceScatterChart(net, data);
   });
 
   masterChartOptions = computed(() => {
-    const data = this.filteredData();
+    const data = this.filteredData().filter(item => !item._isPageProfile);
     const net = this.loadedNetwork();
     if (!data.length || net !== 'omnicanal') return null;
     return this.apifyChartService.buildMasterOmnichannelChart(data, this.selectedMetric());
   });
 
   engagementChartOptions = computed(() => {
-    const data = this.filteredData();
+    const data = this.filteredData().filter(item => !item._isPageProfile);
     const net = this.loadedNetwork();
     if (!data.length || !net) return null;
     return this.apifyChartService.buildEngagementRateChart(net, data);
   });
 
   formatPerformanceChartOptions = computed(() => {
-    const data = this.filteredData();
+    const data = this.filteredData().filter(item => !item._isPageProfile);
     const net = this.loadedNetwork();
     if (!data.length || !net) return null;
     return this.apifyChartService.buildContentTypePerformanceChart(net, data);
@@ -866,9 +866,9 @@ export class ApifyViewerComponent implements OnInit {
 
         Object.values(networkMap).forEach(stats => {
           totalFollowers += stats.followers;
-          totalLikes += (stats.profileLikes > 0 ? stats.profileLikes : stats.postLikesSum);
-          totalViews += (stats.profileViews > 0 ? stats.profileViews : stats.postViewsSum);
-          totalPosts += (stats.profilePosts > 0 ? stats.profilePosts : stats.postCountSum);
+          totalLikes += (stats.postCountSum > 0 || stats.postLikesSum > 0 ? stats.postLikesSum : stats.profileLikes);
+          totalViews += (stats.postCountSum > 0 || stats.postViewsSum > 0 ? stats.postViewsSum : stats.profileViews);
+          totalPosts += (stats.postCountSum > 0 ? stats.postCountSum : stats.profilePosts);
           if (stats.avatar && !finalAvatar) finalAvatar = stats.avatar;
         });
 
@@ -972,6 +972,7 @@ export class ApifyViewerComponent implements OnInit {
           allPosts.forEach((post: any) => {
             processed.push({
               ...post,
+              _isPageProfile: false,
               ownerFullName: item.fullName || item.username,
               ownerUsername: item.username,
               ownerProfilePicUrl: item.profilePicUrlHD || item.profilePicUrl,
@@ -993,6 +994,7 @@ export class ApifyViewerComponent implements OnInit {
         else {
           processed.push({
             ...item,
+            _isPageProfile: false,
             ownerFullName: item.ownerFullName || item.ownerUsername || item.owner?.username || 'Desconocido',
             ownerUsername: item.ownerUsername || item.owner?.username || 'Desconocido',
             ownerProfilePicUrl: item.ownerProfilePicUrl || item.owner?.profile_pic_url,
@@ -1002,9 +1004,9 @@ export class ApifyViewerComponent implements OnInit {
             _kpi: {
               followers: item.followersCount || item.owner?.followersCount || 0,
               profileLikes: 0,
-              postLikes: item.likesCount || 0,
+              postLikes: item.likesCount || item.likes || 0,
               profileViews: 0,
-              postViews: item.videoViewCount || item.viewCount || item.playCount || 0,
+              postViews: item.videoViewCount || item.viewCount || item.playCount || item.viewsCount || 0,
               profilePosts: 0,
               postCount: 1
             }
@@ -1014,6 +1016,7 @@ export class ApifyViewerComponent implements OnInit {
       else if (net === 'tiktok') {
         processed.push({
           ...item,
+          _isPageProfile: false,
           ownerFullName: item.authorMeta?.nickName || item.authorMeta?.name || item.author?.nickname,
           ownerUsername: item.authorMeta?.name || item.author?.uniqueId,
           ownerProfilePicUrl: item.authorMeta?.avatar || item.author?.avatarLarger,
@@ -1027,33 +1030,93 @@ export class ApifyViewerComponent implements OnInit {
              postLikes: item.diggCount || item.stats?.diggCount || item.videoMeta?.diggCount || 0,
              profileViews: 0,
              postViews: item.playCount || item.stats?.playCount || item.videoMeta?.playCount || 0,
-             profilePosts: item.authorMeta?.video || item.authorStats?.videoCount || 0, postCount: 1
+             profilePosts: item.authorMeta?.video || item.authorStats?.videoCount || 0,
+             postCount: 1
           }
         });
       }
       else if (net === 'facebook') {
-        const isPost = !!item.postId || item.text !== undefined;
-        processed.push({
-          ...item,
-          ownerFullName: isPost ? (item.user?.name || item.pageName) : (item.title || item.pageName),
-          ownerUsername: item.pageName,
-          ownerProfilePicUrl: isPost ? item.user?.profilePic : item.profilePictureUrl,
-          url: isPost ? (item.url || item.topLevelUrl) : (item.pageUrl || item.facebookUrl),
-          __network: 'facebook',
-          _contentType: uType,
-          _duration: this.formatDuration(item.duration || item.video_duration),
-          _kpi: {
-             followers: isPost ? 0 : (item.followers || item.likes || 0),
-             profileLikes: 0, postLikes: isPost ? (item.likes || item.reactionLikeCount || 0) : 0,
-             profileViews: 0, postViews: isPost ? (item.viewsCount || item.videoPostViewCount || 0) : 0,
-             profilePosts: 0, postCount: isPost ? 1 : 0
-          }
-        });
+        const urlCandidate = String(item.url || item.postUrl || item.topLevelUrl || item.link || item.facebookUrl || item.pageUrl || '');
+        const hasPostUrl = urlCandidate.includes('/posts/') ||
+                           urlCandidate.includes('/videos/') ||
+                           urlCandidate.includes('/reel/') ||
+                           urlCandidate.includes('/photos/') ||
+                           urlCandidate.includes('story_fbid=') ||
+                           urlCandidate.includes('fbid=') ||
+                           urlCandidate.includes('/watch');
+        const hasPostId = !!item.postId || (!!item.id && String(item.id).includes('_'));
+
+        // Se cataloga como publicación real si tiene postId, url de post/video o métricas directas de post.
+        // Si no tiene postId ni url de post, pero tiene pageUrl/facebookUrl y fans/followers de página, ES PÁGINA.
+        const isPost = (hasPostId || hasPostUrl || !!item.reactionLikeCount || !!item.videoPostViewCount || !!item.reactionsCount) &&
+                       !(item.pageUrl && !hasPostId && !hasPostUrl);
+        const isPageProfile = !isPost;
+
+        if (isPageProfile) {
+          // Perfil / Fanpage institucional de Facebook: Se extraen seguidores para métricas de marca pero NO es post
+          const pageFollowers = Number(item.followers || item.followersCount || item.likes || 0);
+          processed.push({
+            ...item,
+            _isPageProfile: true,
+            ownerFullName: item.title || item.pageName || 'Página de Facebook',
+            ownerUsername: item.pageName || item.title || 'facebook_page',
+            ownerProfilePicUrl: item.profilePictureUrl || item.pageProfilePic || item.user?.profilePic,
+            url: item.pageUrl || item.facebookUrl || item.url || '#',
+            __network: 'facebook',
+            _contentType: 'page_profile',
+            _duration: null,
+            likes: 0,
+            likesCount: 0,
+            postLikes: 0,
+            _kpi: {
+              followers: pageFollowers,
+              profileLikes: Number(item.likes || 0),
+              postLikes: 0,
+              profileViews: 0,
+              postViews: 0,
+              profilePosts: Number(item.postsCount || 0),
+              postCount: 0
+            }
+          });
+        } else {
+          // Publicación legítima de Facebook
+          const postLikes = Number(item.reactionLikeCount || item.reactionsCount || item.postLikes || (hasPostId ? item.likes : 0) || 0);
+          const postViews = Number(item.viewsCount || item.videoPostViewCount || item.videoViews || item.views || 0);
+          const postComments = Number(item.commentsCount || item.commentCount || item.comments || 0);
+          const postShares = Number(item.sharesCount || item.shareCount || item.shares || 0);
+
+          processed.push({
+            ...item,
+            _isPageProfile: false,
+            ownerFullName: item.user?.name || item.pageName || 'Facebook User',
+            ownerUsername: item.pageName || item.user?.name || 'Facebook User',
+            ownerProfilePicUrl: item.user?.profilePic || item.profilePictureUrl,
+            url: item.url || item.postUrl || item.topLevelUrl || item.link || '#',
+            __network: 'facebook',
+            _contentType: uType,
+            _duration: this.formatDuration(item.duration || item.video_duration),
+            likes: postLikes,
+            likesCount: postLikes,
+            commentsCount: postComments,
+            sharesCount: postShares,
+            viewsCount: postViews,
+            _kpi: {
+              followers: 0,
+              profileLikes: 0,
+              postLikes,
+              profileViews: 0,
+              postViews,
+              profilePosts: 0,
+              postCount: 1
+            }
+          });
+        }
       }
       else if (net === 'youtube') {
-        const isVideo = item.type === 'video' || item.videoId || item.url?.includes('watch');
+        const isVideo = item.type === 'video' || item.videoId || item.url?.includes('watch') || item.url?.includes('shorts');
         processed.push({
           ...item,
+          _isPageProfile: false,
           ownerFullName: item.channelName || item.aboutChannelInfo?.channelName,
           ownerUsername: item.channelUsername || item.aboutChannelInfo?.channelUsername,
           ownerProfilePicUrl: item.channelAvatarUrl || item.aboutChannelInfo?.channelAvatarUrl,
@@ -1063,7 +1126,7 @@ export class ApifyViewerComponent implements OnInit {
           _kpi: {
              followers: item.numberOfSubscribers || item.aboutChannelInfo?.numberOfSubscribers || 0,
              profileLikes: 0,
-             postLikes: item.likes || 0,
+             postLikes: item.likes || item.likeCount || 0,
              profileViews: item.channelTotalViews || item.aboutChannelInfo?.channelTotalViews || 0,
              postViews: item.viewCount || 0,
              profilePosts: item.channelTotalVideos || item.aboutChannelInfo?.channelTotalVideos || 0,
@@ -1073,8 +1136,19 @@ export class ApifyViewerComponent implements OnInit {
       }
       else {
         processed.push({
-          ...item, __network: net, _contentType: 'unknown',
-          _kpi: { followers: item.followersCount || 0, profileLikes: 0, postLikes: 0, profileViews: 0, postViews: 0, profilePosts: item.postsCount || 0, postCount: 1 }
+          ...item,
+          _isPageProfile: false,
+          __network: net,
+          _contentType: 'unknown',
+          _kpi: {
+            followers: item.followersCount || 0,
+            profileLikes: 0,
+            postLikes: item.likesCount || item.likes || 0,
+            profileViews: 0,
+            postViews: item.viewsCount || item.viewCount || 0,
+            profilePosts: item.postsCount || 0,
+            postCount: 1
+          }
         });
       }
     });

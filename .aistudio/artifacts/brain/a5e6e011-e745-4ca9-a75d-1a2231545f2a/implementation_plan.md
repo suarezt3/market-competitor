@@ -1,71 +1,94 @@
-# Plan de Implementación: Asistente Inteligente Gemini AI para Analítica y Marketing Intelligence
+# Plan de Estandarización de Métricas, Normalización de Scrapers y Actualización Documental
 
-Este plan detalla la arquitectura e integración del motor de IA **Gemini (gemini-3.8-flash)** para analizar en tiempo real el dataset de competidores, detectar automáticamente los contenidos de mayor impacto (posts/videos más vistos y virales), generar tarjetas de insights ejecutivos y proporcionar un asistente de chat interactivo con preguntas rápidas en 1 clic.
+## 1. Diagnóstico del Problema y Objetivos Ejecutivos
 
----
+Para la presentación ante los directivos de la compañía, las métricas deben ser **100% confiables, auditables y con rigor estadístico y publicitario**. Hemos identificado los siguientes puntos críticos a resolver:
 
-## 1. Arquitectura y Backend Server-Side (Gemini API)
+1. **Confusión en Facebook (Seguidores vs. Likes):**
+   * El scraper de Facebook en ocasiones extrae registros de páginas/perfiles institucionales (como la página de *Agility Gold*) donde el campo `likes` o `followers` indica los seguidores de la fanpage (11,110 seguidores), confundiéndose con un post individual con 11,110 "me gusta".
+   * **Solución acordada:** Separar y **excluir los registros de páginas o perfiles del feed/grid de publicaciones**, utilizándolos exclusivamente para la ficha de seguidores y presencia de marca. En el grid de publicaciones solo participarán posts y reels reales con sus interacciones directas.
 
-### 1.1 Configuración Full-Stack con Angular SSR / Express
-- **Instalación de SDK:** `@google/genai` y dependencias del servidor.
-- **Seguridad Server-Side:** Inicialización centralizada de `GoogleGenAI` en `server.ts` con `process.env.GEMINI_API_KEY` (sin exponer credenciales al cliente) y header `User-Agent: aistudio-build`.
-- **Configuración de `angular.json` y `metadata.json`:**
-  - Agregar soporte SSR en `angular.json` para enrutar `/api/gemini/*` a través del middleware Vite/Express.
-  - Agregar `"majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]` en `metadata.json`.
-- **Modelo:** `gemini-3.8-flash` para alta velocidad, razonamiento analítico preciso y baja latencia.
+2. **Estandarización Canónica de los 4 Scrapers:**
+   * Cada plataforma y actor de Apify nombra sus campos de manera dispar (`diggCount` en TikTok, `reactionLikeCount` en Facebook, `videoViewCount` en Instagram, `viewCount` en YouTube).
+   * Unificar el objeto normalizado `_kpi` y los extractores de `apify-chart.service.ts` para que cada métrica represente con certeza matemática su dimensión real.
 
-### 1.2 Endpoints API REST
-1. **`POST /api/gemini/insights`**:
-   - Recibe el contexto estructurado de los datos filtrados (marcas, total de posts/reels/tiktoks, métricas agregadas de visualizaciones, likes, comentarios, engagement rate, top 5 posts por views, y comparativa líder vs rivales).
-   - Retorna un JSON estructurado con:
-     - **Top Outlier Content:** Identificación del post o video más exitoso (views, formato, autor, por qué funcionó).
-     - **Executive Summary:** Resumen ejecutivo de 3 bullets de impacto.
-     - **Leader vs Competitor Benchmarking:** Fortalezas clave del líder y oportunidades detectadas.
-     - **Actionable Recommendations:** 3 acciones tácticas de contenido recomendadas.
-2. **`POST /api/gemini/chat`**:
-   - Recibe el historial de conversación, la pregunta del usuario y el contexto actualizado del dataset activo.
-   - Responde de forma concisa, con números exactos y enlaces o referencias directas a los posts/creadores analizados.
+3. **Revisión y Ajuste del Engagement Rate (ER):**
+   * **Fórmula actual:** En algunos tooltips y gráficos se referenciaba `(Interacciones / Seguidores) * 100`, la cual en publicaciones con alcance viral algorítmico (Reels, TikTok, Shorts) distorsiona la realidad, ya que las vistas provienen de usuarios que no necesariamente son seguidores.
+   * **Fórmula ejecutiva aprobada:** 
+     $$\text{Engagement Rate (ER)} = \left(\frac{\text{Likes} + \text{Comentarios}}{\text{Visualizaciones (Views)}}\right) \times 100$$
+     (Proporciona a la junta directiva la tasa real de conversión de reproducciones en interacciones activas).
+
+4. **Claridad en Cuota de Mercado e Interacciones Totales:**
+   * Desglose explícito de la Cuota de Mercado (Share of Interactions / Share of Views) para que quede claro si el porcentaje mide volumen de interacción acumulado o cuota de reproducciones.
+
+5. **Actualización Integral de la Guía Metodológica y Tooltips:**
+   * Reflejar con precisión las nuevas fórmulas y definiciones en el modal interactivo `app-methodology-guide` y en todos los tooltips `[formula]` de la vista principal.
 
 ---
 
-## 2. Componentes Frontend y Experiencia de Usuario (UI/UX)
+## 2. Matriz Canónica de Normalización de Scrapers
 
-### 2.1 Tarjeta Inteligente de Insights en el Dashboard Principal (`AiInsightsCard`)
-- **Ubicación Estratégica:** Justo debajo de la barra de filtros o en la parte superior del dashboard para máxima visibilidad.
-- **Componentes Visuales:**
-  - **Badge de Estado:** Indicador en vivo "Gemini 3.8 AI Intelligence" con botón de "Refrescar Análisis".
-  - **Tarjeta Destacada del Post/Video Estrella:** Muestra en formato visual el post/video con más visualizaciones y engagement, con métricas destacadas (views, likes, engagement score) y la razón del éxito analizada por la IA.
-  - **Grid de Puntos Clave:** 3 tarjetas estilizadas con los hallazgos principales (Tendencias de formato, Rendimiento de marcas y Recomendaciones).
-  - **Skeleton Loaders & Transiciones:** Animaciones suaves de carga mientras la IA procesa nuevos filtros.
+Se define la siguiente matriz de ingestión para garantizar que **likes son likes, comentarios son comentarios y vistas son vistas**:
 
-### 2.2 Panel de Asistente Lateral Desplegable (`AiAssistantSidebar` / Drawer)
-- **Activador:** Botón flotante accesible y botón dedicado en el menú lateral ("Asistente Gemini AI" con indicador de pulso).
-- **Características:**
-  - **Header con Acciones Rápidas:** Selector de preguntas predefinidas en 1 clic:
-    - ⚡ *"¿Cuál es el post o video con más visualizaciones?"*
-    - 📊 *"¿Qué formato genera mayor interacción: Reels, TikTok o Fotos?"*
-    - 🏆 *"¿Quién lidera el benchmark de engagement y por qué?"*
-    - 💡 *"Dame 3 ideas de contenido basadas en los competidores ganadores."*
-  - **Historial de Conversación:** Mensajes en burbujas elegantes estilo Enterprise/Apple con markdown estilizado y etiquetas numéricas.
-  - **Caja de Entrada Inteligente:** Prompt libre para hacer cualquier pregunta ad-hoc sobre los datos cargados.
-  - **Context-Aware:** El asistente siempre conoce los filtros actualmente aplicados en pantalla (rango de fechas, marcas seleccionadas, red social).
+| Red Social | Publicación Válida | Vistas (`postViews`) | Me Gusta (`postLikes`) | Comentarios (`comments`) | Compartidos (`shares`) | Seguidores (`followers`) |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Instagram** | Posts, Reels, Carruseles (`id`, `shortCode`, `url`) | `videoViewCount` \|\| `videoPlayCount` \|\| `viewsCount` \|\| `playCount` | `likesCount` \|\| `likes` | `commentsCount` \|\| `comments` | `sharesCount` \|\| 0 | `owner.followersCount` \|\| `followersCount` |
+| **TikTok** | Videos / TikToks (`webVideoUrl`, `videoUrl`, `id`) | `playCount` \|\| `stats.playCount` \|\| `videoMeta.playCount` | `diggCount` \|\| `stats.diggCount` \|\| `videoMeta.diggCount` | `commentCount` \|\| `stats.commentCount` | `shareCount` \|\| `stats.shareCount` | `authorMeta.fans` \|\| `authorStats.followerCount` |
+| **YouTube** | Videos largos / Shorts (`videoId`, `url` con `/watch` o `/shorts/`) | `viewCount` \|\| `views` | `likes` \|\| `likeCount` | `commentsCount` \|\| `commentCount` | 0 (no provisto por scraper estándar) | `numberOfSubscribers` \|\| `subscriberCount` |
+| **Facebook** | **Únicamente posts reales** (`postId`, o URLs con `/posts/`, `/videos/`, `permalinkUrl`) | `viewsCount` \|\| `videoPostViewCount` \|\| `views` | `reactionLikeCount` \|\| `postLikes` \|\| `reactionsCount` *(nunca `page.likes`)* | `commentsCount` \|\| `comments` | `sharesCount` \|\| `shares` | `followers` \|\| `pageFollowers` *(a nivel de marca)* |
+
+> **Regla de Filtrado para Facebook:** Si un registro no posee `postId`, o su URL apunta a `facebook.com/[pagina]` sin identificador de post, y solo contiene contadores de fanpage, se catalogará como registro de perfil institucional (`_isPageProfile = true`), extrayendo sus seguidores para el ranking de competidores pero omitiéndolo del ranking y grid de publicaciones.
 
 ---
 
-## 3. Flujo de Datos y Reactividad con Angular Signals
+## 3. Plan de Acción y Tareas de Implementación
 
-- **`GeminiService`**: Servicio singleton en Angular que orquesta las llamadas al backend, gestiona estados (`loading`, `error`, `insightsData`, `chatMessages`), y cachea respuestas basadas en los filtros activos para evitar llamadas redundantes.
-- **Disparo Automático e Inteligente:**
-  - Al cambiar de red social o aplicar filtros de fechas, se activa una actualización silenciosa con debounce.
-  - Botón de refresco manual siempre disponible para forzar una nueva reevaluación.
+### Tarea 1: Normalización de Scrapers y Aislamiento de Perfiles Facebook
+* **Archivo:** `src/app/components/apify-viewer/apify-viewer.component.ts`
+  * Perfeccionar la función `processRawItems()`:
+    * Detección estricta de posts reales de Facebook frente a fichas de página institucional.
+    * Mapeo blindado de campos numéricos (convirtiendo strings con formato o nulos a números enteros limpios).
+    * Asignación inequívoca de `_kpi.postLikes` (exclusivamente likes del post, excluyendo seguidores o page likes).
+    * Filtrado en `filteredData()` para que el feed y tablas de publicaciones solo muestren publicaciones reales.
+
+### Tarea 2: Sincronización en el Servicio de Métricas y Gráficos
+* **Archivo:** `src/app/services/apify-chart.service.ts`
+  * Actualizar `getMetricValue(item, network, metric)`:
+    * Reemplazar la condición ambigua `item.likes` en Facebook por la comprobación estricta de métricas de post (`item.reactionLikeCount || item._kpi?.postLikes || item.postLikes`).
+    * Reforzar el cálculo del total de interacciones: `Interacciones = Likes + Comentarios + Compartidos` (o `Likes + Comentarios` según disponibilidad de canal).
+  * Actualizar el gráfico de dispersión (Scatter Plot) y la evolución temporal para utilizar la fórmula oficial de **Engagement Rate sobre Visualizaciones**:
+    $$\text{ER} = \left(\frac{\text{Interacciones Totales}}{\text{Views}}\right) \times 100$$
+  * Garantizar que si un post no tiene visualizaciones (ej. imagen estática sin métrica de alcance público), se calcule el ratio sobre la media o se indique explícitamente para no desvirtuar el promedio.
+
+### Tarea 3: Actualización de la Guía Metodológica Oficial
+* **Archivo:** `src/app/components/methodology-guide/methodology-guide.component.html`
+  * Actualizar la **Sección 3: Fórmulas de Interacciones Base**:
+    * Detallar la procedencia exacta de Likes, Comentarios, Vistas y Compartidos por red social.
+  * Actualizar la **Sección 4: Cálculo del Engagement Rate**:
+    * Documentar la fórmula oficial aprobada por la dirección basada en visualizaciones reales ($ER = (\text{Interacciones} / \text{Views}) \times 100$).
+    * Explicar el fundamento de negocio (evaluación de la eficacia creativa y retención de la atención por cada mil reproducciones).
+  * Actualizar la **Sección 6: Cuota de Mercado (Share of Voice)**:
+    * Clarificar la fórmula de participación sobre interacciones acumuladas frente a participación sobre visualizaciones.
+  * Actualizar la **Sección 8: Diccionario Técnico de Campos JSON**:
+    * Incluir la tabla comparativa con los nombres de campos de cada scraper de Apify (Facebook, Instagram, TikTok, YouTube) y cómo se convierten en el modelo canónico.
+
+### Tarea 4: Actualización de Tooltips de Fórmulas en el Dashboard
+* **Archivo:** `src/app/components/apify-viewer/apify-viewer.component.html`
+  * Actualizar los componentes `<app-metric-info-tooltip>` para que las descripciones emergentes coincidan exactamente con la nueva fórmula de Engagement Rate sobre vistas y la cuota de interacciones.
 
 ---
 
-## 4. Plan de Verificación y Testing
+## 4. Plan de Verificación y Pruebas
 
-- **Verificación de Compilación:** Ejecución de `compile_applet` y validación de tipos estrictos de Angular 21 y TypeScript.
-- **Pruebas de Flujo End-to-End:**
-  1. Filtrar por fecha o red (Instagram / TikTok / YouTube) y comprobar la generación automática de la tarjeta de insights.
-  2. Probar el botón de refresco manual.
-  3. Probar las preguntas rápidas en 1 clic en el chat y preguntas libres ("¿cuál es el video más visto?").
-  4. Comprobar que el sidebar fijo y la barra de filtros sigan perfectamente fijos sin alterar el scroll del dashboard.
+1. **Verificación de Facebook y Agility Gold:**
+   * Cargar el dataset de Facebook o el conjunto unificado y comprobar que la página de *Agility Gold* ya no figure como un "post de 11,110 likes", sino que sus publicaciones muestren sus likes reales (ej. 15, 45, 120 likes) y los 11,110 figuren correctamente como comunidad/seguidores de marca.
+2. **Validación Numérica en los 4 Canales:**
+   * Verificar en el inspector que Instagram muestre views y likes de publicaciones.
+   * Verificar que TikTok muestre `playCount` como vistas y `diggCount` como likes.
+   * Verificar que YouTube Shorts y Videos muestren `viewCount` como vistas y `likes` como likes.
+3. **Validación de la Fórmula de Engagement:**
+   * Comprobar que en las tarjetas KPI y el gráfico de engagement se aplique la fórmula sobre vistas.
+4. **Verificación de la Guía Metodológica:**
+   * Abrir el modal de la Guía Metodológica desde el botón superior y revisar que todas las secciones reflejen las nuevas fórmulas y el diccionario de campos.
+5. **Compilación y Build:**
+   * Ejecutar `compile_applet` para certificar cero errores de compilación de TypeScript y Angular.
