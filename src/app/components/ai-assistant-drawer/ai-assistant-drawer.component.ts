@@ -1,5 +1,5 @@
-// src/app/components/ai-assistant-drawer/ai-assistant-drawer.component.ts
 import { Component, ChangeDetectionStrategy, input, output, signal, ElementRef, ViewChild, effect } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormControl, Validators } from '@angular/forms';
 import { ChatMessage, DatasetContextPayload } from '../../services/gemini.service';
@@ -134,8 +134,7 @@ import { ChatMessage, DatasetContextPayload } from '../../services/gemini.servic
             rows="2"
             placeholder="Escribe una pregunta sobre la data o competidores... (ej. ¿Cuál es el video más visto?)"
             [formControl]="messageControl"
-            (keydown)="onKeyDown($event)"
-            [disabled]="isSending()">
+            (keydown)="onKeyDown($event)">
           </textarea>
 
           @if (isSending()) {
@@ -152,7 +151,7 @@ import { ChatMessage, DatasetContextPayload } from '../../services/gemini.servic
               type="button"
               class="send-btn"
               (click)="onSubmitMessage()"
-              [disabled]="!messageControl.value?.trim()"
+              [disabled]="!messageValue()?.trim() || isSending()"
               title="Enviar mensaje">
               <span>➤</span>
             </button>
@@ -666,6 +665,7 @@ export class AiAssistantDrawerComponent {
   public cancelRequested = output<void>();
 
   public messageControl = new FormControl('', [Validators.required]);
+  public messageValue = toSignal(this.messageControl.valueChanges, { initialValue: '' });
 
   public quickChips = [
     {
@@ -691,6 +691,16 @@ export class AiAssistantDrawerComponent {
   ];
 
   constructor() {
+    // Sincronizar estado disabled del control con isSending sin violar las reglas de Reactive Forms
+    effect(() => {
+      const sending = this.isSending();
+      if (sending) {
+        this.messageControl.disable({ emitEvent: false });
+      } else {
+        this.messageControl.enable({ emitEvent: false });
+      }
+    });
+
     // Desacoplar el scroll automático del ciclo sincrónico de cambio para evitar errores 'changed after checked'
     effect(() => {
       this.messages();
