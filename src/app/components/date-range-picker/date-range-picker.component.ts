@@ -13,12 +13,14 @@ export interface CalendarDay {
   isHovered: boolean;
 }
 
+import { HugeIconComponent } from '../huge-icon/huge-icon.component';
+
 export type PresetKey = 'all' | '7d' | '14d' | '30d' | 'this_month' | 'last_month' | 'custom';
 
 @Component({
   selector: 'app-date-range-picker',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, HugeIconComponent],
   templateUrl: './date-range-picker.component.html',
   styleUrl: './date-range-picker.component.scss',
   host: {
@@ -28,6 +30,7 @@ export type PresetKey = 'all' | '7d' | '14d' | '30d' | 'this_month' | 'last_mont
 })
 export class DateRangePickerComponent {
   private elementRef = inject(ElementRef);
+
 
   @Input() set startDate(val: string) {
     this._startDate.set(val || '');

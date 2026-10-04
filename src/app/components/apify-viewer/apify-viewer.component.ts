@@ -19,6 +19,7 @@ import { MetricInfoTooltipComponent } from '../metric-info-tooltip/metric-info-t
 import { MethodologyGuideComponent } from '../methodology-guide/methodology-guide.component';
 import { AiInsightsCardComponent } from '../ai-insights-card/ai-insights-card.component';
 import { AiAssistantDrawerComponent } from '../ai-assistant-drawer/ai-assistant-drawer.component';
+import { HugeIconComponent } from '../huge-icon/huge-icon.component';
 
 export type KpiSortOption = 'followers' | 'views' | 'likes' | 'posts';
 
@@ -37,7 +38,8 @@ export type KpiSortOption = 'followers' | 'views' | 'likes' | 'posts';
     MetricInfoTooltipComponent,
     MethodologyGuideComponent,
     AiInsightsCardComponent,
-    AiAssistantDrawerComponent
+    AiAssistantDrawerComponent,
+    HugeIconComponent
   ],
   templateUrl: './apify-viewer.component.html',
   styleUrl: './apify-viewer.component.scss',
