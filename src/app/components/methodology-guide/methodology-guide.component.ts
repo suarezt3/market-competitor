@@ -9,10 +9,12 @@ export interface DocSection {
   badge?: string;
 }
 
+import { HugeIconComponent } from '../huge-icon/huge-icon.component';
+
 @Component({
   selector: 'app-methodology-guide',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, HugeIconComponent],
   templateUrl: './methodology-guide.component.html',
   styleUrl: './methodology-guide.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

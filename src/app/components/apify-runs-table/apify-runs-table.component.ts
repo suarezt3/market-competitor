@@ -2,6 +2,7 @@ import { Component, Input, Output, EventEmitter, signal, computed } from '@angul
 import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApifyRunRecord } from '../../services/apify.service';
+import { HugeIconComponent } from '../huge-icon/huge-icon.component';
 
 export type SortableRunColumn = 'platform' | 'period' | 'status' | 'startedAt' | 'duration' | 'usageTotalUsd';
 export type DrawerTab = 'overview' | 'params' | 'json';
@@ -9,7 +10,7 @@ export type DrawerTab = 'overview' | 'params' | 'json';
 @Component({
   selector: 'app-apify-runs-table',
   standalone: true,
-  imports: [CommonModule, DatePipe, DecimalPipe, FormsModule],
+  imports: [CommonModule, DatePipe, DecimalPipe, FormsModule, HugeIconComponent],
   templateUrl: './apify-runs-table.component.html',
   styleUrl: './apify-runs-table.component.scss',
   host: {

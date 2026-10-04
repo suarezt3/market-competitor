@@ -6,9 +6,7 @@
   <!-- ======================================================== -->
   <div class="platform-bar">
     <div class="platform-bar-label">
-      <svg class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M4 6h16M4 12h16M4 18h7"/>
-      </svg>
+      <app-huge-icon name="menu-02" [size]="16" class="text-slate-400 mr-1"></app-huge-icon>
       <span>Canal Digital:</span>
     </div>
 
@@ -76,10 +74,7 @@
   <div class="table-toolbar">
     <!-- Buscador en tiempo real -->
     <div class="search-box-wrapper">
-      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="11" cy="11" r="8"></circle>
-        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-      </svg>
+      <app-huge-icon name="search-01" [size]="16" class="search-icon"></app-huge-icon>
       <input
         type="text"
         [ngModel]="searchQuery()"

@@ -3,11 +3,12 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormControl, Validators } from '@angular/forms';
 import { ChatMessage, DatasetContextPayload } from '../../services/gemini.service';
+import { HugeIconComponent } from '../huge-icon/huge-icon.component';
 
 @Component({
   selector: 'app-ai-assistant-drawer',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, HugeIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- OVERLAY OSCURO DE FONDO -->
@@ -21,7 +22,7 @@ import { ChatMessage, DatasetContextPayload } from '../../services/gemini.servic
       <div class="drawer-header">
         <div class="header-main-info">
           <div class="ai-avatar">
-            <span>✨</span>
+            <app-huge-icon name="sparkles" [size]="18" class="text-indigo-600"></app-huge-icon>
           </div>
           <div>
             <div class="title-with-status">
@@ -38,14 +39,14 @@ import { ChatMessage, DatasetContextPayload } from '../../services/gemini.servic
             class="control-btn clear-btn"
             (click)="onClearChat()"
             title="Limpiar conversación">
-            <span>🗑️</span>
+            <app-huge-icon name="refresh" [size]="15"></app-huge-icon>
           </button>
           <button
             type="button"
             class="control-btn close-btn"
             (click)="onClose()"
             title="Cerrar panel">
-            <span>✕</span>
+            <app-huge-icon name="cancel-01" [size]="16"></app-huge-icon>
           </button>
         </div>
       </div>
@@ -53,15 +54,15 @@ import { ChatMessage, DatasetContextPayload } from '../../services/gemini.servic
       <!-- BANNER DE CONTEXTO ACTIVO -->
       <div class="context-banner">
         <div class="context-tag">
-          <span class="tag-icon">📊</span>
+          <app-huge-icon name="analytics-01" [size]="14" class="mr-1 text-slate-400"></app-huge-icon>
           <span>Red: <strong>{{ context()?.platform || 'Omnicanal' }}</strong></span>
         </div>
         <div class="context-tag">
-          <span class="tag-icon">📅</span>
+          <app-huge-icon name="calendar-03" [size]="14" class="mr-1 text-slate-400"></app-huge-icon>
           <span>{{ context()?.dateRange?.start || 'Todo' }} — {{ context()?.dateRange?.end || 'Hoy' }}</span>
         </div>
         <div class="context-tag">
-          <span class="tag-icon">📈</span>
+          <app-huge-icon name="analytics-01" [size]="14" class="mr-1 text-slate-400"></app-huge-icon>
           <span><strong>{{ context()?.totalPosts || 0 }}</strong> posts</span>
         </div>
       </div>
@@ -69,7 +70,7 @@ import { ChatMessage, DatasetContextPayload } from '../../services/gemini.servic
       <!-- PREGUNTAS RÁPIDAS EN 1 CLIC (CHIPS) -->
       <div class="quick-prompts-section">
         <div class="section-label-row">
-          <span class="bolt-icon">⚡</span>
+          <app-huge-icon name="sparkles" [size]="14" class="text-amber-500 mr-1"></app-huge-icon>
           <span>Consultas Rápidas en 1 Clic:</span>
         </div>
         <div class="quick-chips-grid">
@@ -91,7 +92,9 @@ import { ChatMessage, DatasetContextPayload } from '../../services/gemini.servic
         @for (msg of messages(); track msg.id) {
           <div class="message-wrapper" [class.user-message]="msg.role === 'user'" [class.model-message]="msg.role === 'model'">
             @if (msg.role === 'model') {
-              <div class="model-avatar">✨</div>
+              <div class="model-avatar">
+                <app-huge-icon name="sparkles" [size]="14" class="text-indigo-600"></app-huge-icon>
+              </div>
             }
 
             <div class="message-bubble">
@@ -104,7 +107,9 @@ import { ChatMessage, DatasetContextPayload } from '../../services/gemini.servic
         <!-- INDICADOR DE PENSANDO / ESCRIBIENDO CON BOTÓN DE DETENER -->
         @if (isSending()) {
           <div class="message-wrapper model-message">
-            <div class="model-avatar">✨</div>
+            <div class="model-avatar">
+              <app-huge-icon name="sparkles" [size]="14" class="text-indigo-600"></app-huge-icon>
+            </div>
             <div class="message-bubble typing-bubble">
               <div class="typing-content-row">
                 <div class="typing-indicator">
@@ -153,7 +158,7 @@ import { ChatMessage, DatasetContextPayload } from '../../services/gemini.servic
               (click)="onSubmitMessage()"
               [disabled]="!messageValue()?.trim() || isSending()"
               title="Enviar mensaje">
-              <span>➤</span>
+              <app-huge-icon name="arrow-right-01" [size]="16" [strokeWidth]="2.2"></app-huge-icon>
             </button>
           }
         </div>

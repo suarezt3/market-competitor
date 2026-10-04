@@ -1,28 +1,43 @@
-# Plan de Restablecimiento del Contenedor e Integración de Hugeicons
+# Plan de Migración Integral de Iconos a Hugeicons
 
-Plan paso a paso para desbloquear el sistema de archivos del contenedor de desarrollo e integrar de forma ligera y optimizada la librería Hugeicons.
-
----
-
-## 1. Acción Requerida del Usuario
-
-Para liberar el bloqueo de sincronización del sistema de archivos (`Timed out waiting for applet file system condition to be met`), por favor ejecuta una de estas opciones en la interfaz de **Google AI Studio**:
-- **Opción A (Recomendada)**: En el menú superior o en la barra de estado del entorno, haz clic en el botón de recarga/reinicio del contenedor de desarrollo (*Restart Container* / *Reset Environment*).
-- **Opción B**: Haz un refresco forzado del navegador con `Ctrl + Shift + R` (o `Cmd + Shift + R` en Mac).
+Este plan detalla la sustitución de todos los iconos de interfaz (SVGs genéricos y emojis del sistema) por vectores oficiales de **Hugeicons** (*Stroke Rounded*), conservando las insignias oficiales de las marcas de redes sociales (Instagram, TikTok, YouTube, Facebook).
 
 ---
 
-## 2. Acciones del Agente tras el Reinicio
+## 1. Actualización de `HugeIconComponent`
 
-Una vez que el contenedor se reinicie con el sistema de archivos operativo:
+Ampliaremos el catálogo de iconos vectoriales en `src/app/components/huge-icon/huge-icon.component.ts` para cubrir todos los casos requeridos:
+- **`layers-01`**: Logo de la cabecera "Market Intelligence PRO" (sustituyendo el SVG actual).
+- **`menu-02` / `filter-horizontal`**: Icono del encabezado "Canal Digital:" (sustituyendo el SVG de 3 líneas).
+- **`refresh` / `refresh-circle`**: Icono para "Refrescar Análisis" en la tarjeta de Gemini AI y botón "Sincronizar" en la barra lateral (eliminando el emoji `🔄`).
+- **`book-open-01`**: Icono para "Guía Metodológica" y botón "Metodología" en la barra flotante.
+- **`search-01`**: Icono de lupa para el campo de búsqueda en la tabla de ejecuciones (`Historial de Ejecuciones`).
+- **`sparkles`**: Insignia de Gemini AI (eliminando el emoji `✨`).
+- **`bubble-chat`**: Botón "Preguntar al Asistente" (eliminando el emoji `💬`).
+- **`arrow-right-01`, `arrow-left-01`, `arrow-down-01`**: Flechas de paginación y selectores desplegables.
 
-1. **Limpieza de Dependencias**:
-   - Asegurar que `package.json` esté libre de paquetes masivos de miles de archivos como `@hugeicons/core-free-icons`.
-2. **Componente Vectorial Liviano de Hugeicons**:
-   - Crear un componente reutilizable de Angular `HugeIconComponent` que renderiza directamente los vectores SVG oficiales de Hugeicons (estilo *Stroke Rounded*, 18px-20px) sin dependencias pesadas.
-3. **Actualización de la Interfaz**:
-   - **`DateRangePickerComponent`**: Iconos de calendario, reloj y selectores de meses.
-   - **`ApifyViewerComponent`**: Métricas de Vistas, Me gusta, Comentarios, Total y botón de sincronización.
-   - **`ViralHighlightsComponent`**: Corona dorada #1 y previsualizaciones.
-4. **Verificación**:
-   - Ejecutar `compile_applet` para confirmar que el servidor compila y arranca en el puerto 3000 de forma inmediata.
+---
+
+## 2. Archivos y Componentes a Modificar
+
+1. **`src/app/components/huge-icon/huge-icon.component.ts`**:
+   - Añadir los trazados SVG precisos de `layers-01`, `menu-02`, `book-open-01` y `search-01`.
+2. **`src/app/components/apify-viewer/apify-viewer.component.html`**:
+   - Reemplazar el logo en `brand-logo-badge` por `<app-huge-icon name="layers-01">`.
+   - Reemplazar el botón "Guía Metodológica" en la barra lateral por `<app-huge-icon name="book-open-01">`.
+   - Reemplazar el botón "Metodología" en la cabecera fija por `<app-huge-icon name="book-open-01">`.
+3. **`src/app/components/apify-runs-table/apify-runs-table.component.html` & `.ts`**:
+   - Importar `HugeIconComponent`.
+   - Reemplazar el icono de "Canal Digital:" por `<app-huge-icon name="menu-02">`.
+   - Reemplazar el icono de búsqueda en el input de filtrado por `<app-huge-icon name="search-01">`.
+4. **`src/app/components/ai-insights-card/ai-insights-card.component.ts`**:
+   - Importar `HugeIconComponent`.
+   - Reemplazar los emojis `✨`, `🔄` y `💬` por `<app-huge-icon name="sparkles">`, `<app-huge-icon name="refresh">` y `<app-huge-icon name="bubble-chat">`.
+
+---
+
+## 3. Verificación
+
+1. Comprobar que no queden emojis de sistema ni SVGs genéricos en los elementos señalados.
+2. Ejecutar `compile_applet` para garantizar cero errores de tipos o compilación.
+3. Verificar visualmente la coherencia estética de trazo (1.8px) y color uniforme en toda la plataforma.

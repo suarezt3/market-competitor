@@ -1,6 +1,10 @@
-import { Component, input, computed } from '@angular/core';
+import { Component, input } from '@angular/core';
 
 export type HugeIconName =
+  | 'layers-01'
+  | 'menu-02'
+  | 'search-01'
+  | 'book-open-01'
   | 'calendar-01'
   | 'calendar-03'
   | 'clock-01'
@@ -36,6 +40,22 @@ export type HugeIconName =
       aria-hidden="true"
     >
       @switch (name()) {
+        @case ('layers-01') {
+          <path d="M2.5 8L12 2.5L21.5 8L12 13.5L2.5 8Z" />
+          <path d="M2.5 12.5L12 18L21.5 12.5" />
+          <path d="M2.5 17L12 22.5L21.5 17" />
+        }
+        @case ('menu-02') {
+          <path d="M4 6H20M4 12H16M4 18H11" />
+        }
+        @case ('search-01') {
+          <circle cx="11" cy="11" r="7.5" />
+          <path d="M20.5 20.5L16.5 16.5" />
+        }
+        @case ('book-open-01') {
+          <path d="M3.5 19.5C3.5 19.5 6 18 12 18C18 18 20.5 19.5 20.5 19.5V5.5C20.5 5.5 18 4 12 4C6 4 3.5 5.5 3.5 5.5V19.5Z" />
+          <path d="M12 4V18" />
+        }
         @case ('calendar-01') {
           <path d="M18 2V4M6 2V4" />
           <path d="M11.9955 13H12.0045M11.9955 17H12.0045M15.991 13H16M8 13H8.00897M8 17H8.00897" stroke-width="2.5" />
@@ -89,8 +109,7 @@ export type HugeIconName =
           <path d="M3 18H21" />
         }
         @case ('sparkles') {
-          <path d="M12 2L13.5 7.5L19 9L13.5 10.5L12 16L10.5 10.5L5 9L10.5 7.5L12 2Z" />
-          <path d="M19 16L19.7 18.3L22 19L19.7 19.7L19 22L18.3 19.7L16 19L18.3 18.3L19 16Z" />
+          <path d="M12 2.5L13.8 7.7C14.1 8.6 14.8 9.3 15.7 9.6L20.9 11.4C21.7 11.7 21.7 12.8 20.9 13.1L15.7 14.9C14.8 15.2 14.1 15.9 13.8 16.8L12 22C11.7 22.8 10.6 22.8 10.3 22L8.5 16.8C8.2 15.9 7.5 15.2 6.6 14.9L1.4 13.1C0.6 12.8 0.6 11.7 1.4 11.4L6.6 9.6C7.5 9.3 8.2 8.6 8.5 7.7L10.3 2.5C10.6 1.7 11.7 1.7 12 2.5Z" />
         }
         @case ('check') {
           <path d="M5 12.5L9.5 17L19 7.5" />
@@ -104,6 +123,7 @@ export type HugeIconName =
       align-items: center;
       justify-content: center;
       line-height: 1;
+      vertical-align: middle;
     }
   `]
 })

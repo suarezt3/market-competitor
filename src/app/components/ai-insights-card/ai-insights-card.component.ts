@@ -1,11 +1,12 @@
 import { Component, ChangeDetectionStrategy, input, output, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { GeminiInsightsData } from '../../services/gemini.service';
+import { HugeIconComponent } from '../huge-icon/huge-icon.component';
 
 @Component({
   selector: 'app-ai-insights-card',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, HugeIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="ai-insights-container">
@@ -13,7 +14,7 @@ import { GeminiInsightsData } from '../../services/gemini.service';
       <div class="ai-header">
         <div class="ai-title-block">
           <div class="ai-badge-icon">
-            <span class="sparkle-icon">✨</span>
+            <app-huge-icon name="sparkles" [size]="22" [strokeWidth]="1.9" class="text-indigo-600"></app-huge-icon>
           </div>
           <div>
             <div class="ai-headline-row">
@@ -36,7 +37,7 @@ import { GeminiInsightsData } from '../../services/gemini.service';
             (click)="onRefresh()"
             [disabled]="isLoading()"
             title="Reevaluar y generar nuevos insights con Gemini">
-            <span class="btn-icon" [class.spin-anim]="isLoading()">🔄</span>
+            <app-huge-icon name="refresh" [size]="15" [strokeWidth]="2" class="mr-1.5" [class.spin-anim]="isLoading()"></app-huge-icon>
             <span>{{ isLoading() ? 'Analizando...' : 'Refrescar Análisis' }}</span>
           </button>
 
@@ -45,7 +46,7 @@ import { GeminiInsightsData } from '../../services/gemini.service';
             class="ai-btn ai-btn-primary"
             (click)="onOpenChat('¿Cuáles son los posts o videos con más impacto en el periodo?')"
             title="Abrir asistente de chat interactivo">
-            <span class="btn-icon">💬</span>
+            <app-huge-icon name="bubble-chat" [size]="15" [strokeWidth]="1.9" class="mr-1.5"></app-huge-icon>
             <span>Preguntar al Asistente</span>
           </button>
         </div>
@@ -76,7 +77,7 @@ import { GeminiInsightsData } from '../../services/gemini.service';
             <div class="top-performer-card">
               <div class="top-performer-header">
                 <div class="performer-badge">
-                  <span class="trophy-icon">🏆</span>
+                  <app-huge-icon name="crown" [size]="16" class="text-amber-500 mr-1.5"></app-huge-icon>
                   <span class="badge-label">PUBLICACIÓN / VIDEO CON MAYOR IMPACTO (TOP VIEWS)</span>
                 </div>
                 <div class="format-pill">
@@ -98,22 +99,34 @@ import { GeminiInsightsData } from '../../services/gemini.service';
                   <!-- Métricas Destacadas del Post -->
                   <div class="metrics-chips-row">
                     <div class="metric-chip views-chip">
-                      <span class="chip-label">👀 Visualizaciones</span>
+                      <span class="chip-label">
+                        <app-huge-icon name="view" [size]="14" class="mr-1"></app-huge-icon>
+                        Visualizaciones
+                      </span>
                       <strong class="chip-value">{{ (topPost.views || 0) | number }}</strong>
                     </div>
 
                     <div class="metric-chip likes-chip">
-                      <span class="chip-label">❤️ Likes</span>
+                      <span class="chip-label">
+                        <app-huge-icon name="favourite" [size]="14" class="mr-1"></app-huge-icon>
+                        Likes
+                      </span>
                       <strong class="chip-value">{{ (topPost.likes || 0) | number }}</strong>
                     </div>
 
                     <div class="metric-chip comments-chip">
-                      <span class="chip-label">💬 Comentarios</span>
+                      <span class="chip-label">
+                        <app-huge-icon name="bubble-chat" [size]="14" class="mr-1"></app-huge-icon>
+                        Comentarios
+                      </span>
                       <strong class="chip-value">{{ (topPost.comments || 0) | number }}</strong>
                     </div>
 
                     <div class="metric-chip er-chip">
-                      <span class="chip-label">⚡ Engagement</span>
+                      <span class="chip-label">
+                        <app-huge-icon name="analytics-01" [size]="14" class="mr-1"></app-huge-icon>
+                        Engagement
+                      </span>
                       <strong class="chip-value">{{ (topPost.engagementRate || 0) | number:'1.2-2' }}%</strong>
                     </div>
                   </div>
@@ -122,7 +135,7 @@ import { GeminiInsightsData } from '../../services/gemini.service';
                 <!-- Columna Análisis de Viralidad por Gemini -->
                 <div class="viral-analysis-box">
                   <div class="viral-box-header">
-                    <span class="brain-icon">🧠</span>
+                    <app-huge-icon name="sparkles" [size]="16" class="text-indigo-500 mr-1.5"></app-huge-icon>
                     <h4>¿Por qué este contenido se convirtió en el ganador?</h4>
                   </div>
                   <p class="viral-reason-text">
@@ -138,7 +151,8 @@ import { GeminiInsightsData } from '../../services/gemini.service';
                       type="button"
                       class="quick-ask-btn"
                       (click)="onOpenChat('Cuéntame más sobre la estrategia del video ganador de ' + topPost.brand)">
-                      Preguntar sobre este post 💬
+                      <span>Preguntar sobre este post</span>
+                      <app-huge-icon name="bubble-chat" [size]="13" class="ml-1"></app-huge-icon>
                     </button>
                   </div>
                 </div>
@@ -151,7 +165,7 @@ import { GeminiInsightsData } from '../../services/gemini.service';
             <!-- Pilar 1: Resumen Ejecutivo -->
             <div class="pillar-card executive-pillar">
               <div class="pillar-header">
-                <span class="pillar-icon">📊</span>
+                <app-huge-icon name="analytics-01" [size]="18" class="text-indigo-600 mr-1.5"></app-huge-icon>
                 <h4>Resumen Ejecutivo del Periodo</h4>
               </div>
               <ul class="pillar-list">
@@ -167,7 +181,7 @@ import { GeminiInsightsData } from '../../services/gemini.service';
             <!-- Pilar 2: Benchmarking Líder vs Competidores -->
             <div class="pillar-card benchmark-pillar">
               <div class="pillar-header">
-                <span class="pillar-icon">⚔️</span>
+                <app-huge-icon name="crown" [size]="18" class="text-amber-600 mr-1.5"></app-huge-icon>
                 <h4>Líder vs Competidores</h4>
               </div>
               <div class="benchmark-info">
@@ -190,7 +204,7 @@ import { GeminiInsightsData } from '../../services/gemini.service';
             <!-- Pilar 3: Recomendaciones Accionables -->
             <div class="pillar-card action-pillar">
               <div class="pillar-header">
-                <span class="pillar-icon">💡</span>
+                <app-huge-icon name="sparkles" [size]="18" class="text-emerald-600 mr-1.5"></app-huge-icon>
                 <h4>Recomendaciones Tácticas</h4>
               </div>
               <ul class="pillar-list numbered-list">

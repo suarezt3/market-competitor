@@ -2,10 +2,12 @@ import { Component, Input, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ApifyChartService } from '../../services/apify-chart.service';
 
+import { HugeIconComponent } from '../huge-icon/huge-icon.component';
+
 @Component({
   selector: 'app-apify-data-grid',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, HugeIconComponent],
   templateUrl: './apify-data-grid.component.html',
   styleUrl: './apify-data-grid.component.scss'
 })

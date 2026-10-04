@@ -119,8 +119,9 @@
           {{ (item.caption || item.text || item.title || '').length > 70 ? '...' : '' }}
         </h4>
 
-        <div class="publish-date">
-          📅 {{ (item.timestamp || item.createTimeISO || item.date || item.createdAt) | date:'mediumDate' }}
+        <div class="publish-date" style="display: flex; align-items: center; gap: 0.35rem;">
+          <app-huge-icon name="calendar-03" [size]="13" class="text-slate-400"></app-huge-icon>
+          <span>{{ (item.timestamp || item.createTimeISO || item.date || item.createdAt) | date:'mediumDate' }}</span>
         </div>
       </div>
 
@@ -130,23 +131,26 @@
           
           <!-- Vistas estandarizadas -->
           @if (item._kpi?.postViews > 0) {
-            <div class="metric" title="Reproducciones / Vistas">
-              <span style="color: #3b82f6;">▶️</span> {{ item._kpi.postViews | number:'1.0-0' }}
+            <div class="metric" title="Reproducciones / Vistas" style="display: inline-flex; align-items: center; gap: 0.25rem;">
+              <app-huge-icon name="view" [size]="13" class="text-blue-500"></app-huge-icon>
+              <span>{{ item._kpi.postViews | number:'1.0-0' }}</span>
             </div>
           }
 
           <!-- Likes estandarizados -->
           @if (item._kpi?.postLikes > 0) {
-            <div class="metric" title="Likes / Me Gusta">
-              <span style="color: #ef4444;">❤️</span> {{ item._kpi.postLikes | number:'1.0-0' }}
+            <div class="metric" title="Likes / Me Gusta" style="display: inline-flex; align-items: center; gap: 0.25rem;">
+              <app-huge-icon name="favourite" [size]="13" class="text-rose-500"></app-huge-icon>
+              <span>{{ item._kpi.postLikes | number:'1.0-0' }}</span>
             </div>
           }
 
           <!-- Comentarios estandarizados -->
           @let comments = item.commentsCount || item.commentCount || item.comments || item.topComments?.length || 0;
           @if (comments > 0) {
-            <div class="metric" title="Comentarios">
-              <span style="color: #8b5cf6;">💬</span> {{ comments | number:'1.0-0' }}
+            <div class="metric" title="Comentarios" style="display: inline-flex; align-items: center; gap: 0.25rem;">
+              <app-huge-icon name="bubble-chat" [size]="13" class="text-purple-500"></app-huge-icon>
+              <span>{{ comments | number:'1.0-0' }}</span>
             </div>
           }
 

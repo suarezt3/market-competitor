@@ -7,10 +7,7 @@
       <header class="modal-top-bar">
         <div class="top-title-group">
           <div class="modal-tag-badge">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-            </svg>
+            <app-huge-icon name="book-open-01" [size]="14" [strokeWidth]="1.9" class="mr-1"></app-huge-icon>
             <span>DOCUMENTACIÓN METODOLÓGICA & GLOSARIO TÉCNICO</span>
           </div>
           <h2 class="modal-main-title">Auditoría, Fórmulas e Ingesta de Datos del Dashboard</h2>
@@ -22,7 +19,7 @@
           class="modal-close-icon-btn"
           (click)="closeModal.emit()"
           title="Cerrar documentación (Esc)">
-          ✕
+          <app-huge-icon name="cancel-01" [size]="16"></app-huge-icon>
         </button>
       </header>
 

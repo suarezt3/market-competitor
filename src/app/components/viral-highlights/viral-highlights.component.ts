@@ -34,11 +34,12 @@ export interface CompetitorViralTab {
 }
 
 import { MetricInfoTooltipComponent } from '../metric-info-tooltip/metric-info-tooltip.component';
+import { HugeIconComponent } from '../huge-icon/huge-icon.component';
 
 @Component({
   selector: 'app-viral-highlights',
   standalone: true,
-  imports: [CommonModule, DecimalPipe, MetricInfoTooltipComponent],
+  imports: [CommonModule, DecimalPipe, MetricInfoTooltipComponent, HugeIconComponent],
   templateUrl: './viral-highlights.component.html',
   styleUrl: './viral-highlights.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
