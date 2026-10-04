@@ -1,43 +1,30 @@
-# Plan de Migración Integral de Iconos a Hugeicons
+# Plan de Corrección: Gráfico Duplicado y Estilización de Barra de Scroll
 
-Este plan detalla la sustitución de todos los iconos de interfaz (SVGs genéricos y emojis del sistema) por vectores oficiales de **Hugeicons** (*Stroke Rounded*), conservando las insignias oficiales de las marcas de redes sociales (Instagram, TikTok, YouTube, Facebook).
-
----
-
-## 1. Actualización de `HugeIconComponent`
-
-Ampliaremos el catálogo de iconos vectoriales en `src/app/components/huge-icon/huge-icon.component.ts` para cubrir todos los casos requeridos:
-- **`layers-01`**: Logo de la cabecera "Market Intelligence PRO" (sustituyendo el SVG actual).
-- **`menu-02` / `filter-horizontal`**: Icono del encabezado "Canal Digital:" (sustituyendo el SVG de 3 líneas).
-- **`refresh` / `refresh-circle`**: Icono para "Refrescar Análisis" en la tarjeta de Gemini AI y botón "Sincronizar" en la barra lateral (eliminando el emoji `🔄`).
-- **`book-open-01`**: Icono para "Guía Metodológica" y botón "Metodología" en la barra flotante.
-- **`search-01`**: Icono de lupa para el campo de búsqueda en la tabla de ejecuciones (`Historial de Ejecuciones`).
-- **`sparkles`**: Insignia de Gemini AI (eliminando el emoji `✨`).
-- **`bubble-chat`**: Botón "Preguntar al Asistente" (eliminando el emoji `💬`).
-- **`arrow-right-01`, `arrow-left-01`, `arrow-down-01`**: Flechas de paginación y selectores desplegables.
+## 1. Corrección del Gráfico de Dona Duplicado
+- **Problema detectado**: En `src/app/components/apify-viewer/apify-viewer.component.html`, existían dos bloques `@if (marketShareChartOptions())`:
+  1. El principal ubicado en la fila superior (junto a "Comunidad de Marca").
+  2. Un segundo bloque residual que se añadió debajo del gráfico de evolución temporal.
+- **Acción**: Eliminar el segundo bloque residual en `apify-viewer.component.html`, conservando únicamente el gráfico superior de cuota de mercado con sus gradientes y tooltip mejorado.
 
 ---
 
-## 2. Archivos y Componentes a Modificar
-
-1. **`src/app/components/huge-icon/huge-icon.component.ts`**:
-   - Añadir los trazados SVG precisos de `layers-01`, `menu-02`, `book-open-01` y `search-01`.
-2. **`src/app/components/apify-viewer/apify-viewer.component.html`**:
-   - Reemplazar el logo en `brand-logo-badge` por `<app-huge-icon name="layers-01">`.
-   - Reemplazar el botón "Guía Metodológica" en la barra lateral por `<app-huge-icon name="book-open-01">`.
-   - Reemplazar el botón "Metodología" en la cabecera fija por `<app-huge-icon name="book-open-01">`.
-3. **`src/app/components/apify-runs-table/apify-runs-table.component.html` & `.ts`**:
-   - Importar `HugeIconComponent`.
-   - Reemplazar el icono de "Canal Digital:" por `<app-huge-icon name="menu-02">`.
-   - Reemplazar el icono de búsqueda en el input de filtrado por `<app-huge-icon name="search-01">`.
-4. **`src/app/components/ai-insights-card/ai-insights-card.component.ts`**:
-   - Importar `HugeIconComponent`.
-   - Reemplazar los emojis `✨`, `🔄` y `💬` por `<app-huge-icon name="sparkles">`, `<app-huge-icon name="refresh">` y `<app-huge-icon name="bubble-chat">`.
+## 2. Estilización Minimalista de la Barra de Scroll Nativa (CSS Cross-Browser)
+- **Implementación 100% nativa** (sin librerías adicionales ni impacto en rendimiento):
+  - **Soporte WebKit (Chrome, Safari, Edge, Opera)**:
+    - Anchura reducida y discreta: `width: 7px; height: 7px;`
+    - Pista transparente: `background: transparent;`
+    - Deslizador (Thumb) redondeado y suave: `background: #cbd5e1; border-radius: 9999px;`
+    - Estado Hover interactivo: `background: #94a3b8;`
+  - **Soporte Estándar W3C / Firefox**:
+    - `scrollbar-width: thin;`
+    - `scrollbar-color: #cbd5e1 transparent;`
+- **Ámbito de aplicación**:
+  - `src/styles.css`: A nivel global para toda la aplicación y contenedores con scroll vertical/horizontal.
+  - `src/app/components/apify-viewer/apify-viewer.component.scss`: Reforzar en `.dashboard-content`, `.kpi-competitors-scroll` y tablas deslizables.
 
 ---
 
 ## 3. Verificación
-
-1. Comprobar que no queden emojis de sistema ni SVGs genéricos en los elementos señalados.
-2. Ejecutar `compile_applet` para garantizar cero errores de tipos o compilación.
-3. Verificar visualmente la coherencia estética de trazo (1.8px) y color uniforme en toda la plataforma.
+1. Ejecutar `compile_applet` para asegurar compilación limpia sin errores.
+2. Confirmar que solo exista una única gráfica de dona en la parte superior.
+3. Verificar que la barra de scroll lateral sea delgada, elegante y con bordes suaves tipo píldora al deslizar.

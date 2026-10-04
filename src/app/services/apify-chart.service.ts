@@ -219,6 +219,20 @@ export class ApifyChartService {
     return likes + comments + shares;
   }
 
+  public hexToRgba(hex: string, alpha: number): string {
+    if (!hex) return `rgba(99, 102, 241, ${alpha})`;
+    let c = hex.replace('#', '');
+    if (c.length === 3) {
+      c = c.split('').map(x => x + x).join('');
+    }
+    const num = parseInt(c, 16);
+    if (isNaN(num)) return `rgba(99, 102, 241, ${alpha})`;
+    const r = (num >> 16) & 255;
+    const g = (num >> 8) & 255;
+    const b = num & 255;
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+
   private getMetricLabel(metric: ChartMetric): string {
     const labels: Record<ChartMetric, string> = {
       'total': 'Engagement (Interacciones Totales)',
@@ -287,15 +301,52 @@ export class ApifyChartService {
 
     Object.entries(groupedData).forEach(([author, timeData]) => {
       const seriesData = uniqueTimeKeys.map(key => timeData[key]);
+      const brandColor = this.getBrandColor(author);
+
       seriesConfig.push({
         name: author,
         type: 'line',
-        smooth: true,
-        symbolSize: 8,
-        areaStyle: { opacity: 0.05 },
+        smooth: 0.38,
+        symbol: 'circle',
+        symbolSize: 6,
+        showSymbol: uniqueTimeKeys.length <= 15,
+        lineStyle: {
+          width: 2.8,
+          shadowColor: this.hexToRgba(brandColor, 0.25),
+          shadowBlur: 6
+        },
+        itemStyle: {
+          color: brandColor,
+          borderColor: '#ffffff',
+          borderWidth: 2
+        },
+        areaStyle: {
+          opacity: 0.9,
+          color: {
+            type: 'linear' as const,
+            x: 0,
+            y: 0,
+            x2: 0,
+            y2: 1,
+            colorStops: [
+              { offset: 0, color: this.hexToRgba(brandColor, 0.32) },
+              { offset: 0.8, color: this.hexToRgba(brandColor, 0.04) },
+              { offset: 1, color: this.hexToRgba(brandColor, 0.0) }
+            ]
+          }
+        },
+        emphasis: {
+          scale: true,
+          focus: 'series',
+          itemStyle: {
+            borderWidth: 2.5,
+            borderColor: '#ffffff',
+            shadowBlur: 10,
+            shadowColor: 'rgba(0, 0, 0, 0.25)'
+          }
+        },
         data: seriesData,
-        itemStyle: { color: this.getBrandColor(author) }, // FIX: Color corporativo
-        animationDuration: 1500,
+        animationDuration: 1200,
         animationEasing: 'cubicOut'
       });
     });
@@ -305,12 +356,94 @@ export class ApifyChartService {
     const subTitle = isOmni ? `Tendencia de crecimiento consolidada en todas las plataformas` : `Tendencia de crecimiento por ${isDaily ? 'día' : 'mes'}`;
 
     return {
-      title: { text: mainTitle, subtext: subTitle, textStyle: { fontFamily: 'Inter', fontSize: 16, color: '#111827' } },
-      tooltip: { trigger: 'axis', backgroundColor: 'rgba(255, 255, 255, 0.98)', textStyle: { fontFamily: 'Inter' } },
-      legend: { data: legendData, top: 60, textStyle: { fontFamily: 'Inter' } },
-      grid: { left: '3%', right: '4%', bottom: '5%', top: 110, containLabel: true },
-      xAxis: { type: 'category', boundaryGap: false, data: xAxisLabels, axisLabel: { fontFamily: 'Inter' } },
-      yAxis: { type: 'value', axisLabel: { fontFamily: 'Inter', formatter: (val: number) => this.formatCompactNumber(val) } },
+      title: {
+        text: mainTitle,
+        subtext: subTitle,
+        textStyle: { fontFamily: 'Inter', fontSize: 16, color: '#0f172a', fontWeight: 600 },
+        subtextStyle: { fontFamily: 'Inter', fontSize: 12, color: '#64748b' }
+      },
+      tooltip: {
+        trigger: 'axis',
+        backgroundColor: 'rgba(255, 255, 255, 0.96)',
+        borderColor: '#e2e8f0',
+        borderWidth: 1,
+        padding: [12, 14],
+        extraCssText: 'box-shadow: 0 12px 28px -4px rgba(15, 23, 42, 0.12); border-radius: 12px; backdrop-filter: blur(8px);',
+        textStyle: { fontFamily: 'Inter', color: '#1e293b' },
+        axisPointer: {
+          type: 'line',
+          lineStyle: { color: '#94a3b8', width: 1.5, type: 'dashed' }
+        },
+        formatter: (params: any) => {
+          if (!Array.isArray(params) || params.length === 0) return '';
+          const dateLabel = params[0].axisValue;
+          const sorted = [...params].sort((a, b) => (Number(b.value) || 0) - (Number(a.value) || 0));
+          let content = `
+            <div style="font-family: Inter, sans-serif; min-width: 220px;">
+              <div style="font-weight: 700; color: #0f172a; font-size: 13px; margin-bottom: 8px; border-bottom: 1px solid #f1f5f9; padding-bottom: 5px;">
+                ${dateLabel} • ${metricName}
+              </div>
+          `;
+          sorted.forEach(p => {
+            const val = Number(p.value) || 0;
+            content += `
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 5px; font-size: 12px;">
+                <div style="display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px;">
+                  <span style="display:inline-block; width: 8px; height: 8px; border-radius: 50%; background: ${p.color}; flex-shrink: 0;"></span>
+                  <span style="color: #475569; font-weight: 500;">${p.seriesName}</span>
+                </div>
+                <strong style="color: #0f172a; font-variant-numeric: tabular-nums;">${val.toLocaleString()}</strong>
+              </div>
+            `;
+          });
+          content += `</div>`;
+          return content;
+        }
+      },
+      legend: {
+        data: legendData,
+        top: 60,
+        textStyle: { fontFamily: 'Inter', fontSize: 11, color: '#475569' },
+        itemGap: 16
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: uniqueTimeKeys.length > 7 ? 48 : 28,
+        top: 115,
+        containLabel: true
+      },
+      xAxis: {
+        type: 'category',
+        boundaryGap: false,
+        data: xAxisLabels,
+        axisLine: { lineStyle: { color: '#cbd5e1' } },
+        axisLabel: { fontFamily: 'Inter', color: '#64748b', fontSize: 11 }
+      },
+      yAxis: {
+        type: 'value',
+        splitLine: { lineStyle: { type: 'dashed', color: '#f1f5f9' } },
+        axisLabel: { fontFamily: 'Inter', color: '#64748b', fontSize: 11, formatter: (val: number) => this.formatCompactNumber(val) }
+      },
+      dataZoom: [
+        {
+          type: 'inside',
+          start: 0,
+          end: 100,
+          zoomOnMouseWheel: true
+        },
+        {
+          type: 'slider',
+          show: uniqueTimeKeys.length > 7,
+          bottom: 6,
+          height: 18,
+          borderColor: 'transparent',
+          backgroundColor: 'rgba(241, 245, 249, 0.75)',
+          fillerColor: 'rgba(99, 102, 241, 0.16)',
+          handleStyle: { color: '#6366f1', borderColor: '#ffffff', shadowBlur: 3, shadowColor: 'rgba(0,0,0,0.15)' },
+          textStyle: { fontFamily: 'Inter', fontSize: 10, color: '#64748b' }
+        }
+      ],
       series: seriesConfig
     };
   }
@@ -334,10 +467,18 @@ export class ApifyChartService {
 
     if (!hasData) {
       return {
-        title: { text: 'Cuota de Mercado (Market Share)', subtext: `No hay datos de ${metricName}`, left: 'center', textStyle: { fontFamily: 'Inter', fontSize: 16, color: '#111827' } },
+        title: {
+          text: 'Cuota de Mercado (Market Share)',
+          subtext: `No hay datos de ${metricName}`,
+          left: 'center',
+          textStyle: { fontFamily: 'Inter', fontSize: 16, color: '#0f172a', fontWeight: 600 }
+        },
         series: [{
-          name: 'Sin datos', type: 'pie', radius: ['35%', '50%'], center: ['50%', '50%'],
-          itemStyle: { color: '#e5e7eb' },
+          name: 'Sin datos',
+          type: 'pie',
+          radius: ['38%', '58%'],
+          center: ['50%', '42%'],
+          itemStyle: { color: '#e2e8f0' },
           label: { show: false },
           data: [{ name: 'Sin registros', value: 1 }]
         }]
@@ -346,22 +487,103 @@ export class ApifyChartService {
 
     const pieData = Object.entries(aggregatedData)
       .map(([name, value]) => ({
-        name, value, itemStyle: { color: this.getBrandColor(name) } // FIX: Color corporativo
+        name,
+        value,
+        itemStyle: {
+          color: this.getBrandColor(name),
+          borderRadius: 6,
+          borderColor: '#ffffff',
+          borderWidth: 2.5
+        }
       }));
 
     const isOmni = network === 'omnicanal';
-    const mainTitle = isOmni ? 'Cuota de Mercado Omnicanal (Market Share)' : 'Cuota de Mercado (Market Share)';
+    const mainTitle = isOmni ? 'Cuota de Mercado Omnicanal' : 'Cuota de Mercado';
 
     return {
-      title: { text: 'Cuota de Mercado (Market Share)', subtext: `Basado en ${metricName}`, left: 'center', textStyle: { fontFamily: 'Inter', fontSize: 16, color: '#111827' } },
-      tooltip: { trigger: 'item', formatter: '<b>{b}</b><br/>{c} ({d}%)', backgroundColor: 'rgba(255, 255, 255, 0.98)' },
-      legend: { orient: 'horizontal', bottom: 0, textStyle: { fontFamily: 'Inter', fontSize: 11 } },
+      title: {
+        text: mainTitle,
+        subtext: `Distribución porcentual basada en ${metricName}`,
+        left: 'center',
+        top: 0,
+        textStyle: { fontFamily: 'Inter', fontSize: 16, color: '#0f172a', fontWeight: 600 },
+        subtextStyle: { fontFamily: 'Inter', fontSize: 12, color: '#64748b' }
+      },
+      tooltip: {
+        trigger: 'item',
+        backgroundColor: 'rgba(255, 255, 255, 0.96)',
+        borderColor: '#e2e8f0',
+        borderWidth: 1,
+        padding: [10, 14],
+        extraCssText: 'box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.12); border-radius: 12px; backdrop-filter: blur(8px);',
+        formatter: (p: any) => `
+          <div style="font-family: Inter, sans-serif; min-width: 170px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+              <span style="display:inline-block; width: 10px; height: 10px; border-radius: 50%; background: ${p.color};"></span>
+              <strong style="color: #0f172a; font-size: 13px;">${p.name}</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 12px; color: #64748b; margin-bottom: 3px;">
+              <span>Cuota de Mercado:</span>
+              <strong style="color: #0f172a; font-size: 13px;">${p.percent}%</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 11px; color: #94a3b8;">
+              <span>Volumen:</span>
+              <span style="font-variant-numeric: tabular-nums; font-weight: 600; color: #475569;">${Number(p.value).toLocaleString()}</span>
+            </div>
+          </div>
+        `
+      },
+      legend: {
+        orient: 'horizontal',
+        bottom: 4,
+        left: 'center',
+        icon: 'circle',
+        itemWidth: 8,
+        itemHeight: 8,
+        itemGap: 10,
+        textStyle: { fontFamily: 'Inter', fontSize: 10.5, color: '#475569' }
+      },
       series: [
         {
-          name: metricName, type: 'pie', radius: ['35%', '50%'], center: ['50%', '50%'], avoidLabelOverlap: true,
-          itemStyle: { borderRadius: 8, borderColor: '#fff', borderWidth: 2 },
-          label: { show: true, formatter: '{b}\n{d}%', fontWeight: 'bold', fontFamily: 'Inter', fontSize: 11, color: '#4b5563' },
-          labelLine: { show: true, smooth: 0.2, length: 5, length2: 10 },
+          name: metricName,
+          type: 'pie',
+          radius: ['38%', '58%'],
+          center: ['50%', '42%'],
+          avoidLabelOverlap: true,
+          itemStyle: {
+            borderRadius: 6,
+            borderColor: '#ffffff',
+            borderWidth: 2.5,
+            shadowBlur: 6,
+            shadowColor: 'rgba(0, 0, 0, 0.04)'
+          },
+          emphasis: {
+            scale: true,
+            scaleSize: 6,
+            itemStyle: {
+              shadowBlur: 12,
+              shadowColor: 'rgba(0, 0, 0, 0.15)'
+            }
+          },
+          label: {
+            show: true,
+            formatter: '{b}\n{d}%',
+            fontWeight: 600,
+            fontFamily: 'Inter',
+            fontSize: 10.5,
+            color: '#334155',
+            minMargin: 5
+          },
+          labelLayout: {
+            hideOverlap: true
+          },
+          labelLine: {
+            show: true,
+            smooth: 0.25,
+            length: 6,
+            length2: 10,
+            lineStyle: { color: '#cbd5e1' }
+          },
           data: pieData
         }
       ]
@@ -382,6 +604,7 @@ export class ApifyChartService {
     const legendData: string[] = Object.keys(groupedData);
 
     Object.entries(groupedData).forEach(([author, items]) => {
+      const brandColor = this.getBrandColor(author);
       const seriesData = items.map(i => {
         const views = this.getMetricValue(i, network, 'views');
         const engagement = this.getMetricValue(i, network, 'total');
@@ -390,36 +613,95 @@ export class ApifyChartService {
       });
 
       seriesConfig.push({
-        name: author, type: 'scatter', symbolSize: (data: any) => Math.min(Math.max(data[2] * 2, 15), 50),
+        name: author,
+        type: 'scatter',
+        symbolSize: (data: any) => Math.min(Math.max(data[2] * 2, 14), 48),
         data: seriesData,
-        itemStyle: { color: this.getBrandColor(author), opacity: 0.7, borderColor: '#ffffff', borderWidth: 1.5, shadowBlur: 10, shadowColor: 'rgba(0, 0, 0, 0.1)' } // FIX: Color corporativo
+        itemStyle: {
+          color: brandColor,
+          opacity: 0.72,
+          borderColor: '#ffffff',
+          borderWidth: 1.5,
+          shadowBlur: 8,
+          shadowColor: this.hexToRgba(brandColor, 0.3)
+        },
+        emphasis: {
+          scale: true,
+          itemStyle: {
+            opacity: 1,
+            shadowBlur: 14,
+            shadowColor: this.hexToRgba(brandColor, 0.5)
+          }
+        }
       });
     });
 
     return {
-      title: { text: 'Cuadrante de Calidad de Contenido', subtext: 'Eje X: Vistas (Alcance) | Eje Y: Interacciones | Tamaño: Comentarios', textStyle: { fontFamily: 'Inter', fontSize: 16, color: '#111827' } },
+      title: {
+        text: 'Cuadrante de Calidad de Contenido',
+        subtext: 'Eje X: Vistas (Alcance) | Eje Y: Interacciones | Tamaño de Burbuja: Comentarios',
+        textStyle: { fontFamily: 'Inter', fontSize: 16, color: '#0f172a', fontWeight: 600 },
+        subtextStyle: { fontFamily: 'Inter', fontSize: 12, color: '#64748b' }
+      },
       tooltip: {
-        trigger: 'item', backgroundColor: 'rgba(255, 255, 255, 0.98)', borderColor: '#e5e7eb', padding: 12,
+        trigger: 'item',
+        backgroundColor: 'rgba(255, 255, 255, 0.96)',
+        borderColor: '#e2e8f0',
+        borderWidth: 1,
+        padding: 12,
+        extraCssText: 'box-shadow: 0 12px 28px -4px rgba(15, 23, 42, 0.14); border-radius: 12px; backdrop-filter: blur(8px);',
         formatter: (params: any) => {
           const meta = params.data.meta;
           const title = meta.caption || meta.title || meta.text || 'Contenido visual';
           const shortTitle = title.length > 60 ? title.substring(0, 60) + '...' : title;
           return `
-            <div style="max-width: 300px; white-space: normal;">
-              <strong style="color: ${params.color}; font-size: 14px;">${params.seriesName}</strong><br/>
-              <span style="font-size: 12px; color: #6b7280;">"${shortTitle}"</span>
-              <hr style="margin: 8px 0; border: 0; border-top: 1px solid #e5e7eb;" />
-              👁️ Vistas: <b>${params.value[0].toLocaleString()}</b><br/>
-              📈 Engagement: <b>${params.value[1].toLocaleString()}</b><br/>
-              💬 Comentarios: <b>${params.value[2].toLocaleString()}</b>
+            <div style="max-width: 290px; white-space: normal; font-family: Inter, sans-serif;">
+              <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+                <span style="display:inline-block; width: 9px; height: 9px; border-radius: 50%; background: ${params.color};"></span>
+                <strong style="color: #0f172a; font-size: 13px;">${params.seriesName}</strong>
+              </div>
+              <p style="font-size: 11px; color: #64748b; margin: 4px 0 8px 0; font-style: italic; line-height: 1.4;">"${shortTitle}"</p>
+              <hr style="margin: 6px 0; border: 0; border-top: 1px solid #f1f5f9;" />
+              <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 3px; color: #475569;">
+                <span>Vistas (Alcance):</span>
+                <strong style="color: #0f172a; font-variant-numeric: tabular-nums;">${params.value[0].toLocaleString()}</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 3px; color: #475569;">
+                <span>Engagement Total:</span>
+                <strong style="color: #0f172a; font-variant-numeric: tabular-nums;">${params.value[1].toLocaleString()}</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 11px; color: #475569;">
+                <span>Comentarios:</span>
+                <strong style="color: #0f172a; font-variant-numeric: tabular-nums;">${params.value[2].toLocaleString()}</strong>
+              </div>
             </div>
           `;
         }
       },
-      legend: { data: legendData, top: 65, textStyle: { fontFamily: 'Inter' } },
-      grid: { left: '5%', right: '8%', bottom: '10%', top: 120, containLabel: true },
-      xAxis: { type: 'value', name: 'Vistas (Alcance)', nameLocation: 'middle', nameGap: 30, splitLine: { lineStyle: { type: 'dashed', color: '#e5e7eb' } }, axisLabel: { formatter: (val: number) => this.formatCompactNumber(val) } },
-      yAxis: { type: 'value', name: 'Engagement Total', splitLine: { lineStyle: { type: 'dashed', color: '#e5e7eb' } }, axisLabel: { formatter: (val: number) => this.formatCompactNumber(val) } },
+      legend: {
+        data: legendData,
+        top: 60,
+        icon: 'circle',
+        itemGap: 14,
+        textStyle: { fontFamily: 'Inter', fontSize: 11, color: '#475569' }
+      },
+      grid: { left: '5%', right: '6%', bottom: '10%', top: 115, containLabel: true },
+      xAxis: {
+        type: 'value',
+        name: 'Vistas (Alcance)',
+        nameLocation: 'middle',
+        nameGap: 28,
+        nameTextStyle: { fontFamily: 'Inter', color: '#64748b', fontSize: 11 },
+        splitLine: { lineStyle: { type: 'dashed', color: '#f1f5f9' } },
+        axisLabel: { fontFamily: 'Inter', color: '#64748b', fontSize: 11, formatter: (val: number) => this.formatCompactNumber(val) }
+      },
+      yAxis: {
+        type: 'value',
+        name: 'Engagement Total',
+        nameTextStyle: { fontFamily: 'Inter', color: '#64748b', fontSize: 11 },
+        splitLine: { lineStyle: { type: 'dashed', color: '#f1f5f9' } },
+        axisLabel: { fontFamily: 'Inter', color: '#64748b', fontSize: 11, formatter: (val: number) => this.formatCompactNumber(val) }
+      },
       series: seriesConfig
     };
   }
@@ -451,25 +733,81 @@ export class ApifyChartService {
     const legendData = Object.keys(brandNetworkMap);
 
     Object.entries(brandNetworkMap).forEach(([brand, netData]) => {
+       const brandColor = this.getBrandColor(brand);
        seriesConfig.push({
          name: brand,
          type: 'bar',
+         barMaxWidth: 32,
          data: networks.map(n => netData[n]),
-         itemStyle: { color: this.getBrandColor(brand), borderRadius: [4, 4, 0, 0] }, // FIX: Color corporativo
+         itemStyle: {
+           color: {
+             type: 'linear' as const,
+             x: 0, y: 0, x2: 0, y2: 1,
+             colorStops: [
+               { offset: 0, color: brandColor },
+               { offset: 1, color: this.hexToRgba(brandColor, 0.76) }
+             ]
+           },
+           borderRadius: [6, 6, 0, 0],
+           shadowBlur: 4,
+           shadowColor: 'rgba(0, 0, 0, 0.04)'
+         },
+         emphasis: {
+           itemStyle: {
+             shadowBlur: 10,
+             shadowColor: this.hexToRgba(brandColor, 0.3)
+           }
+         },
          label: {
-           show: true, position: 'top', fontFamily: 'Inter', fontSize: 10, color: '#6b7280',
+           show: true,
+           position: 'top',
+           fontFamily: 'Inter',
+           fontSize: 10,
+           color: '#64748b',
            formatter: (p: any) => p.value > 0 ? this.formatCompactNumber(p.value) : ''
          }
        });
     });
 
     return {
-      title: { text: `Share of Voice Omnicanal`, subtext: `Comparativa de ${metricName} en todo el Ecosistema Digital`, textStyle: { fontFamily: 'Inter', fontSize: 16, color: '#111827' } },
-      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, backgroundColor: 'rgba(255, 255, 255, 0.98)', textStyle: { fontFamily: 'Inter' } },
-      legend: { data: legendData, top: 60, textStyle: { fontFamily: 'Inter' } },
-      grid: { left: '3%', right: '4%', bottom: '5%', top: 110, containLabel: true },
-      xAxis: { type: 'category', data: displayNetworks, axisLabel: { fontFamily: 'Inter', fontWeight: 'bold' } },
-      yAxis: { type: 'value', axisLabel: { fontFamily: 'Inter', formatter: (val: number) => this.formatCompactNumber(val) } },
+      title: {
+        text: `Share of Voice Omnicanal`,
+        subtext: `Comparativa de ${metricName} en todo el Ecosistema Digital`,
+        textStyle: { fontFamily: 'Inter', fontSize: 16, color: '#0f172a', fontWeight: 600 },
+        subtextStyle: { fontFamily: 'Inter', fontSize: 12, color: '#64748b' }
+      },
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: {
+          type: 'shadow',
+          shadowStyle: { color: 'rgba(99, 102, 241, 0.06)' }
+        },
+        backgroundColor: 'rgba(255, 255, 255, 0.96)',
+        borderColor: '#e2e8f0',
+        borderWidth: 1,
+        padding: [12, 14],
+        extraCssText: 'box-shadow: 0 12px 28px -4px rgba(15, 23, 42, 0.12); border-radius: 12px; backdrop-filter: blur(8px);',
+        textStyle: { fontFamily: 'Inter', color: '#1e293b' }
+      },
+      legend: {
+        data: legendData,
+        top: 60,
+        icon: 'circle',
+        itemGap: 14,
+        textStyle: { fontFamily: 'Inter', fontSize: 11, color: '#475569' }
+      },
+      grid: { left: '3%', right: '4%', bottom: '5%', top: 115, containLabel: true },
+      xAxis: {
+        type: 'category',
+        data: displayNetworks,
+        axisLine: { lineStyle: { color: '#cbd5e1' } },
+        axisLabel: { fontFamily: 'Inter', fontWeight: 600, color: '#334155' }
+      },
+      yAxis: {
+        type: 'value',
+        splitLine: { lineStyle: { type: 'dashed', color: '#f1f5f9' } },
+        axisLabel: { fontFamily: 'Inter', color: '#64748b', fontSize: 11, formatter: (val: number) => this.formatCompactNumber(val) }
+      },
       series: seriesConfig
     };
   }
@@ -511,10 +849,18 @@ export class ApifyChartService {
     const avgInteractionsData = brands.map(b => {
       const d = brandMap[b];
       const avg = d.posts ? Math.round(d.totalInteractions / d.posts) : 0;
+      const brandColor = this.getBrandColor(b);
       return {
         value: avg,
         itemStyle: {
-          color: this.getBrandColor(b),
+          color: {
+            type: 'linear' as const,
+            x: 0, y: 0, x2: 0, y2: 1,
+            colorStops: [
+              { offset: 0, color: brandColor },
+              { offset: 1, color: this.hexToRgba(brandColor, 0.75) }
+            ]
+          },
           borderRadius: [6, 6, 0, 0]
         },
         meta: d
@@ -535,16 +881,21 @@ export class ApifyChartService {
       title: {
         text: 'Engagement Rate y Promedio de Interacciones por Competidor',
         subtext: 'Barras agrupadas: Promedio Interacciones/Post (color marca) vs Tasa Engagement % sobre vistas (púrpura)',
-        textStyle: { fontFamily: 'Inter', fontSize: 16, color: '#111827', fontWeight: 600 }
+        textStyle: { fontFamily: 'Inter', fontSize: 16, color: '#0f172a', fontWeight: 600 },
+        subtextStyle: { fontFamily: 'Inter', fontSize: 12, color: '#64748b' }
       },
       tooltip: {
         trigger: 'axis',
-        axisPointer: { type: 'shadow' },
-        backgroundColor: 'rgba(255, 255, 255, 0.98)',
+        axisPointer: {
+          type: 'shadow',
+          shadowStyle: { color: 'rgba(99, 102, 241, 0.05)' }
+        },
+        backgroundColor: 'rgba(255, 255, 255, 0.96)',
         borderColor: '#e2e8f0',
         borderWidth: 1,
         padding: 12,
-        textStyle: { fontFamily: 'Inter' },
+        extraCssText: 'box-shadow: 0 12px 28px -4px rgba(15, 23, 42, 0.14); border-radius: 12px; backdrop-filter: blur(8px);',
+        textStyle: { fontFamily: 'Inter', color: '#1e293b' },
         formatter: (params: any) => {
           if (!Array.isArray(params) || params.length === 0) return '';
           const brand = params[0].name;
@@ -557,7 +908,7 @@ export class ApifyChartService {
             <div style="min-width: 230px; font-family: Inter, sans-serif;">
               <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
                 <span style="display:inline-block; width: 10px; height: 10px; border-radius: 50%; background-color: ${brandColor};"></span>
-                <strong style="color: #111827; font-size: 14px;">${brand}</strong>
+                <strong style="color: #0f172a; font-size: 14px;">${brand}</strong>
               </div>
               <div style="color: #64748b; font-size: 12px; margin-bottom: 6px;">
                 Publicaciones analizadas: <b style="color: #1e293b;">${d.posts}</b>
@@ -565,11 +916,11 @@ export class ApifyChartService {
               <hr style="margin: 6px 0; border: 0; border-top: 1px solid #f1f5f9;" />
               <div style="display: flex; justify-content: space-between; gap: 12px; margin-bottom: 4px; font-size: 12px;">
                 <span style="color: #475569;">📊 Prom. Interacciones / Post:</span>
-                <b style="color: #2563eb;">${avg.toLocaleString()}</b>
+                <b style="color: #2563eb; font-variant-numeric: tabular-nums;">${avg.toLocaleString()}</b>
               </div>
               <div style="display: flex; justify-content: space-between; gap: 12px; margin-bottom: 4px; font-size: 12px;">
                 <span style="color: #475569;">📈 Tasa de Engagement (ER s/ Vistas):</span>
-                <b style="color: #8b5cf6;">${er}%</b>
+                <b style="color: #8b5cf6; font-variant-numeric: tabular-nums;">${er}%</b>
               </div>
               <div style="font-size: 10px; color: #94a3b8; margin-top: 4px; margin-bottom: 4px;">
                 Fórmula: (Interacciones / Vistas) × 100
@@ -585,6 +936,8 @@ export class ApifyChartService {
       legend: {
         data: ['Promedio Interacciones / Post', 'Tasa Engagement (%)'],
         top: 60,
+        icon: 'circle',
+        itemGap: 14,
         textStyle: { fontFamily: 'Inter', fontSize: 12, color: '#475569' }
       },
       grid: {
@@ -597,6 +950,7 @@ export class ApifyChartService {
       xAxis: {
         type: 'category',
         data: brands,
+        axisLine: { lineStyle: { color: '#cbd5e1' } },
         axisLabel: {
           fontFamily: 'Inter',
           color: '#334155',
@@ -612,6 +966,7 @@ export class ApifyChartService {
           nameTextStyle: { fontFamily: 'Inter', color: '#64748b', fontSize: 11 },
           axisLabel: {
             fontFamily: 'Inter',
+            color: '#64748b',
             formatter: (val: number) => this.formatCompactNumber(val)
           },
           splitLine: { lineStyle: { type: 'dashed', color: '#f1f5f9' } }
@@ -622,6 +977,7 @@ export class ApifyChartService {
           nameTextStyle: { fontFamily: 'Inter', color: '#8b5cf6', fontSize: 11 },
           axisLabel: {
             fontFamily: 'Inter',
+            color: '#8b5cf6',
             formatter: '{value}%'
           },
           splitLine: { show: false }
@@ -651,8 +1007,15 @@ export class ApifyChartService {
           data: erData,
           barMaxWidth: 28,
           itemStyle: {
-            color: '#8b5cf6',
-            borderRadius: [4, 4, 0, 0]
+            color: {
+              type: 'linear' as const,
+              x: 0, y: 0, x2: 0, y2: 1,
+              colorStops: [
+                { offset: 0, color: '#8b5cf6' },
+                { offset: 1, color: '#6d28d9' }
+              ]
+            },
+            borderRadius: [6, 6, 0, 0]
           },
           label: {
             show: true,
@@ -724,44 +1087,63 @@ export class ApifyChartService {
       title: {
         text: 'Efectividad por Formato de Contenido',
         subtext: 'Vistas promedio vs Interacciones promedio generadas por formato',
-        textStyle: { fontFamily: 'Inter', fontSize: 16, color: '#111827', fontWeight: 600 }
+        textStyle: { fontFamily: 'Inter', fontSize: 16, color: '#0f172a', fontWeight: 600 },
+        subtextStyle: { fontFamily: 'Inter', fontSize: 12, color: '#64748b' }
       },
       tooltip: {
         trigger: 'axis',
-        axisPointer: { type: 'shadow' },
-        backgroundColor: 'rgba(255, 255, 255, 0.98)',
+        axisPointer: {
+          type: 'shadow',
+          shadowStyle: { color: 'rgba(99, 102, 241, 0.05)' }
+        },
+        backgroundColor: 'rgba(255, 255, 255, 0.96)',
         borderColor: '#e2e8f0',
-        padding: 10,
-        textStyle: { fontFamily: 'Inter' }
+        borderWidth: 1,
+        padding: 12,
+        extraCssText: 'box-shadow: 0 12px 28px -4px rgba(15, 23, 42, 0.12); border-radius: 12px; backdrop-filter: blur(8px);',
+        textStyle: { fontFamily: 'Inter', color: '#1e293b' }
       },
       legend: {
         data: ['Vistas Promedio', 'Interacciones Promedio'],
         top: 60,
+        icon: 'circle',
+        itemGap: 14,
         textStyle: { fontFamily: 'Inter', fontSize: 12, color: '#475569' }
       },
       grid: {
         left: '3%',
         right: '4%',
         bottom: '8%',
-        top: 110,
+        top: 115,
         containLabel: true
       },
       xAxis: {
         type: 'category',
         data: categories,
+        axisLine: { lineStyle: { color: '#cbd5e1' } },
         axisLabel: { fontFamily: 'Inter', fontWeight: 600, color: '#334155' }
       },
       yAxis: [
         {
           type: 'value',
           name: 'Vistas Promedio',
-          axisLabel: { formatter: (val: number) => this.formatCompactNumber(val) },
+          nameTextStyle: { fontFamily: 'Inter', color: '#64748b', fontSize: 11 },
+          axisLabel: {
+            fontFamily: 'Inter',
+            color: '#64748b',
+            formatter: (val: number) => this.formatCompactNumber(val)
+          },
           splitLine: { lineStyle: { type: 'dashed', color: '#f1f5f9' } }
         },
         {
           type: 'value',
           name: 'Interacciones Promedio',
-          axisLabel: { formatter: (val: number) => this.formatCompactNumber(val) },
+          nameTextStyle: { fontFamily: 'Inter', color: '#8b5cf6', fontSize: 11 },
+          axisLabel: {
+            fontFamily: 'Inter',
+            color: '#8b5cf6',
+            formatter: (val: number) => this.formatCompactNumber(val)
+          },
           splitLine: { show: false }
         }
       ],
@@ -771,11 +1153,24 @@ export class ApifyChartService {
           type: 'bar',
           yAxisIndex: 0,
           data: avgViews,
-          itemStyle: { color: '#0ea5e9', borderRadius: [6, 6, 0, 0] },
+          itemStyle: {
+            color: {
+              type: 'linear' as const,
+              x: 0, y: 0, x2: 0, y2: 1,
+              colorStops: [
+                { offset: 0, color: '#0ea5e9' },
+                { offset: 1, color: '#0284c7' }
+              ]
+            },
+            borderRadius: [6, 6, 0, 0]
+          },
           barMaxWidth: 35,
           label: {
             show: true,
             position: 'top',
+            fontFamily: 'Inter',
+            fontSize: 10,
+            color: '#64748b',
             formatter: (p: any) => p.value > 0 ? this.formatCompactNumber(p.value) : ''
           }
         },
@@ -784,11 +1179,24 @@ export class ApifyChartService {
           type: 'bar',
           yAxisIndex: 1,
           data: avgInteractions,
-          itemStyle: { color: '#8b5cf6', borderRadius: [6, 6, 0, 0] },
+          itemStyle: {
+            color: {
+              type: 'linear' as const,
+              x: 0, y: 0, x2: 0, y2: 1,
+              colorStops: [
+                { offset: 0, color: '#a855f7' },
+                { offset: 1, color: '#7c3aed' }
+              ]
+            },
+            borderRadius: [6, 6, 0, 0]
+          },
           barMaxWidth: 35,
           label: {
             show: true,
             position: 'top',
+            fontFamily: 'Inter',
+            fontSize: 10,
+            color: '#64748b',
             formatter: (p: any) => p.value > 0 ? this.formatCompactNumber(p.value) : ''
           }
         }

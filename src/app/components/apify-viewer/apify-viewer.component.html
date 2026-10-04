@@ -714,13 +714,13 @@
         }
 
         @if (chartOptions()) {
-          <div class="chart-card" style="min-height: 380px;" [style.grid-column]="loadedNetwork() === 'omnicanal' ? '1 / -1' : 'auto'">
+          <div class="chart-card" style="min-height: 420px;" [style.grid-column]="loadedNetwork() === 'omnicanal' ? '1 / -1' : 'auto'">
             <div class="chart-card-top-action">
               <app-metric-info-tooltip
-                [title]="'Volumen de Publicaciones por Competidor'"
-                [definition]="'Distribución del número total de publicaciones indexadas por marca dentro de la ventana de análisis.'"
-                [formula]="'Total_Posts = Conteo de registros indexados en el dataset'"
-                [fieldsUsed]="['postId', 'id', 'shortCode']"
+                [title]="'Evolución y Tendencia Temporal'"
+                [definition]="'Tendencia cronológica del volumen e interacciones generadas por los competidores en el periodo seleccionado con control de zoom interactivo.'"
+                [formula]="'Σ Métrica agrupada por fecha de emisión (timestamp)'"
+                [fieldsUsed]="['timestamp', 'date', 'createTime', 'likesCount', 'commentsCount', 'views']"
                 [topicId]="'metrics_calc'"
                 (openFullDoc)="openMethodology($event)">
               </app-metric-info-tooltip>
