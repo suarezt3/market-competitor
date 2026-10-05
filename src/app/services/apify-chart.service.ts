@@ -471,13 +471,16 @@ export class ApifyChartService {
           text: 'Cuota de Mercado (Market Share)',
           subtext: `No hay datos de ${metricName}`,
           left: 'center',
-          textStyle: { fontFamily: 'Inter', fontSize: 16, color: '#0f172a', fontWeight: 600 }
+          top: 4,
+          itemGap: 6,
+          textStyle: { fontFamily: 'Inter', fontSize: 15.5, color: '#0f172a', fontWeight: 600 },
+          subtextStyle: { fontFamily: 'Inter', fontSize: 11.5, color: '#64748b' }
         },
         series: [{
           name: 'Sin datos',
           type: 'pie',
-          radius: ['38%', '58%'],
-          center: ['50%', '42%'],
+          radius: ['34%', '52%'],
+          center: ['50%', '52%'],
           itemStyle: { color: '#e2e8f0' },
           label: { show: false },
           data: [{ name: 'Sin registros', value: 1 }]
@@ -505,12 +508,14 @@ export class ApifyChartService {
         text: mainTitle,
         subtext: `Distribución porcentual basada en ${metricName}`,
         left: 'center',
-        top: 0,
-        textStyle: { fontFamily: 'Inter', fontSize: 16, color: '#0f172a', fontWeight: 600 },
-        subtextStyle: { fontFamily: 'Inter', fontSize: 12, color: '#64748b' }
+        top: 2,
+        itemGap: 4,
+        textStyle: { fontFamily: 'Inter', fontSize: 15.5, color: '#0f172a', fontWeight: 700 },
+        subtextStyle: { fontFamily: 'Inter', fontSize: 11.5, color: '#64748b' }
       },
       tooltip: {
         trigger: 'item',
+        confine: true,
         backgroundColor: 'rgba(255, 255, 255, 0.96)',
         borderColor: '#e2e8f0',
         borderWidth: 1,
@@ -535,20 +540,21 @@ export class ApifyChartService {
       },
       legend: {
         orient: 'horizontal',
-        bottom: 4,
+        bottom: 8,
         left: 'center',
         icon: 'circle',
         itemWidth: 8,
         itemHeight: 8,
-        itemGap: 10,
+        itemGap: 12,
+        padding: [0, 12],
         textStyle: { fontFamily: 'Inter', fontSize: 10.5, color: '#475569' }
       },
       series: [
         {
           name: metricName,
           type: 'pie',
-          radius: ['38%', '58%'],
-          center: ['50%', '42%'],
+          radius: ['34%', '52%'],
+          center: ['50%', '52%'],
           avoidLabelOverlap: true,
           itemStyle: {
             borderRadius: 6,
@@ -570,17 +576,19 @@ export class ApifyChartService {
             formatter: '{b}\n{d}%',
             fontWeight: 600,
             fontFamily: 'Inter',
-            fontSize: 10.5,
+            fontSize: 10,
             color: '#334155',
-            minMargin: 5
+            lineHeight: 13,
+            minMargin: 4
           },
           labelLayout: {
-            hideOverlap: true
+            hideOverlap: true,
+            moveOverlap: 'shiftY'
           },
           labelLine: {
             show: true,
-            smooth: 0.25,
-            length: 6,
+            smooth: 0.2,
+            length: 8,
             length2: 10,
             lineStyle: { color: '#cbd5e1' }
           },

@@ -135,10 +135,12 @@ import { HugeIconComponent } from '../huge-icon/huge-icon.component';
       <div class="chat-input-area">
         <div class="input-form">
           <textarea
+            #chatTextarea
             class="chat-textarea"
             rows="2"
             placeholder="Escribe una pregunta sobre la data o competidores... (ej. ¿Cuál es el video más visto?)"
             [formControl]="messageControl"
+            (input)="onInputResize($event)"
             (keydown)="onKeyDown($event)">
           </textarea>
 
@@ -552,12 +554,25 @@ import { HugeIconComponent } from '../huge-icon/huge-icon.component';
       flex: 1;
       border: none;
       background: transparent;
-      resize: none;
+      resize: vertical;
+      min-height: 48px;
+      max-height: 260px;
       outline: none;
-      font-size: 0.84rem;
+      font-size: 0.86rem;
       font-family: inherit;
       color: #0f172a;
-      line-height: 1.4;
+      line-height: 1.45;
+      padding: 0.2rem 0.2rem;
+      scrollbar-width: thin;
+      scrollbar-color: #cbd5e1 transparent;
+
+      &::-webkit-scrollbar {
+        width: 5px;
+      }
+      &::-webkit-scrollbar-thumb {
+        background-color: #cbd5e1;
+        border-radius: 9999px;
+      }
 
       &::placeholder {
         color: #94a3b8;
@@ -658,6 +673,7 @@ import { HugeIconComponent } from '../huge-icon/huge-icon.component';
 })
 export class AiAssistantDrawerComponent {
   @ViewChild('scrollContainer') private scrollContainer?: ElementRef<HTMLDivElement>;
+  @ViewChild('chatTextarea') private chatTextarea?: ElementRef<HTMLTextAreaElement>;
 
   public isOpen = input<boolean>(false);
   public isSending = input<boolean>(false);
@@ -732,11 +748,23 @@ export class AiAssistantDrawerComponent {
     this.sendMessageRequested.emit(prompt);
   }
 
+  onInputResize(event: Event): void {
+    const textarea = event.target as HTMLTextAreaElement;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      const newHeight = Math.min(Math.max(textarea.scrollHeight, 48), 260);
+      textarea.style.height = `${newHeight}px`;
+    }
+  }
+
   onSubmitMessage(): void {
     const val = this.messageControl.value?.trim();
     if (val && !this.isSending()) {
       this.sendMessageRequested.emit(val);
       this.messageControl.reset();
+      if (this.chatTextarea?.nativeElement) {
+        this.chatTextarea.nativeElement.style.height = '48px';
+      }
     }
   }
 

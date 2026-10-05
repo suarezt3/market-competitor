@@ -536,8 +536,30 @@ export class ApifyViewerComponent implements OnInit {
   }
 
   // ==========================================
-  // MOTOR REACTIVO ESPECÍFICO PARA EL GRID
+  // MOTOR REACTIVO ESPECÍFICO PARA EL GRID Y SIDEBAR
   // ==========================================
+
+  datasetDateSummary = computed(() => {
+    const items = this.data();
+    if (!items || items.length === 0) return null;
+    let minTime = Infinity;
+    let maxTime = -Infinity;
+    for (const item of items) {
+      const d = item.timestamp || item.createTime || item.date || item.takenAt;
+      if (d) {
+        const time = new Date(d).getTime();
+        if (!isNaN(time) && time > 0) {
+          if (time < minTime) minTime = time;
+          if (time > maxTime) maxTime = time;
+        }
+      }
+    }
+    if (minTime === Infinity || maxTime === -Infinity) return null;
+    return {
+      start: new Date(minTime),
+      end: new Date(maxTime)
+    };
+  });
 
   availableBrands = computed(() => {
     const data = this.filteredData().filter(item => !item._isPageProfile);
