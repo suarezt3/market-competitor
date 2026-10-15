@@ -136,18 +136,29 @@
           </div>
         </div>
 
-        <button type="button"
-                (click)="loadHistory()"
-                [disabled]="isLoading()"
-                class="sync-compact-btn"
-                title="Sincronizar historial con Apify Cloud">
-          @if (isLoading()) {
-            <span class="spinner-small-dark"></span>
-          } @else {
-            <app-huge-icon name="refresh" [size]="16" class="mr-1"></app-huge-icon>
-          }
-          <span>{{ isLoading() ? 'Actualizando' : 'Sincronizar' }}</span>
-        </button>
+        <div class="sidebar-sync-actions">
+          <button type="button"
+                  (click)="fetchOmnichannelData()"
+                  [disabled]="isLoading()"
+                  class="sync-compact-btn"
+                  title="Sincronizar las tareas de Apify del mercado actual">
+            @if (isLoading()) {
+              <span class="spinner-small-dark"></span>
+            } @else {
+              <app-huge-icon name="refresh" [size]="15" class="mr-1"></app-huge-icon>
+            }
+            <span>{{ isLoading() ? 'Cargando' : 'Sincronizar' }}</span>
+          </button>
+
+          <button type="button"
+                  (click)="purgeAndSync()"
+                  [disabled]="isLoading()"
+                  class="purge-compact-btn"
+                  title="Eliminar datos viejos de scrapers directos en Supabase y localmente, y re-sincronizar">
+            <app-huge-icon name="delete-02" [size]="14" class="mr-1 text-rose-500"></app-huge-icon>
+            <span>Limpiar datos antiguos y Sincronizar</span>
+          </button>
+        </div>
       </div>
 
       <!-- ACCESO A GUÍA METODOLÓGICA Y FÓRMULAS -->
@@ -199,10 +210,53 @@
     <!-- ÁREA DE DASHBOARD Y GRÁFICAS -->
     @if (!isLoading() && !error() && data().length > 0) {
 
-      <!-- CABECERA FIJA FLOTANTE (STICKY): CALENDARIO EMPRESARIAL + CONTROL DE MÉTRICAS -->
+      <!-- CABECERA FIJA FLOTANTE (STICKY): SELECTOR DE MERCADO + CALENDARIO + CONTROL DE MÉTRICAS -->
       <div class="enterprise-analytics-toolbar sticky-toolbar">
 
-        <!-- LADO IZQUIERDO: SELECTOR DE FECHAS DESPLEGABLE -->
+        <!-- SELECTOR GLOBAL DE MERCADO: COLOMBIA (COL) / MÉXICO (MX) -->
+        <div class="toolbar-market-section">
+          <div class="toolbar-section-label">
+            <app-huge-icon name="globe-02" [size]="16" class="text-slate-400 mr-1"></app-huge-icon>
+            <span>Mercado:</span>
+          </div>
+
+          <div class="market-segmented-control" role="group" aria-label="Seleccionar mercado país">
+            <button
+              type="button"
+              (click)="onMarketChange('COL')"
+              class="market-segment-btn"
+              [class.active]="selectedMarket() === 'COL'"
+              title="Filtrar datos exclusivamente de Colombia (COL)">
+              <span class="flag-icon">🇨🇴</span>
+              <span class="segment-label">Colombia (COL)</span>
+            </button>
+
+            <button
+              type="button"
+              (click)="onMarketChange('MX')"
+              class="market-segment-btn"
+              [class.active]="selectedMarket() === 'MX'"
+              title="Filtrar datos exclusivamente de México (MX)">
+              <span class="flag-icon">🇲🇽</span>
+              <span class="segment-label">México (MX)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- ACCIÓN RÁPIDA DE PURGA Y SINCRONIZACIÓN LIMPIA -->
+        <div class="toolbar-purge-section">
+          <button
+            type="button"
+            (click)="purgeAndSync()"
+            [disabled]="isLoading()"
+            class="toolbar-purge-btn"
+            title="Limpiar datos antiguos de scrapers directos y sincronizar únicamente las 16 tareas oficiales de Apify">
+            <app-huge-icon name="delete-02" [size]="14" class="mr-1 text-rose-500"></app-huge-icon>
+            <span>Limpiar datos antiguos & Sincronizar</span>
+          </button>
+        </div>
+
+        <!-- SELECTOR DE FECHAS DESPLEGABLE -->
         <div class="toolbar-date-section">
           <div class="toolbar-section-label">
             <app-huge-icon name="calendar-03" [size]="16" class="text-slate-400 mr-1"></app-huge-icon>
@@ -324,9 +378,9 @@
               <span>Se consolidaron <strong>{{ filteredData().length }} registros</strong>.</span>
             }
 
-            @if (loadedCountry()) {
-              <span class="date-badge" style="background-color: #f3f4f6; color: #374151; border: 1px solid #e5e7eb;">
-                📍 Mercado: {{ loadedCountry() }}
+            @if (loadedCountry() || selectedMarket()) {
+              <span class="date-badge" style="background-color: #f3f4f6; color: #374151; border: 1px solid #e5e7eb; font-weight: 600;">
+                📍 Mercado Activo: {{ selectedMarket() === 'MX' ? '🇲🇽 México (MX)' : '🇨🇴 Colombia (COL)' }}
               </span>
             }
 

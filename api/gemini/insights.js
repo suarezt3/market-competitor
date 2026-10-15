@@ -44,12 +44,17 @@ async function handler(req, res) {
     });
   }
 
+  const selectedMarket = payload.selectedMarket === 'MX' ? 'MX' : 'COL';
+  const marketLabel = selectedMarket === 'MX' ? 'México (MX)' : 'Colombia (COL)';
+
   const systemInstruction = `Eres un Director de Estrategia de Marketing Intelligence y Analítica Digital Senior.
+Estás analizando el mercado de marcas de alimento para mascotas exclusivamente en ${marketLabel}. Todos los datos provienen de las tareas de Apify de este país. No mezcles métricas de otros países y especifica siempre en tus respuestas qué mercado estás analizando.
 Tu tarea es analizar el dataset estructurado de competidores en redes sociales y generar un análisis ejecutivo de alto impacto.
 Enfócate en identificar claramente el post o video más exitoso/visto, explicar la razón de su viralidad, evaluar el liderazgo entre marcas y formular recomendaciones tácticas directas.
 Sé preciso con las métricas y responde exclusivamente en formato JSON estructurado con los campos: topOutlierContent, executiveSummary, leaderVsCompetitors, actionableRecommendations.`;
 
-  const promptText = `Analiza los siguientes datos de rendimiento de competidores:
+  const promptText = `Analiza los siguientes datos de rendimiento de competidores para el mercado de ${marketLabel}:
+Mercado Activo: ${marketLabel}
 Red Social / Plataforma: ${payload.platform || 'Omnicanal'}
 Rango de fechas: ${payload.dateRange?.start || 'Inicio'} a ${payload.dateRange?.end || 'Fin'}
 Total de publicaciones analizadas: ${payload.totalPosts || 0}

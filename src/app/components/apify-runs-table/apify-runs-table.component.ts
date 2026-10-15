@@ -2,6 +2,7 @@ import { Component, Input, Output, EventEmitter, signal, computed } from '@angul
 import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApifyRunRecord } from '../../services/apify.service';
+import { isValidTaskName, isValidApiTaskId } from '../../models/apify-tasks';
 import { HugeIconComponent } from '../huge-icon/huge-icon.component';
 
 export type SortableRunColumn = 'platform' | 'period' | 'status' | 'startedAt' | 'duration' | 'usageTotalUsd';
@@ -69,12 +70,8 @@ export class ApifyRunsTableComponent {
     const runs = this._rawRuns();
     if (platform === 'ALL') return runs.length;
     return runs.filter(run => {
-      const id = (run.actorId || '').toLowerCase();
-      if (platform === 'instagram') return id.includes('instagram') || id === 'shu8hvrxbjby3eb9w';
-      if (platform === 'facebook') return id.includes('facebook') || id === '4hv5rhchiadk6iwad' || id === 'kojrdxjcttpon81ky';
-      if (platform === 'tiktok') return id.includes('tiktok') || id === '0fxvyoxxemdgcv88a' || id === 'gdwckxbtkwoskjdch' || id.includes('clockworks');
-      if (platform === 'youtube') return id.includes('youtube') || id === 'h7sdv53cddomktsi5' || id.includes('streamers');
-      return false;
+      const str = `${run.taskName || ''} ${run.actorTaskId || ''} ${run.actorId || ''}`.toLowerCase();
+      return str.includes(platform.toLowerCase());
     }).length;
   }
 
@@ -91,15 +88,18 @@ export class ApifyRunsTableComponent {
     const status = this.statusFilter();
     const query = this.searchQuery().trim().toLowerCase();
 
+    // 0. Filtro estricto: Omitir cualquier run antiguo que no provenga de las 16 Actor Tasks oficiales
+    runs = runs.filter(run => {
+      const taskName = run.taskName;
+      const taskId = (run.actorTaskId || run.actorId || '').toLowerCase().replace('/', '~');
+      return isValidTaskName(taskName) || isValidApiTaskId(taskId);
+    });
+
     // 1. Filtro por Plataforma
     if (platform !== 'ALL') {
       runs = runs.filter(run => {
-        const id = (run.actorId || '').toLowerCase();
-        if (platform === 'instagram') return id.includes('instagram') || id === 'shu8hvrxbjby3eb9w';
-        if (platform === 'facebook') return id.includes('facebook') || id === '4hv5rhchiadk6iwad' || id === 'kojrdxjcttpon81ky';
-        if (platform === 'tiktok') return id.includes('tiktok') || id === '0fxvyoxxemdgcv88a' || id === 'gdwckxbtkwoskjdch' || id.includes('clockworks');
-        if (platform === 'youtube') return id.includes('youtube') || id === 'h7sdv53cddomktsi5' || id.includes('streamers');
-        return true;
+        const str = `${run.taskName || ''} ${run.actorTaskId || ''} ${run.actorId || ''}`.toLowerCase();
+        return str.includes(platform.toLowerCase());
       });
     }
 
@@ -371,25 +371,31 @@ export class ApifyRunsTableComponent {
   }
 
   // Helpers de visualización y formateo
-  getPlatformName(actorId: string): string {
-    if (!actorId) return 'Desconocido';
-    if (actorId.includes('facebook-posts') || actorId === 'KoJrdxJCTtpon81KY') return 'Facebook (Posts)';
-    if (actorId.includes('facebook-pages') || actorId === '4Hv5RhChiaDk6iwad') return 'Facebook (Pages)';
-    if (actorId.includes('instagram') || actorId === 'shu8hvrXbJbY3Eb9W') return 'Instagram (Perfiles)';
-    if (actorId.includes('tiktok-profile') || actorId === 'clockworks/tiktok-profile-scraper') return 'TikTok (Perfiles)';
-    if (actorId.includes('tiktok') || actorId === 'GdWCkxBtKWOsKjdch' || actorId === '0FXVyOXXEmdGcV88a') return 'TikTok';
-    if (actorId.includes('youtube') || actorId === 'h7sDV53CddomktSi5') return 'YouTube (Canales)';
-    if (actorId === 'Facebook (Consolidado)') return 'Facebook (Consolidado)';
-    return actorId;
+  getPlatformName(identifier: string): string {
+    if (!identifier) return 'Desconocido';
+    const id = identifier.toLowerCase();
+    if (id.includes('facebook') && id.includes('post')) return 'Facebook (Posts)';
+    if (id.includes('facebook') && id.includes('profile')) return 'Facebook (Perfiles)';
+    if (id.includes('facebook')) return 'Facebook';
+    if (id.includes('instagram') && id.includes('post')) return 'Instagram (Posts)';
+    if (id.includes('instagram') && id.includes('profile')) return 'Instagram (Perfiles)';
+    if (id.includes('instagram')) return 'Instagram';
+    if (id.includes('tiktok') && id.includes('profile')) return 'TikTok (Perfiles)';
+    if (id.includes('tiktok') && id.includes('post')) return 'TikTok (Posts)';
+    if (id.includes('tiktok')) return 'TikTok';
+    if (id.includes('youtube') && id.includes('shorts')) return 'YouTube (Shorts)';
+    if (id.includes('youtube') && id.includes('videos')) return 'YouTube (Videos)';
+    if (id.includes('youtube')) return 'YouTube';
+    return identifier;
   }
 
-  getPlatformIcon(actorId: string): string {
-    if (!actorId) return '/assets/icons/omnichannel.svg';
-    const id = actorId.toLowerCase();
-    if (id.includes('youtube') || id === 'h7sdv53cddomktsi5') return '/assets/icons/youtube.svg';
-    if (id.includes('tiktok') || id === '0fxvyoxxemdgcv88a' || id === 'gdwckxbtkwoskjdch') return '/assets/icons/tiktok.svg';
-    if (id.includes('instagram') || id === 'shu8hvrxbjby3eb9w') return '/assets/icons/instagram.svg';
-    if (id.includes('facebook') || id === '4hv5rhchiadk6iwad' || id === 'kojrdxjcttpon81ky') return '/assets/icons/facebook.svg';
+  getPlatformIcon(identifier: string): string {
+    if (!identifier) return '/assets/icons/omnichannel.svg';
+    const id = identifier.toLowerCase();
+    if (id.includes('youtube')) return '/assets/icons/youtube.svg';
+    if (id.includes('tiktok')) return '/assets/icons/tiktok.svg';
+    if (id.includes('instagram')) return '/assets/icons/instagram.svg';
+    if (id.includes('facebook')) return '/assets/icons/facebook.svg';
     return '/assets/icons/omnichannel.svg';
   }
 

@@ -1,6 +1,5 @@
-// src/app/components/apify-viewer/apify-viewer.component.ts
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
-import { CommonModule, TitleCasePipe } from '@angular/common';
+import { Component, inject, signal, computed, OnInit, PLATFORM_ID } from '@angular/core';
+import { CommonModule, TitleCasePipe, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NgxEchartsDirective } from 'ngx-echarts';
 import type { EChartsOption } from 'echarts';
@@ -8,8 +7,10 @@ import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
 import { ApifyService, ApifyRunRecord, ApifyResponse, MarketCountry } from '../../services/apify.service';
+import { SupabaseService } from '../../services/supabase.service';
 import { ApifyChartService, ChartMetric } from '../../services/apify-chart.service';
 import { GeminiService, DatasetContextPayload } from '../../services/gemini.service';
+import { MarketCountryCode, isValidTaskName, isValidTaskForMarket, findTaskByApiId, findTaskByName } from '../../models/apify-tasks';
 
 import { ApifyDataGridComponent } from '../apify-data-grid/apify-data-grid.component';
 import { ApifyRunsTableComponent } from '../apify-runs-table/apify-runs-table.component';
@@ -49,7 +50,9 @@ export type KpiSortOption = 'followers' | 'views' | 'likes' | 'posts';
   }
 })
 export class ApifyViewerComponent implements OnInit {
+  private platformId = inject(PLATFORM_ID);
   private apifyService = inject(ApifyService);
+  private supabaseService = inject(SupabaseService);
   public apifyChartService = inject(ApifyChartService);
   public geminiService = inject(GeminiService);
 
@@ -66,6 +69,34 @@ export class ApifyViewerComponent implements OnInit {
   kpiSortMetric = signal<KpiSortOption>('followers');
 
   selectedCountry = signal<MarketCountry>('Colombia');
+  public selectedMarket = this.apifyService.selectedMarket;
+
+  onMarketChange(newMarket: MarketCountryCode) {
+    if (this.selectedMarket() === newMarket) return;
+    this.apifyService.setMarket(newMarket);
+    this.selectedCountry.set(newMarket === 'MX' ? 'México' : 'Colombia');
+    this.fetchOmnichannelData();
+  }
+
+  /**
+   * Purgado estricto de caché y datos antiguos, seguido de sincronización limpia de las 16 tareas oficiales
+   */
+  purgeAndSync(): void {
+    this.resetState();
+    this.isLoading.set(true);
+    this.error.set(null);
+
+    this.supabaseService.purgeLegacyData().subscribe({
+      next: (res) => {
+        console.info('[ApifyViewer] Purga completada:', res.message);
+        this.fetchOmnichannelData();
+      },
+      error: (err) => {
+        console.warn('[ApifyViewer] Error en purga, procediendo con sincronización limpia:', err);
+        this.fetchOmnichannelData();
+      }
+    });
+  }
 
   filterStartDate = signal<string>('');
   filterEndDate = signal<string>('');
@@ -241,7 +272,10 @@ export class ApifyViewerComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.loadHistory();
+    if (isPlatformBrowser(this.platformId)) {
+      this.loadHistory();
+      this.fetchOmnichannelData();
+    }
   }
 
   // ==========================================
@@ -324,9 +358,10 @@ export class ApifyViewerComponent implements OnInit {
 
   handleNavSelection(net: string) {
     if (net === 'omnicanal') {
-      if (this.loadedNetwork() === 'omnicanal' && this.gridNetworkFilter() !== 'ALL') {
-        this.gridNetworkFilter.set('ALL');
-      } else {
+      this.gridNetworkFilter.set('ALL');
+      this.loadedNetwork.set('omnicanal');
+      this.error.set(null);
+      if (this.data().length === 0) {
         this.fetchOmnichannelData();
       }
     } else {
@@ -335,56 +370,26 @@ export class ApifyViewerComponent implements OnInit {
   }
 
   filterOrLoadNetwork(net: string) {
-    if (this.loadedNetwork() === 'omnicanal') {
-      const current = this.gridNetworkFilter();
-      this.gridNetworkFilter.set(current === net ? 'ALL' : net);
-      return;
-    }
+    const market = this.selectedMarket();
+    const marketLabel = market === 'MX' ? 'México' : 'Colombia';
 
-    const currentCountry = this.selectedCountry();
-    const runs = this.runsList();
+    this.gridNetworkFilter.set(net);
+    this.loadedNetwork.set(net);
 
-    let targetRun: ApifyRunRecord | undefined;
-    if (net === 'facebook') {
-      targetRun = runs.find(r => (!r.country || r.country === currentCountry) && (r.id.startsWith('HYBRID|') || r.actorId.includes('facebook') || r.actorId === 'KoJrdxJCTtpon81KY' || r.actorId === '4Hv5RhChiaDk6iwad'))
-        || runs.find(r => r.id.startsWith('HYBRID|') || r.actorId.includes('facebook') || r.actorId === 'KoJrdxJCTtpon81KY');
-    } else if (net === 'instagram') {
-      targetRun = runs.find(r => (!r.country || r.country === currentCountry) && (r.actorId.includes('instagram') || r.actorId === 'shu8hvrXbJbY3Eb9W'))
-        || runs.find(r => r.actorId.includes('instagram') || r.actorId === 'shu8hvrXbJbY3Eb9W');
-    } else if (net === 'tiktok') {
-      targetRun = runs.find(r => (!r.country || r.country === currentCountry) && (r.actorId.includes('tiktok') || r.actorId === '0FXVyOXXEmdGcV88a' || r.actorId === 'GdWCkxBtKWOsKjdch'))
-        || runs.find(r => r.actorId.includes('tiktok'));
-    } else if (net === 'youtube') {
-      targetRun = runs.find(r => (!r.country || r.country === currentCountry) && (r.actorId.includes('youtube') || r.actorId === 'h7sDV53CddomktSi5' || r.actorId.includes('streamers')))
-        || runs.find(r => r.actorId.includes('youtube'));
-    }
+    // Contar items válidos de las 16 tareas para esta plataforma y mercado
+    const countForNet = this.data().filter(item => {
+      const itemNet = (item.__network || item.platform || '').toLowerCase();
+      const itemCountry = (item.country || item.__country || item.country_code || '').toString().trim().toUpperCase();
+      const taskName = item.taskName || item.__taskName || item.task_name;
+      return itemNet.includes(net.toLowerCase()) && itemCountry === market && isValidTaskName(taskName);
+    }).length;
 
-    if (targetRun) {
-      this.loadSpecificRun(targetRun.id, targetRun.actorId);
+    if (countForNet === 0) {
+      this.error.set(
+        `Las tareas oficiales de ${this.getNetworkLabel(net)} para ${marketLabel} (${market}) cuentan con 0 ejecuciones exitosas (0 runs) en Apify. Mostrando únicamente datos oficiales existentes.`
+      );
     } else {
-      this.resetState();
-      this.isLoading.set(true);
-      const fallbackActors: Record<string, string> = {
-        'instagram': 'shu8hvrXbJbY3Eb9W',
-        'facebook': 'KoJrdxJCTtpon81KY',
-        'tiktok': '0FXVyOXXEmdGcV88a',
-        'youtube': 'streamers/youtube-scraper'
-      };
-      const actorId = fallbackActors[net] || net;
-      this.apifyService.executeScraper({ action: 'get-latest', actorId, country: currentCountry }).subscribe({
-        next: (res) => {
-          if (res.success && res.data && res.data.length > 0) {
-            this.processDataset(res.data, net, currentCountry);
-          } else {
-            this.error.set(`No se encontraron datos recientes para ${net} en ${currentCountry}.`);
-          }
-          this.isLoading.set(false);
-        },
-        error: (err) => {
-          this.error.set(err.message || `Error al obtener datos de ${net}.`);
-          this.isLoading.set(false);
-        }
-      });
+      this.error.set(null);
     }
   }
 
@@ -395,11 +400,28 @@ export class ApifyViewerComponent implements OnInit {
   filteredData = computed(() => {
     let currentData = this.data();
     const networkFilter = this.gridNetworkFilter();
+    const market = this.selectedMarket();
 
-    // Sincronización Global: Si estamos en Visión Omnicanal y se filtra una red,
-    // se recalcula todo el dashboard (KPIs, gráficas analíticas y tablas) para esa red:
-    if (this.loadedNetwork() === 'omnicanal' && networkFilter !== 'ALL') {
-      currentData = currentData.filter(item => (item.__network || '').toLowerCase().includes(networkFilter.toLowerCase()));
+    // FILTRO ESTRICTO DE VISUALIZACIÓN:
+    // 1. Debe coincidir exactamente con el país/mercado activo ('COL' o 'MX')
+    // 2. Debe poseer un task_name válido perteneciente al catálogo de 16 Actor Tasks
+    // Ningún registro huérfano, sin task_name o de scrapers directos se mostrará en pantalla.
+    currentData = currentData.filter(item => {
+      const c = (item.country || item.__country || item.country_code || '').toString().trim().toUpperCase();
+      const matchesCountry = (market === 'MX') ? (c === 'MX') : (c === 'COL');
+      if (!matchesCountry) return false;
+
+      const taskName = item.taskName || item.__taskName || item.task_name;
+      if (!taskName || !isValidTaskName(taskName)) return false;
+
+      return true;
+    });
+
+    // Sincronización Global por Canal:
+    if (networkFilter !== 'ALL') {
+      currentData = currentData.filter(item =>
+        (item.__network || item.platform || '').toLowerCase().includes(networkFilter.toLowerCase())
+      );
     }
 
     const startStr = this.filterStartDate();
@@ -490,6 +512,7 @@ export class ApifyViewerComponent implements OnInit {
     const avgEngagementRate = totalViews > 0 ? Number(((totalLikes + totalComments) / totalViews * 100).toFixed(2)) : 4.5;
 
     return {
+      selectedMarket: this.selectedMarket(),
       platform,
       dateRange: { start, end },
       totalPosts: currentData.length,
@@ -1185,191 +1208,79 @@ export class ApifyViewerComponent implements OnInit {
   // ==========================================
 
   loadHistory() {
-    this.resetState();
     this.isLoading.set(true);
-
-    this.apifyService.executeScraper({ action: 'list-runs' }).subscribe({
-      next: (response) => {
-        if (response.success && response.data) {
-          const allRuns = response.data as ApifyRunRecord[];
-
-          const fbPosts = allRuns.filter(r => r.actorId === 'KoJrdxJCTtpon81KY' || r.actorId === 'apify/facebook-posts-scraper');
-          const fbPages = allRuns.filter(r => r.actorId === '4Hv5RhChiaDk6iwad' || r.actorId === 'apify/facebook-pages-scraper');
-
-          const otherRuns = allRuns.filter(r =>
-            r.actorId !== 'KoJrdxJCTtpon81KY' && r.actorId !== 'apify/facebook-posts-scraper' &&
-            r.actorId !== '4Hv5RhChiaDk6iwad' && r.actorId !== 'apify/facebook-pages-scraper'
-          );
-
-          const finalRuns = [...otherRuns];
-
-          if (fbPosts.length > 0 || fbPages.length > 0) {
-            const latestPost = fbPosts[0] || null;
-            const latestPage = fbPages[0] || null;
-
-            finalRuns.push({
-              id: `HYBRID|${latestPost?.id || 'none'}|${latestPage?.id || 'none'}`,
-              actorId: 'Facebook (Consolidado)',
-              status: (latestPost?.status === 'SUCCEEDED' || latestPage?.status === 'SUCCEEDED') ? 'SUCCEEDED' : 'FAILED',
-              startedAt: latestPost?.startedAt || latestPage?.startedAt || new Date().toISOString(),
-              finishedAt: latestPost?.finishedAt || latestPage?.finishedAt || new Date().toISOString(),
-              usageTotalUsd: (latestPost?.usageTotalUsd || 0) + (latestPage?.usageTotalUsd || 0),
-              country: latestPost?.country || latestPage?.country || 'Colombia',
-              inputStartDate: latestPost?.inputStartDate,
-              inputEndDate: latestPost?.inputEndDate
-            });
-          }
-
-          finalRuns.sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
-          this.runsList.set(finalRuns);
-        } else {
-          this.error.set('No se pudo recuperar el historial de ejecuciones.');
-        }
+    this.apifyService.listTaskRuns(this.selectedMarket()).subscribe({
+      next: (runs) => {
+        // Solo runs de las 16 tareas oficiales
+        const validRuns = (runs || []).filter(r => isValidTaskName(r.taskName));
+        this.runsList.set(validRuns);
         this.isLoading.set(false);
       },
-      error: (err) => { this.error.set(err.message); this.isLoading.set(false); }
+      error: () => {
+        this.runsList.set([]);
+        this.isLoading.set(false);
+      }
     });
   }
 
   loadSpecificRun(runId: string, actorInternalId: string) {
-    this.resetState();
-    this.isLoading.set(true);
-
     const historyRun = this.runsList().find(r => r.id === runId);
-    const runCountry = historyRun?.country || 'Colombia';
-    this.selectedCountry.set(runCountry as MarketCountry);
+    const taskName = historyRun?.taskName;
+    const task = taskName ? findTaskByName(taskName) : (historyRun?.actorTaskId ? findTaskByApiId(historyRun.actorTaskId) : undefined);
 
-    if (runId.startsWith('HYBRID|')) {
-      const parts = runId.split('|');
-      const postsRunId = parts[1];
-      const pagesRunId = parts[2];
-      const reqs = [];
-
-      if (postsRunId && postsRunId !== 'none') {
-        reqs.push(this.apifyService.executeScraper({ action: 'get-run-data', actorId: 'KoJrdxJCTtpon81KY', runId: postsRunId })
-          .pipe(catchError(() => of({ success: true, data: [] } as ApifyResponse))));
-      }
-      if (pagesRunId && pagesRunId !== 'none') {
-        reqs.push(this.apifyService.executeScraper({ action: 'get-run-data', actorId: '4Hv5RhChiaDk6iwad', runId: pagesRunId })
-          .pipe(catchError(() => of({ success: true, data: [] } as ApifyResponse))));
-      }
-
-      if (reqs.length === 0) {
-        this.error.set('No hay IDs de ejecución válidos para Facebook.');
-        this.isLoading.set(false);
-        return;
-      }
-
-      forkJoin(reqs).subscribe(results => {
-        const combined = results.map(r => r.data || []).flat();
-        if (combined.length > 0) {
-          this.processDataset(combined, 'facebook', runCountry);
-        } else {
-          this.error.set('No se pudo recuperar el dataset híbrido.');
-        }
-        this.isLoading.set(false);
-      });
+    if (!task) {
+      this.error.set('La ejecución seleccionada no pertenece al catálogo oficial de 16 Actor Tasks.');
       return;
     }
 
-    let targetActorId = actorInternalId;
-    let network = 'instagram';
+    this.resetState();
+    this.isLoading.set(true);
+    const country = task.country;
+    const countryName = country === 'MX' ? 'México' : 'Colombia';
+    this.apifyService.setMarket(country);
+    this.selectedCountry.set(countryName as MarketCountry);
 
-    const reverseActorMap: Record<string, string> = {
-      'KoJrdxJCTtpon81KY': 'apify/facebook-posts-scraper',
-      '4Hv5RhChiaDk6iwad': 'apify/facebook-pages-scraper',
-      'shu8hvrXbJbY3Eb9W': 'apify/instagram-scraper',
-      'GdWCkxBtKWOsKjdch': 'clockworks/tiktok-scraper',
-      '0FXVyOXXEmdGcV88a': 'clockworks/tiktok-scraper',
-      'h7sDV53CddomktSi5': 'streamers/youtube-scraper',
-      'nFJndFXA5zjCTuudP': 'apify/google-search-scraper'
-    };
-
-    if (reverseActorMap[actorInternalId]) targetActorId = reverseActorMap[actorInternalId];
-    if (targetActorId.includes('facebook')) network = 'facebook';
-    if (targetActorId.includes('tiktok')) network = 'tiktok';
-    if (targetActorId.includes('youtube')) network = 'youtube';
-
-    this.apifyService.executeScraper({ action: 'get-run-data', actorId: targetActorId, runId }).subscribe({
-      next: (response) => {
-        if (response.success && response.data && response.data.length > 0) {
-          const sample = response.data[0];
-          if (sample.facebookUrl || sample.pageUrl) network = 'facebook';
-          if (sample.channelName && sample.channelTotalVideos) network = 'youtube';
-
-          this.processDataset(response.data, network, runCountry);
-        } else {
-          this.error.set('No se pudo recuperar el dataset.');
-        }
-        this.isLoading.set(false);
-      },
-      error: (err) => { this.error.set(err.message); this.isLoading.set(false); }
+    this.apifyService.getTaskItems(task).then(items => {
+      if (Array.isArray(items) && items.length > 0) {
+        this.processDataset(items, task.platform, countryName);
+      } else {
+        this.error.set(`La tarea oficial '${task.taskName}' cuenta con 0 ejecuciones exitosas.`);
+      }
+      this.isLoading.set(false);
+    }).catch(err => {
+      this.error.set(err?.message || 'Error consultando la tarea en Apify.');
+      this.isLoading.set(false);
     });
   }
 
-  // FIX: Type Assertion aplicado para evitar errores de tipado estricto
-  onRunCountryChanged(event: {runId: string, newCountry: string}) {
-    // 1. Optimistic UI Update: Actualizamos la tabla visualmente al instante
+  onRunCountryChanged(event: { runId: string; newCountry: string }) {
+    const marketCode: MarketCountryCode = event.newCountry === 'México' || event.newCountry === 'MX' ? 'MX' : 'COL';
     this.runsList.update(runs => runs.map(r =>
-      r.id === event.runId ? ({ ...r, country: event.newCountry as MarketCountry } as ApifyRunRecord) : r
+      r.id === event.runId ? ({ ...r, country: marketCode } as ApifyRunRecord) : r
     ));
-
-    // 2. Persistencia en Supabase
-    if ((this.apifyService as any).updateRunCountry) {
-      (this.apifyService as any).updateRunCountry(event.runId, event.newCountry).subscribe({
-        error: () => {
-          this.error.set('No se pudo guardar el mercado en Supabase. Se revertirá al recargar.');
-        }
-      });
-    } else {
-      console.warn('Backend Reminder: Falta implementar el método updateRunCountry en apify.service.ts para guardar en Supabase.');
-    }
+    this.supabaseService.updateRunMetadata(event.runId, { country: marketCode }).subscribe();
   }
 
   fetchOmnichannelData() {
     this.resetState();
     this.isLoading.set(true);
-    const currentCountry = this.selectedCountry();
+    const currentMarket = this.selectedMarket();
+    const currentCountry = currentMarket === 'MX' ? 'México' : 'Colombia';
+    this.selectedCountry.set(currentCountry);
 
-    // 1. Buscamos en la lista de ejecuciones existentes las que corresponden al mercado seleccionado
-    const currentRuns = this.runsList();
-    const specificRuns: { net: string; runId: string }[] = [];
-
-    // Facebook (híbrido o posts + páginas)
-    const fbHybrid = currentRuns.find(r => r.country === currentCountry && r.id.startsWith('HYBRID|'));
-    if (fbHybrid) {
-      const parts = fbHybrid.id.split('|');
-      if (parts[1] && parts[1] !== 'none') specificRuns.push({ net: 'facebook', runId: parts[1] });
-      if (parts[2] && parts[2] !== 'none') specificRuns.push({ net: 'facebook', runId: parts[2] });
-    } else {
-      const fbPosts = currentRuns.find(r => r.country === currentCountry && (r.actorId === 'KoJrdxJCTtpon81KY' || r.actorId.includes('facebook-posts')));
-      const fbPages = currentRuns.find(r => r.country === currentCountry && (r.actorId === '4Hv5RhChiaDk6iwad' || r.actorId.includes('facebook-pages')));
-      if (fbPosts) specificRuns.push({ net: 'facebook', runId: fbPosts.id });
-      if (fbPages) specificRuns.push({ net: 'facebook', runId: fbPages.id });
-    }
-
-    // Instagram
-    const igRun = currentRuns.find(r => r.country === currentCountry && (r.actorId === 'shu8hvrXbJbY3Eb9W' || r.actorId.includes('instagram')));
-    if (igRun) specificRuns.push({ net: 'instagram', runId: igRun.id });
-
-    // TikTok
-    const ttRun = currentRuns.find(r => r.country === currentCountry && (r.actorId === '0FXVyOXXEmdGcV88a' || r.actorId === 'GdWCkxBtKWOsKjdch' || r.actorId.includes('tiktok')));
-    if (ttRun) specificRuns.push({ net: 'tiktok', runId: ttRun.id });
-
-    // YouTube
-    const ytRun = currentRuns.find(r => r.country === currentCountry && (r.actorId === 'h7sDV53CddomktSi5' || r.actorId.includes('youtube')));
-    if (ytRun) specificRuns.push({ net: 'youtube', runId: ytRun.id });
-
-    this.apifyService.getOmnichannelLatestData(currentCountry, specificRuns.length > 0 ? specificRuns : undefined).subscribe({
+    this.apifyService.getOmnichannelLatestData(currentMarket).subscribe({
       next: (consolidatedData) => {
         if (consolidatedData && consolidatedData.length > 0) {
           this.processDataset(consolidatedData, 'omnicanal', currentCountry);
         } else {
-          this.error.set(`No se pudieron consolidar datos para el mercado ${currentCountry}.`);
+          this.error.set(`Consultadas las tareas de Apify para ${currentCountry} (${currentMarket}). No se encontraron datos con 1 run exitoso.`);
         }
         this.isLoading.set(false);
       },
-      error: (err) => { this.error.set(err.message); this.isLoading.set(false); }
+      error: (err) => {
+        this.error.set(err.message || 'Error al obtener datos de las tareas de Apify.');
+        this.isLoading.set(false);
+      }
     });
   }
 

@@ -67,6 +67,96 @@ async function executeGeminiWithFallback(generator: (model: string) => Promise<a
 }
 
 // ============================================================================
+// ENDPOINTS PROXY PARA APIFY ACTOR TASKS (16 TAREAS POR MERCADO)
+// ============================================================================
+app.get('/api/apify/tasks/:apiTaskId/items', async (req, res) => {
+  const { apiTaskId } = req.params;
+  const token = req.query['token'] as string || process.env['APIFY_TOKEN'] || process.env['APIFY_API_TOKEN'];
+
+  if (token) {
+    try {
+      const url = `https://api.apify.com/v2/actor-tasks/${apiTaskId}/runs/last/dataset/items?token=${encodeURIComponent(token)}&status=SUCCEEDED`;
+      const response = await fetch(url);
+
+      if (response.status === 404) {
+        // 0 runs para esta tarea
+        return res.json([]);
+      }
+
+      if (!response.ok) {
+        return res.status(response.status).json({ error: `Apify error: HTTP ${response.status}` });
+      }
+
+      const items = await response.json();
+      return res.json(Array.isArray(items) ? items : []);
+    } catch (err: any) {
+      console.error(`[Server Proxy Error] Error consultando items de tarea ${apiTaskId}:`, err?.message);
+    }
+  }
+
+  // Si no hay token directo provisto, consultar la Edge Function de Supabase que contiene las credenciales
+  try {
+    const edgeRes = await fetch('https://mhfablbqwbjjgkmoyipd.supabase.co/functions/v1/apify-runner', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'get-task-latest',
+        apiTaskId
+      })
+    });
+
+    if (edgeRes.ok) {
+      const edgeData = await edgeRes.json();
+      const items = Array.isArray(edgeData?.data) ? edgeData.data : [];
+      return res.json(items);
+    }
+  } catch (err: any) {
+    console.warn(`[Server Proxy] Fallback de Edge Function para ${apiTaskId}:`, err?.message);
+  }
+
+  return res.json([]);
+});
+
+app.post('/api/apify/tasks/:apiTaskId/runs', async (req, res) => {
+  const { apiTaskId } = req.params;
+  const token = req.query['token'] as string || process.env['APIFY_TOKEN'] || process.env['APIFY_API_TOKEN'];
+
+  if (token) {
+    try {
+      const url = `https://api.apify.com/v2/actor-tasks/${apiTaskId}/runs?token=${encodeURIComponent(token)}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(req.body || {})
+      });
+
+      const data = await response.json();
+      return res.status(response.status).json(data);
+    } catch (err: any) {
+      console.error(`[Server Proxy Error] Error disparando tarea ${apiTaskId}:`, err?.message);
+    }
+  }
+
+  try {
+    const edgeRes = await fetch('https://mhfablbqwbjjgkmoyipd.supabase.co/functions/v1/apify-runner', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'run-task',
+        apiTaskId,
+        inputPayload: req.body || {}
+      })
+    });
+
+    const edgeData = await edgeRes.json();
+    return res.status(edgeRes.status).json(edgeData);
+  } catch (err: any) {
+    console.error(`[Server Proxy Error] Error disparando tarea ${apiTaskId} via Edge:`, err?.message);
+    return res.status(502).json({ error: 'Error al disparar tarea en Apify.' });
+  }
+});
+
+// ============================================================================
 // 1. ENDPOINT: GENERACIÓN DE INSIGHTS ESTRUCTURADOS CON GEMINI AI RESILIENTE
 // ============================================================================
 app.post('/api/gemini/insights', async (req, res) => {
@@ -77,12 +167,17 @@ app.post('/api/gemini/insights', async (req, res) => {
       return res.status(400).json({ error: 'Contexto de datos requerido para generar insights.' });
     }
 
+    const selectedMarket = payload.selectedMarket === 'MX' ? 'MX' : 'COL';
+    const marketLabel = selectedMarket === 'MX' ? 'México (MX)' : 'Colombia (COL)';
+
     const systemInstruction = `Eres un Director de Estrategia de Marketing Intelligence y Analítica Digital Senior.
+Estás analizando el mercado de marcas de alimento para mascotas exclusivamente en ${marketLabel}. Todos los datos provienen de las tareas de Apify de este país. No mezcles métricas de otros países y especifica siempre en tus respuestas qué mercado estás analizando.
 Tu tarea es analizar el dataset estructurado de competidores en redes sociales y generar un análisis ejecutivo de alto impacto.
 Enfócate en identificar claramente el post o video más exitoso/visto, explicar la razón de su viralidad, evaluar el liderazgo entre marcas y formular recomendaciones tácticas directas.
 Sé preciso con las métricas y responde exclusivamente en formato JSON estructurado según el schema especificado.`;
 
-    const promptText = `Analiza los siguientes datos de rendimiento de competidores:
+    const promptText = `Analiza los siguientes datos de rendimiento de competidores para el mercado de ${marketLabel}:
+Mercado Activo: ${marketLabel}
 Red Social / Plataforma: ${payload.platform || 'Omnicanal'}
 Rango de fechas: ${payload.dateRange?.start || 'Inicio'} a ${payload.dateRange?.end || 'Fin'}
 Total de publicaciones analizadas: ${payload.totalPosts || 0}
@@ -187,17 +282,22 @@ app.post('/api/gemini/chat', async (req, res) => {
       return res.status(400).json({ error: 'Mensaje requerido.' });
     }
 
+    const marketCode = (context?.selectedMarket === 'MX' || req.body.selectedMarket === 'MX') ? 'MX' : 'COL';
+    const marketLabel = marketCode === 'MX' ? 'México (MX)' : 'Colombia (COL)';
+
     const systemInstruction = `Eres el Asistente Senior de Inteligencia de Mercado y Analítica Competitiva de la plataforma.
-Tu misión es responder preguntas sobre el dataset de publicaciones, marcas, métricas de engagement, visualizaciones, creativos con más likes y videos virales.
+Estás analizando el mercado de marcas de alimento para mascotas exclusivamente en ${marketLabel}. Todos los datos provienen de las tareas de Apify de este país. No mezcles métricas de otros países y especifica siempre en tus respuestas qué mercado estás analizando.
+Tu misión es responder preguntas sobre el dataset de publicaciones, marcas, métricas de engagement, visualizaciones, creativos con más likes y videos virales en ${marketLabel}.
 
 Reglas de respuesta:
 1. Responde siempre en español claro, profesional y estructurado con markdown.
 2. Si te preguntan cuál es el post, creativo o video con más vistas o más likes (por ejemplo de una marca específica como Royal Canin, Monello, Hills, etc.), busca en el resumen de publicaciones y proporciona: autor/marca, cantidad exacta de likes, views, comentarios, formato, fragmento del texto y enlace.
 3. Utiliza negritas para cifras clave (ej. **14,520 likes**, **1.4M views**, **8.5% engagement**).
 4. Proporciona contexto estratégico y recomendaciones prácticas cuando aplique.
-5. Mantén las respuestas concisas pero de alto valor analítico.
+5. Mantén las respuestas concisas pero de alto valor analítico y recuerda siempre que estás analizando el mercado de ${marketLabel}.
 
 Contexto actual de datos en pantalla:
+- Mercado Analizado: ${marketLabel}
 - Plataforma: ${context?.platform || 'Omnicanal'}
 - Rango de fechas: ${context?.dateRange?.start || ''} a ${context?.dateRange?.end || ''}
 - Total posts analizados: ${context?.totalPosts || 0}
@@ -300,15 +400,19 @@ function generateDataDrivenReply(userQuery: string, context: any): string {
     trimmed === 'hola!' ||
     trimmed === 'holaa';
 
+  const marketCode = context?.selectedMarket === 'MX' ? 'MX' : 'COL';
+  const marketLabel = marketCode === 'MX' ? 'México (MX)' : 'Colombia (COL)';
+
   if (isGreeting) {
     const brandsList = context?.brands?.length > 0 ? context.brands.join(', ') : 'las marcas monitoreadas';
     const totalPosts = context?.totalPosts || 0;
     return `¡Hola! ¿En qué puedo apoyarte hoy?
 
+Estoy analizando exclusivamente el mercado de marcas de alimento para mascotas en **${marketLabel}**.
 Tengo a mi disposición los datos analíticos de **${context?.platform || 'Redes Sociales'}** con un total de **${totalPosts} publicaciones** monitoreadas para marcas como: **${brandsList}**.
 
 Puedo ayudarte con:
-* 🏆 **Top creativos y videos** con más reproducciones, likes o interacción.
+* 🏆 **Top creativos y videos** con más reproducciones, likes o interacción en ${marketLabel}.
 * 📊 **Comparativas de rendimiento** entre competidores (Views, Likes, Engagement Rate).
 * 🎬 **Análisis de formatos** (Reels vs Videos vs Posts estáticos).
 * 💡 **Estrategias y recomendaciones tácticas** para tus contenidos.

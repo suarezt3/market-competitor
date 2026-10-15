@@ -10,12 +10,28 @@ const corsHeaders = {
 
 // ==========================================
 // CONFIGURACIÓN DE TAREAS (ZERO-TOUCH GOVERNANCE)
+// Catálogo de las 16 Actor Tasks mapeadas por Mercado (COL y MX)
 // ==========================================
-// Diccionario que mapea Apify Task IDs a sus respectivos Mercados.
-// Aquí registrarás las futuras tareas a medida que las crees.
-const TASK_COUNTRY_MAP: Record<string, string> = {
-  '8ABZCm00vuO1oCoT3': 'Colombia', // Instagram Post COL
-  // 'AQUI_IRÁ_EL_ID_DE_MEXICO': 'México',
+const TASK_COUNTRY_MAP: Record<string, { country: 'COL' | 'MX'; platform: string; contentType: string; taskName: string }> = {
+  // Colombia
+  'suarezt~tiktok-profile-col': { country: 'COL', platform: 'tiktok', contentType: 'profile', taskName: 'Tiktok_profile_COL' },
+  'suarezt~youtube-videos-col': { country: 'COL', platform: 'youtube', contentType: 'videos', taskName: 'Youtube_videos_COL' },
+  'suarezt~facebook-profile-col': { country: 'COL', platform: 'facebook', contentType: 'profile', taskName: 'Facebook_profile_COL' },
+  'suarezt~facebook-post-col': { country: 'COL', platform: 'facebook', contentType: 'post', taskName: 'Facebook_post_COL' },
+  'suarezt~tiktok-post-col': { country: 'COL', platform: 'tiktok', contentType: 'post', taskName: 'Tiktok_post_COL' },
+  'suarezt~instagram-post-col': { country: 'COL', platform: 'instagram', contentType: 'post', taskName: 'Instagram_post_COL' },
+  'suarezt~instagram-profile-col': { country: 'COL', platform: 'instagram', contentType: 'profile', taskName: 'Instagram_profile_COL' },
+  'suarezt~youtube-shorts-col': { country: 'COL', platform: 'youtube', contentType: 'shorts', taskName: 'Youtube_shorts_COL' },
+
+  // México
+  'suarezt~tiktok-profile-mx': { country: 'MX', platform: 'tiktok', contentType: 'profile', taskName: 'Tiktok_profile_MX' },
+  'suarezt~youtube-videos-mx': { country: 'MX', platform: 'youtube', contentType: 'videos', taskName: 'Youtube_videos_MX' },
+  'suarezt~facebook-post-mx': { country: 'MX', platform: 'facebook', contentType: 'post', taskName: 'Facebook_post_MX' },
+  'suarezt~facebook-profile-mx': { country: 'MX', platform: 'facebook', contentType: 'profile', taskName: 'Facebook_profile_MX' },
+  'suarezt~tiktok-post-mx': { country: 'MX', platform: 'tiktok', contentType: 'post', taskName: 'Tiktok_post_MX' },
+  'suarezt~instagram-profile-mx': { country: 'MX', platform: 'instagram', contentType: 'profile', taskName: 'Instagram_profile_MX' },
+  'suarezt~instagram-post-mx': { country: 'MX', platform: 'instagram', contentType: 'post', taskName: 'Instagram_post_MX' },
+  'suarezt~youtube-shorts-mx': { country: 'MX', platform: 'youtube', contentType: 'shorts', taskName: 'Youtube_shorts_MX' },
 };
 
 serve(async (req) => {
@@ -26,11 +42,7 @@ serve(async (req) => {
   try {
     const body = await req.json();
 
-    const { action = 'run', actorId, inputPayload, runId, country, startDate, endDate } = body;
-
-    if (!actorId && action !== 'list-runs' && action !== 'get-run-data' && action !== 'update-run') {
-      throw new Error('Bad Request: El parámetro actorId es obligatorio.');
-    }
+    const { action = 'get-task-latest', apiTaskId, actorId, inputPayload, runId, country, startDate, endDate } = body;
 
     const apifyToken = Deno.env.get('APIFY_API_TOKEN');
     if (!apifyToken) throw new Error('Configuración: APIFY_API_TOKEN no está definido.');
@@ -43,47 +55,126 @@ serve(async (req) => {
     let responseData: any = [];
     let returnedRunId = null;
 
-    if (action === 'run') {
-      console.log(`[Apify Runner] Iniciando NUEVA ejecución del actor: ${actorId}`);
-      const run = await client.actor(actorId).call(inputPayload);
-      returnedRunId = run.id;
+    const targetTaskId = apiTaskId || actorId;
+    const taskInfo = targetTaskId ? TASK_COUNTRY_MAP[targetTaskId.toLowerCase().replace('/', '~')] : null;
+    const targetCountry = country || taskInfo?.country || 'COL';
 
-      if (country || startDate || endDate) {
-        const { error: dbError } = await supabase
-          .from('apify_run_metadata')
-          .insert([{
-            run_id: run.id,
-            country: country || 'Colombia',
-            start_date: startDate,
-            end_date: endDate
-          }]);
+    if (action === 'get-task-latest' || action === 'get-latest') {
+      if (!targetTaskId) throw new Error('El parámetro apiTaskId es obligatorio.');
+      console.log(`[Apify Runner] Consultando última ejecución exitosa para Tarea: ${targetTaskId}`);
 
-        if (dbError) {
-          console.warn('[Supabase Warning] No se pudo guardar la metadata:', dbError.message);
+      try {
+        const url = `https://api.apify.com/v2/actor-tasks/${targetTaskId}/runs/last/dataset/items?token=${apifyToken}&status=SUCCEEDED`;
+        const res = await fetch(url);
+
+        if (res.status === 404) {
+          console.log(`[Apify Runner] Tarea ${targetTaskId} tiene 0 runs. Retornando vacío sin error.`);
+          responseData = [];
+        } else if (!res.ok) {
+          console.warn(`[Apify Runner] Respuesta no exitosa (${res.status}) para ${targetTaskId}`);
+          responseData = [];
+        } else {
+          const items = await res.json();
+          responseData = Array.isArray(items) ? items : [];
+
+          // Enriquecimiento de datos inmediato
+          if (taskInfo && responseData.length > 0) {
+            responseData = responseData.map((item: any) => ({
+              ...item,
+              country: taskInfo.country,
+              platform: taskInfo.platform,
+              contentType: taskInfo.contentType,
+              taskName: taskInfo.taskName,
+              __country: taskInfo.country,
+              __network: taskInfo.platform,
+              _contentType: taskInfo.contentType,
+              _isPageProfile: taskInfo.contentType === 'profile'
+            }));
+          }
         }
+      } catch (err: any) {
+        console.warn(`[Apify Runner] Excepción al consultar ${targetTaskId}:`, err?.message);
+        responseData = [];
       }
 
-      const dataset = await client.dataset(run.defaultDatasetId).listItems();
-      responseData = dataset.items;
+    } else if (action === 'run-task' || action === 'run') {
+      if (!targetTaskId) throw new Error('El parámetro apiTaskId es obligatorio.');
+      console.log(`[Apify Runner] Disparando NUEVA ejecución de Tarea: ${targetTaskId}`);
 
-    } else if (action === 'get-latest') {
-      console.log(`[Apify Runner] Buscando último historial para: ${actorId}`);
-      const runs = await client.actor(actorId).runs().list({ limit: 1, desc: true, status: 'SUCCEEDED' });
-      if (runs.items.length === 0) throw new Error('No hay datos históricos exitosos para este Actor.');
+      const url = `https://api.apify.com/v2/actor-tasks/${targetTaskId}/runs?token=${apifyToken}`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(inputPayload || {})
+      });
 
-      returnedRunId = runs.items[0].id;
-      const dataset = await client.dataset(runs.items[0].defaultDatasetId).listItems();
-      responseData = dataset.items;
+      if (!res.ok) {
+        throw new Error(`Error al disparar tarea ${targetTaskId}: HTTP ${res.status}`);
+      }
+
+      const runData = await res.json();
+      returnedRunId = runData?.data?.id || null;
+
+      // Registrar metadata de ejecución en Supabase
+      if (returnedRunId) {
+        await supabase.from('apify_run_metadata').upsert({
+          run_id: returnedRunId,
+          country: targetCountry,
+          task_name: taskInfo?.taskName || targetTaskId,
+          api_task_id: targetTaskId,
+          platform: taskInfo?.platform,
+          content_type: taskInfo?.contentType,
+          start_date: startDate,
+          end_date: endDate
+        }, { onConflict: 'run_id' });
+      }
+
+      responseData = [runData?.data];
+
+    } else if (action === 'purge-legacy-data') {
+      console.log(`[Apify Runner] Purgando registros antiguos que no pertenecen a las 16 tareas...`);
+      const validTaskNames = Object.values(TASK_COUNTRY_MAP).map(t => t.taskName);
+
+      const { error: err1 } = await supabase
+        .from('competitor_market_data')
+        .delete()
+        .not('task_name', 'in', `(${validTaskNames.map(t => `"${t}"`).join(',')})`);
+
+      const { error: err2 } = await supabase
+        .from('competitor_market_data')
+        .delete()
+        .is('task_name', null);
+
+      const { error: err3 } = await supabase
+        .from('apify_run_metadata')
+        .delete()
+        .not('task_name', 'in', `(${validTaskNames.map(t => `"${t}"`).join(',')})`);
+
+      const { error: err4 } = await supabase
+        .from('apify_run_metadata')
+        .delete()
+        .is('task_name', null);
+
+      if (err1 || err2 || err3 || err4) {
+        console.warn('[Apify Runner] Advertencia al purgar tablas:', err1?.message || err2?.message || err3?.message || err4?.message);
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, message: 'Datos antiguos purgados correctamente en Supabase.' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
 
     } else if (action === 'list-runs') {
-      console.log(`[Apify Runner] Listando historial global y cruzando con base de datos...`);
-      const runs = await client.runs().list({ limit: 15, desc: true });
+      console.log(`[Apify Runner] Listando historial filtrado exclusivamente a las 16 tareas oficiales...`);
+      const runs = await client.runs().list({ limit: 30, desc: true });
 
-      const runIds = runs.items.map(r => r.id);
+      // Filtrar estrictamente solo ejecuciones asociadas a las 16 Actor Tasks
+      const validRuns = runs.items.filter(r => r.actorTaskId && TASK_COUNTRY_MAP[r.actorTaskId.toLowerCase().replace('/', '~')]);
+      const runIds = validRuns.map(r => r.id);
 
       const { data: metaData } = await supabase
         .from('apify_run_metadata')
-        .select('run_id, country, start_date, end_date')
+        .select('run_id, country, task_name, api_task_id, start_date, end_date')
         .in('run_id', runIds);
 
       const metaMap = (metaData || []).reduce((acc: any, curr: any) => {
@@ -91,21 +182,11 @@ serve(async (req) => {
         return acc;
       }, {});
 
-      responseData = runs.items.map(r => {
+      responseData = validRuns.map(r => {
         const meta = metaMap[r.id];
-
-        // ----------------------------------------------------
-        // LÓGICA DE INFERENCIA DE MERCADO
-        // ----------------------------------------------------
-        let derivedCountry = meta?.country;
-
-        // Si no hay edición manual en base de datos, revisamos si viene de una Tarea (Task)
-        if (!derivedCountry && r.actorTaskId) {
-          derivedCountry = TASK_COUNTRY_MAP[r.actorTaskId];
-        }
-
-        // Fallback final de seguridad
-        derivedCountry = derivedCountry || 'Colombia';
+        const match = r.actorTaskId ? TASK_COUNTRY_MAP[r.actorTaskId.toLowerCase().replace('/', '~')] : undefined;
+        const derivedCountry = meta?.country || match?.country || 'COL';
+        const derivedTaskName = meta?.task_name || match?.taskName;
 
         return {
           id: r.id,
@@ -114,7 +195,8 @@ serve(async (req) => {
           finishedAt: r.finishedAt,
           usageTotalUsd: r.usageTotalUsd || 0,
           actorId: r.actId,
-          actorTaskId: r.actorTaskId, // Enviamos el ID de la tarea al frontend por transparencia
+          actorTaskId: r.actorTaskId,
+          taskName: derivedTaskName,
           country: derivedCountry,
           inputStartDate: meta?.start_date,
           inputEndDate: meta?.end_date
@@ -133,39 +215,30 @@ serve(async (req) => {
       responseData = dataset.items;
 
     } else if (action === 'update-run') {
-      if (!runId || !country) throw new Error('Los parámetros runId y country son obligatorios para actualizar.');
-      console.log(`[Apify Runner] Actualizando metadata del Run ID: ${runId} a mercado: ${country}`);
+      if (!runId || !country) throw new Error('Los parámetros runId y country son obligatorios.');
+      console.log(`[Apify Runner] Actualizando metadata de ${runId} a ${country}`);
 
       const { error: dbError } = await supabase
         .from('apify_run_metadata')
-        .upsert(
-          { run_id: runId, country: country },
-          { onConflict: 'run_id' }
-        );
+        .upsert({ run_id: runId, country }, { onConflict: 'run_id' });
 
-      if (dbError) {
-        console.error('[Supabase Error] Fallo al actualizar metadata:', dbError.message);
-        throw new Error(`Error en base de datos: ${dbError.message}`);
-      }
-
+      if (dbError) throw new Error(`Error en base de datos: ${dbError.message}`);
       returnedRunId = runId;
       responseData = [];
 
     } else {
-      throw new Error('Acción no soportada por la Edge Function.');
+      throw new Error(`Acción '${action}' no soportada.`);
     }
 
     return new Response(
-      JSON.stringify({ success: true, data: responseData, runId: returnedRunId, action: action }),
+      JSON.stringify({ success: true, data: responseData, runId: returnedRunId, action }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
 
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Error interno desconocido';
-    console.error('[Apify Runner] Error:', errorMessage);
-
+  } catch (err: any) {
+    console.error('[Apify Runner Error]:', err.message);
     return new Response(
-      JSON.stringify({ success: false, error: errorMessage }),
+      JSON.stringify({ success: false, error: err.message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
     );
   }

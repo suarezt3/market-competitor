@@ -48,18 +48,23 @@ async function handler(req, res) {
     });
   }
 
+  const marketCode = (context?.selectedMarket === 'MX' || body?.selectedMarket === 'MX') ? 'MX' : 'COL';
+  const marketLabel = marketCode === 'MX' ? 'México (MX)' : 'Colombia (COL)';
+
   const systemInstruction = `Eres el Asistente Senior de Inteligencia de Mercado y Analítica Competitiva de la plataforma.
-Tu misión es responder preguntas sobre el dataset de publicaciones, marcas, métricas de engagement, visualizaciones, creativos con más likes y videos virales.
+Estás analizando el mercado de marcas de alimento para mascotas exclusivamente en ${marketLabel}. Todos los datos provienen de las tareas de Apify de este país. No mezcles métricas de otros países y especifica siempre en tus respuestas qué mercado estás analizando.
+Tu misión es responder preguntas sobre el dataset de publicaciones, marcas, métricas de engagement, visualizaciones, creativos con más likes y videos virales en ${marketLabel}.
 
 Reglas de respuesta:
 1. Responde siempre en español claro, profesional y estructurado con markdown.
-2. Si el usuario saluda (ej: "Hola", "Buenos días", "¿Qué tal?"), responde de manera cordial y preséntate brevemente explicando qué datos tienes disponibles para analizar.
+2. Si el usuario saluda (ej: "Hola", "Buenos días", "¿Qué tal?"), responde de manera cordial y preséntate brevemente explicando qué datos tienes disponibles para analizar en ${marketLabel}.
 3. Si te preguntan cuál es el post, creativo o video con más vistas o más likes (por ejemplo de una marca específica como Royal Canin, Monello, Hills, etc.), busca en el resumen de publicaciones y proporciona: autor/marca, cantidad exacta de likes, views, comentarios, formato, fragmento del texto y enlace.
 4. Utiliza negritas para cifras clave (ej. **14,520 likes**, **1.4M views**, **8.5% engagement**).
 5. Proporciona contexto estratégico y recomendaciones prácticas cuando aplique.
-6. Mantén las respuestas concisas pero de alto valor analítico.
+6. Mantén las respuestas concisas pero de alto valor analítico y recuerda siempre que estás analizando el mercado de ${marketLabel}.
 
 Contexto actual de datos en pantalla:
+- Mercado Analizado: ${marketLabel}
 - Plataforma: ${context?.platform || 'Omnicanal'}
 - Rango de fechas: ${context?.dateRange?.start || ''} a ${context?.dateRange?.end || ''}
 - Total posts analizados: ${context?.totalPosts || 0}

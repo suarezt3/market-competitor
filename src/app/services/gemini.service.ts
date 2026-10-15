@@ -37,6 +37,7 @@ export interface ChatMessage {
 }
 
 export interface DatasetContextPayload {
+  selectedMarket?: 'COL' | 'MX';
   platform: string;
   dateRange: { start: string; end: string };
   totalPosts: number;
@@ -107,7 +108,8 @@ export class GeminiService {
       return;
     }
 
-    const contextKey = `${context.platform}_${context.dateRange.start}_${context.dateRange.end}_${context.totalPosts}_${context.brands.join(',')}`;
+    const market = context.selectedMarket || 'COL';
+    const contextKey = `${market}_${context.platform}_${context.dateRange.start}_${context.dateRange.end}_${context.totalPosts}_${context.brands.join(',')}`;
 
     if (!forceRefresh && this.insights() && this.lastContextKey === contextKey) {
       return; // Usar caché si no cambió el contexto
@@ -120,7 +122,7 @@ export class GeminiService {
       const res = await firstValueFrom(
         this.http.post<{ success: boolean; insights: GeminiInsightsData; timestamp?: string; fallbackInsights?: GeminiInsightsData }>(
           '/api/gemini/insights',
-          context
+          { ...context, selectedMarket: market }
         )
       );
 
@@ -168,9 +170,12 @@ export class GeminiService {
         parts: [{ text: m.text }]
       }));
 
+    const market = context.selectedMarket || 'COL';
     const body = {
       message: userText.trim(),
+      selectedMarket: market,
       context: {
+        selectedMarket: market,
         platform: context.platform,
         dateRange: context.dateRange,
         totalPosts: context.totalPosts,
@@ -477,15 +482,19 @@ export class GeminiService {
       trimmed === 'hola!' ||
       trimmed === 'holaa';
 
+    const marketCode = context?.selectedMarket === 'MX' ? 'MX' : 'COL';
+    const marketLabel = marketCode === 'MX' ? 'México (MX)' : 'Colombia (COL)';
+
     if (isGreeting) {
       const brandsList = context?.brands?.length > 0 ? context.brands.join(', ') : 'las marcas del sector';
       const totalPosts = context?.totalPosts || 0;
       return `¡Hola! ¿En qué puedo apoyarte hoy?
 
-Tengo a mi disposición los datos analíticos de **${context?.platform || 'Redes Sociales'}** con un total de **${totalPosts} publicaciones** monitoreadas para marcas como: **${brandsList}**.
+Estoy analizando exclusivamente el mercado de marcas de alimento para mascotas en **${marketLabel}**.
+Tengo a mi disposición los datos analíticos de **${context?.platform || 'Redes Sociales'}** con un total de **${totalPosts} publicaciones** monitoreadas exclusivamente para este mercado, incluyendo marcas como: **${brandsList}**.
 
 Puedo ayudarte con:
-* 🏆 **Top creativos y videos** con más reproducciones, likes o interacción.
+* 🏆 **Top creativos y videos** con más reproducciones, likes o interacción en ${marketLabel}.
 * 📊 **Comparativas de rendimiento** entre competidores (Views, Likes, Engagement Rate).
 * 🎬 **Análisis de formatos** (Reels vs Videos vs Posts estáticos).
 * 💡 **Estrategias y recomendaciones tácticas** para tus contenidos.
