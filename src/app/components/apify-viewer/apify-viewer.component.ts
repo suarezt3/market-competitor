@@ -10,7 +10,7 @@ import { ApifyService, ApifyRunRecord, ApifyResponse, MarketCountry } from '../.
 import { SupabaseService } from '../../services/supabase.service';
 import { ApifyChartService, ChartMetric } from '../../services/apify-chart.service';
 import { GeminiService, DatasetContextPayload } from '../../services/gemini.service';
-import { MarketCountryCode, isValidTaskName, isValidTaskForMarket, findTaskByApiId, findTaskByName } from '../../models/apify-tasks';
+import { MarketCountryCode, isValidTaskName, isValidTaskForMarket, findTaskByApiId, findTaskByName, getTasksByCountry } from '../../models/apify-tasks';
 
 import { ApifyDataGridComponent } from '../apify-data-grid/apify-data-grid.component';
 import { ApifyRunsTableComponent } from '../apify-runs-table/apify-runs-table.component';
@@ -51,13 +51,20 @@ export type KpiSortOption = 'followers' | 'views' | 'likes' | 'posts';
 })
 export class ApifyViewerComponent implements OnInit {
   private platformId = inject(PLATFORM_ID);
-  private apifyService = inject(ApifyService);
+  public apifyService = inject(ApifyService);
   private supabaseService = inject(SupabaseService);
   public apifyChartService = inject(ApifyChartService);
   public geminiService = inject(GeminiService);
 
   isLoading = signal<boolean>(false);
   error = signal<string | null>(null);
+
+  // Aviso informativo no bloqueante para canales con 0 runs
+  channelEmptyNotice = signal<{ taskName: string; platform: string; country: string } | null>(null);
+
+  // Modal de configuración del API Token de Apify
+  showTokenModal = signal<boolean>(false);
+  tokenInputValue = signal<string>('');
 
   data = signal<any[]>([]);
   runsList = signal<ApifyRunRecord[]>([]);
@@ -73,9 +80,28 @@ export class ApifyViewerComponent implements OnInit {
 
   onMarketChange(newMarket: MarketCountryCode) {
     if (this.selectedMarket() === newMarket) return;
+    this.channelEmptyNotice.set(null);
+    this.error.set(null);
     this.apifyService.setMarket(newMarket);
     this.selectedCountry.set(newMarket === 'MX' ? 'México' : 'Colombia');
     this.fetchOmnichannelData();
+    this.loadHistory();
+  }
+
+  openTokenModal(): void {
+    this.tokenInputValue.set(this.apifyService.apifyToken());
+    this.showTokenModal.set(true);
+  }
+
+  closeTokenModal(): void {
+    this.showTokenModal.set(false);
+  }
+
+  saveToken(token: string): void {
+    this.apifyService.setToken(token);
+    this.showTokenModal.set(false);
+    this.fetchOmnichannelData();
+    this.loadHistory();
   }
 
   /**
@@ -360,6 +386,7 @@ export class ApifyViewerComponent implements OnInit {
     if (net === 'omnicanal') {
       this.gridNetworkFilter.set('ALL');
       this.loadedNetwork.set('omnicanal');
+      this.channelEmptyNotice.set(null);
       this.error.set(null);
       if (this.data().length === 0) {
         this.fetchOmnichannelData();
@@ -375,6 +402,7 @@ export class ApifyViewerComponent implements OnInit {
 
     this.gridNetworkFilter.set(net);
     this.loadedNetwork.set(net);
+    this.error.set(null); // No es un error bloqueante
 
     // Contar items válidos de las 16 tareas para esta plataforma y mercado
     const countForNet = this.data().filter(item => {
@@ -385,11 +413,18 @@ export class ApifyViewerComponent implements OnInit {
     }).length;
 
     if (countForNet === 0) {
-      this.error.set(
-        `Las tareas oficiales de ${this.getNetworkLabel(net)} para ${marketLabel} (${market}) cuentan con 0 ejecuciones exitosas (0 runs) en Apify. Mostrando únicamente datos oficiales existentes.`
-      );
+      // Localizar la tarea oficial asociada a este canal para mostrarla claramente al usuario
+      const countryTasks = getTasksByCountry(market);
+      const officialTask = countryTasks.find(t => t.platform.toLowerCase() === net.toLowerCase());
+      const taskName = officialTask ? officialTask.taskName : `${net.toUpperCase()}_${market}`;
+
+      this.channelEmptyNotice.set({
+        taskName,
+        platform: this.getNetworkLabel(net),
+        country: `${marketLabel} (${market})`
+      });
     } else {
-      this.error.set(null);
+      this.channelEmptyNotice.set(null);
     }
   }
 
@@ -1228,27 +1263,27 @@ export class ApifyViewerComponent implements OnInit {
     const taskName = historyRun?.taskName;
     const task = taskName ? findTaskByName(taskName) : (historyRun?.actorTaskId ? findTaskByApiId(historyRun.actorTaskId) : undefined);
 
-    if (!task) {
-      this.error.set('La ejecución seleccionada no pertenece al catálogo oficial de 16 Actor Tasks.');
-      return;
-    }
+    const country = task?.country || (historyRun?.country === 'MX' || historyRun?.country === 'México' ? 'MX' : 'COL');
+    const countryName = country === 'MX' ? 'México' : 'Colombia';
 
     this.resetState();
     this.isLoading.set(true);
-    const country = task.country;
-    const countryName = country === 'MX' ? 'México' : 'Colombia';
     this.apifyService.setMarket(country);
     this.selectedCountry.set(countryName as MarketCountry);
 
-    this.apifyService.getTaskItems(task).then(items => {
+    this.apifyService.getRunItems(runId, task).then(items => {
       if (Array.isArray(items) && items.length > 0) {
-        this.processDataset(items, task.platform, countryName);
+        this.processDataset(items, task?.platform || 'omnicanal', countryName);
       } else {
-        this.error.set(`La tarea oficial '${task.taskName}' cuenta con 0 ejecuciones exitosas.`);
+        this.channelEmptyNotice.set({
+          taskName: taskName || 'Tarea de Apify',
+          platform: task?.platform ? this.getNetworkLabel(task.platform) : 'Red Social',
+          country: countryName
+        });
       }
       this.isLoading.set(false);
     }).catch(err => {
-      this.error.set(err?.message || 'Error consultando la tarea en Apify.');
+      this.error.set(err?.message || 'Error consultando la ejecución en Apify.');
       this.isLoading.set(false);
     });
   }
@@ -1273,7 +1308,11 @@ export class ApifyViewerComponent implements OnInit {
         if (consolidatedData && consolidatedData.length > 0) {
           this.processDataset(consolidatedData, 'omnicanal', currentCountry);
         } else {
-          this.error.set(`Consultadas las tareas de Apify para ${currentCountry} (${currentMarket}). No se encontraron datos con 1 run exitoso.`);
+          this.channelEmptyNotice.set({
+            taskName: `Tareas oficiales de ${currentCountry}`,
+            platform: 'Ecosistema Omnicanal',
+            country: `${currentCountry} (${currentMarket})`
+          });
         }
         this.isLoading.set(false);
       },
@@ -1310,6 +1349,7 @@ export class ApifyViewerComponent implements OnInit {
 
   private resetState() {
     this.error.set(null);
+    this.channelEmptyNotice.set(null);
     this.data.set([]);
     this.filterStartDate.set('');
     this.filterEndDate.set('');

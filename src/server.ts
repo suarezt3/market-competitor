@@ -94,21 +94,46 @@ app.get('/api/apify/tasks/:apiTaskId/items', async (req, res) => {
     }
   }
 
-  // Si no hay token directo provisto, consultar la Edge Function de Supabase que contiene las credenciales
+  // Si no hay token directo provisto, consultar la Edge Function de Supabase usando EXCLUSIVAMENTE 'list-runs' y 'get-run-data'
   try {
     const edgeRes = await fetch('https://mhfablbqwbjjgkmoyipd.supabase.co/functions/v1/apify-runner', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'get-task-latest',
-        apiTaskId
-      })
+      body: JSON.stringify({ action: 'list-runs' })
     });
 
     if (edgeRes.ok) {
       const edgeData = await edgeRes.json();
-      const items = Array.isArray(edgeData?.data) ? edgeData.data : [];
-      return res.json(items);
+      const runs = Array.isArray(edgeData?.data) ? edgeData.data : [];
+
+      const targetSlug = apiTaskId.toLowerCase().replace('/', '~');
+      const knownTaskMap: Record<string, { actorTaskId: string; runId?: string }> = {
+        'suarezt~tiktok-profile-col': { actorTaskId: 'QpJnfcU017gOurAn9', runId: 'BdhLIx2LuYi4CYHya' },
+        'suarezt~tiktok-profile-mx': { actorTaskId: 'li3IJZU2e4MkK1qvB', runId: '4wbw2tDCUwxHjWOIW' },
+        'suarezt~youtube-videos-mx': { actorTaskId: 'Pj5dHwzZXXWZhZ20z', runId: 'SRhdL03dOczj7zVpO' },
+        'suarezt~youtube-videos-col': { actorTaskId: 'CeQ5xWcXeOWgrTuxA', runId: 'y2E94ckRpl7uFQpJv' },
+      };
+
+      const matchedTask = knownTaskMap[targetSlug];
+      const run = runs.find((r: any) =>
+        (matchedTask && (r.id === matchedTask.runId || r.actorTaskId === matchedTask.actorTaskId)) ||
+        r.actorTaskId === apiTaskId ||
+        r.taskName === apiTaskId
+      );
+
+      if (run && run.id) {
+        const dataRes = await fetch('https://mhfablbqwbjjgkmoyipd.supabase.co/functions/v1/apify-runner', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'get-run-data', runId: run.id })
+        });
+
+        if (dataRes.ok) {
+          const dataJson = await dataRes.json();
+          const items = Array.isArray(dataJson?.data) ? dataJson.data : [];
+          return res.json(items);
+        }
+      }
     }
   } catch (err: any) {
     console.warn(`[Server Proxy] Fallback de Edge Function para ${apiTaskId}:`, err?.message);
@@ -142,8 +167,8 @@ app.post('/api/apify/tasks/:apiTaskId/runs', async (req, res) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        action: 'run-task',
-        apiTaskId,
+        action: 'run',
+        actorTaskId: apiTaskId,
         inputPayload: req.body || {}
       })
     });

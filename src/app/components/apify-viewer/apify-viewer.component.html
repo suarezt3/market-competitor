@@ -147,7 +147,7 @@
             } @else {
               <app-huge-icon name="refresh" [size]="15" class="mr-1"></app-huge-icon>
             }
-            <span>{{ isLoading() ? 'Cargando' : 'Sincronizar' }}</span>
+            <span>{{ isLoading() ? 'Cargando...' : 'Sincronizar Mercado' }}</span>
           </button>
 
           <button type="button"
@@ -156,7 +156,15 @@
                   class="purge-compact-btn"
                   title="Eliminar datos viejos de scrapers directos en Supabase y localmente, y re-sincronizar">
             <app-huge-icon name="delete-02" [size]="14" class="mr-1 text-rose-500"></app-huge-icon>
-            <span>Limpiar datos antiguos y Sincronizar</span>
+            <span>Limpiar Caché y Sincronizar</span>
+          </button>
+
+          <button type="button"
+                  (click)="openTokenModal()"
+                  class="token-compact-btn"
+                  title="Configurar o cambiar el Token de API de Apify">
+            <app-huge-icon name="key-01" [size]="14" class="mr-1 text-amber-500"></app-huge-icon>
+            <span>Configurar Token Apify</span>
           </button>
         </div>
       </div>
@@ -184,8 +192,178 @@
   <!-- ÁREA PRINCIPAL (RESULTADOS) -->
   <main class="dashboard-content">
 
+    <!-- CABECERA FIJA FLOTANTE (STICKY): SIEMPRE VISIBLE EN LA PARTE SUPERIOR -->
+    <div class="enterprise-analytics-toolbar sticky-toolbar">
+
+      <!-- SELECTOR GLOBAL DE MERCADO: COLOMBIA (COL) / MÉXICO (MX) -->
+      <div class="toolbar-market-section">
+        <div class="toolbar-section-label">
+          <app-huge-icon name="globe-02" [size]="16" class="text-slate-400 mr-1"></app-huge-icon>
+          <span>Mercado:</span>
+        </div>
+
+        <div class="market-segmented-control" role="group" aria-label="Seleccionar mercado país">
+          <button
+            type="button"
+            (click)="onMarketChange('COL')"
+            class="market-segment-btn"
+            [class.active]="selectedMarket() === 'COL'"
+            title="Filtrar datos exclusivamente de Colombia (COL)">
+            <span class="flag-icon">🇨🇴</span>
+            <span class="segment-label">Colombia (COL)</span>
+          </button>
+
+          <button
+            type="button"
+            (click)="onMarketChange('MX')"
+            class="market-segment-btn"
+            [class.active]="selectedMarket() === 'MX'"
+            title="Filtrar datos exclusivamente de México (MX)">
+            <span class="flag-icon">🇲🇽</span>
+            <span class="segment-label">México (MX)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ACCIÓN RÁPIDA DE PURGA Y SINCRONIZACIÓN LIMPIA -->
+      <div class="toolbar-purge-section">
+        <button
+          type="button"
+          (click)="purgeAndSync()"
+          [disabled]="isLoading()"
+          class="toolbar-purge-btn"
+          title="Limpiar datos antiguos de scrapers directos y sincronizar únicamente las 16 tareas oficiales de Apify">
+          <app-huge-icon name="delete-02" [size]="14" class="mr-1 text-rose-500"></app-huge-icon>
+          <span>Limpiar Caché & Sincronizar</span>
+        </button>
+      </div>
+
+      <!-- SELECTOR DE FECHAS DESPLEGABLE -->
+      <div class="toolbar-date-section">
+        <div class="toolbar-section-label">
+          <app-huge-icon name="calendar-03" [size]="16" class="text-slate-400 mr-1"></app-huge-icon>
+          <span>Segmentar Fechas:</span>
+        </div>
+
+        <app-date-range-picker
+          [startDate]="filterStartDate()"
+          [endDate]="filterEndDate()"
+          (rangeChange)="onDateRangeChange($event)"
+          (clear)="clearDateFilter()">
+        </app-date-range-picker>
+      </div>
+
+      <!-- LADO DERECHO: CONTROL SEGMENTADO DE MÉTRICAS ENTERPRISE -->
+      <div class="toolbar-metrics-section">
+        <div class="toolbar-section-label">
+          <app-huge-icon name="filter" [size]="16" class="text-slate-400 mr-1"></app-huge-icon>
+          <span>Métrica Principal:</span>
+        </div>
+
+        <div class="metric-segmented-control" role="group" aria-label="Seleccionar métrica para el análisis">
+          <!-- TOTAL -->
+          <button
+            type="button"
+            (click)="applyFilter('total')"
+            class="metric-segment-btn"
+            [class.active]="selectedMetric() === 'total'"
+            title="Métricas consolidadas (Vistas, Likes y Comentarios)">
+            <app-huge-icon name="analytics-01" [size]="16" class="segment-icon"></app-huge-icon>
+            <span class="segment-label">Total</span>
+          </button>
+
+          <!-- VISTAS -->
+          <button
+            type="button"
+            (click)="applyFilter('views')"
+            class="metric-segment-btn"
+            [class.active]="selectedMetric() === 'views'"
+            title="Alcance y reproducciones de video">
+            <app-huge-icon name="view" [size]="16" class="segment-icon"></app-huge-icon>
+            <span class="segment-label">Vistas</span>
+          </button>
+
+          <!-- LIKES -->
+          <button
+            type="button"
+            (click)="applyFilter('likes')"
+            class="metric-segment-btn"
+            [class.active]="selectedMetric() === 'likes'"
+            title="Me gusta y reacciones">
+            <app-huge-icon name="favourite" [size]="16" class="segment-icon"></app-huge-icon>
+            <span class="segment-label">Likes</span>
+          </button>
+
+          <!-- COMENTARIOS -->
+          <button
+            type="button"
+            (click)="applyFilter('comments')"
+            class="metric-segment-btn"
+            [class.active]="selectedMetric() === 'comments'"
+            title="Comentarios de la comunidad">
+            <app-huge-icon name="bubble-chat" [size]="16" class="segment-icon"></app-huge-icon>
+            <span class="segment-label">Comentarios</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ACCESO A GUÍA METODOLÓGICA DESDE LA CABECERA FIJA -->
+      <div class="toolbar-doc-section">
+        <button
+          type="button"
+          class="toolbar-methodology-btn"
+          (click)="openMethodology('overview')"
+          title="Ver documentación metodológica y fórmulas matemáticas">
+          <app-huge-icon name="book-open-01" [size]="15" [strokeWidth]="1.8" class="mr-1"></app-huge-icon>
+          <span>Metodología</span>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- AVISO INFORMATIVO AMIGABLE DE CANAL CON 0 RUNS (NO BLOQUEANTE) -->
+    @if (channelEmptyNotice(); as notice) {
+      <div class="channel-empty-notice-card fade-in">
+        <div class="notice-icon-box">
+          <app-huge-icon name="alert-circle" [size]="24" class="text-amber-500"></app-huge-icon>
+        </div>
+        <div class="notice-content">
+          <div class="notice-header">
+            <h4>Canal sin ejecuciones en Apify (0 Runs)</h4>
+            <span class="notice-badge">{{ notice.country }}</span>
+          </div>
+          <p class="notice-desc">
+            La tarea oficial <code>{{ notice.taskName }}</code> en <strong>{{ notice.platform }}</strong> para <strong>{{ notice.country }}</strong> cuenta con 0 ejecuciones exitosas en Apify. Puedes explorar los canales activos con datos o cambiar de país:
+          </p>
+          <div class="notice-actions">
+            <button type="button" (click)="handleNavSelection('omnicanal')" class="notice-btn primary">
+              <app-huge-icon name="layers-01" [size]="14" class="mr-1"></app-huge-icon>
+              Ver Visión Ecosistema
+            </button>
+            <button type="button" (click)="handleNavSelection('tiktok')" class="notice-btn secondary">
+              <img src="/assets/icons/tiktok.svg" referrerpolicy="no-referrer" alt="" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; margin-right: 4px;">
+              Explorar TikTok (Activo)
+            </button>
+            <button type="button" (click)="handleNavSelection('youtube')" class="notice-btn secondary">
+              <img src="/assets/icons/youtube.svg" referrerpolicy="no-referrer" alt="" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; margin-right: 4px;">
+              Explorar YouTube (Activo)
+            </button>
+            <button type="button" (click)="onMarketChange(selectedMarket() === 'COL' ? 'MX' : 'COL')" class="notice-btn outline">
+              <app-huge-icon name="globe-02" [size]="14" class="mr-1"></app-huge-icon>
+              Cambiar a {{ selectedMarket() === 'COL' ? 'México (MX)' : 'Colombia (COL)' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+
     @if (error()) {
-      <div class="alert alert-error fade-in"><strong>⚠️ Error:</strong> {{ error() }}</div>
+      <div class="alert alert-error fade-in">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <span><strong>⚠️ Error:</strong> {{ error() }}</span>
+          <button type="button" (click)="error.set(null)" style="background: none; border: none; font-weight: bold; cursor: pointer; color: inherit;">✕</button>
+        </div>
+      </div>
     }
 
     @if (isLoading()) {
@@ -196,7 +374,7 @@
     }
 
     <!-- TABLA DE HISTORIALES (Punto de entrada principal) -->
-    @if (!isLoading() && !error() && runsList().length > 0) {
+    @if (!isLoading() && runsList().length > 0) {
       <div class="results-header fade-in" style="margin-bottom: 1.5rem;">
         <h3>Historial de Ejecuciones (Nube)</h3>
         <p>Haz clic en el botón de la tabla para analizar una ejecución específica sin latencia ni consumo de créditos.</p>
@@ -208,136 +386,7 @@
     }
 
     <!-- ÁREA DE DASHBOARD Y GRÁFICAS -->
-    @if (!isLoading() && !error() && data().length > 0) {
-
-      <!-- CABECERA FIJA FLOTANTE (STICKY): SELECTOR DE MERCADO + CALENDARIO + CONTROL DE MÉTRICAS -->
-      <div class="enterprise-analytics-toolbar sticky-toolbar">
-
-        <!-- SELECTOR GLOBAL DE MERCADO: COLOMBIA (COL) / MÉXICO (MX) -->
-        <div class="toolbar-market-section">
-          <div class="toolbar-section-label">
-            <app-huge-icon name="globe-02" [size]="16" class="text-slate-400 mr-1"></app-huge-icon>
-            <span>Mercado:</span>
-          </div>
-
-          <div class="market-segmented-control" role="group" aria-label="Seleccionar mercado país">
-            <button
-              type="button"
-              (click)="onMarketChange('COL')"
-              class="market-segment-btn"
-              [class.active]="selectedMarket() === 'COL'"
-              title="Filtrar datos exclusivamente de Colombia (COL)">
-              <span class="flag-icon">🇨🇴</span>
-              <span class="segment-label">Colombia (COL)</span>
-            </button>
-
-            <button
-              type="button"
-              (click)="onMarketChange('MX')"
-              class="market-segment-btn"
-              [class.active]="selectedMarket() === 'MX'"
-              title="Filtrar datos exclusivamente de México (MX)">
-              <span class="flag-icon">🇲🇽</span>
-              <span class="segment-label">México (MX)</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- ACCIÓN RÁPIDA DE PURGA Y SINCRONIZACIÓN LIMPIA -->
-        <div class="toolbar-purge-section">
-          <button
-            type="button"
-            (click)="purgeAndSync()"
-            [disabled]="isLoading()"
-            class="toolbar-purge-btn"
-            title="Limpiar datos antiguos de scrapers directos y sincronizar únicamente las 16 tareas oficiales de Apify">
-            <app-huge-icon name="delete-02" [size]="14" class="mr-1 text-rose-500"></app-huge-icon>
-            <span>Limpiar datos antiguos & Sincronizar</span>
-          </button>
-        </div>
-
-        <!-- SELECTOR DE FECHAS DESPLEGABLE -->
-        <div class="toolbar-date-section">
-          <div class="toolbar-section-label">
-            <app-huge-icon name="calendar-03" [size]="16" class="text-slate-400 mr-1"></app-huge-icon>
-            <span>Segmentar Fechas:</span>
-          </div>
-
-          <app-date-range-picker
-            [startDate]="filterStartDate()"
-            [endDate]="filterEndDate()"
-            (rangeChange)="onDateRangeChange($event)"
-            (clear)="clearDateFilter()">
-          </app-date-range-picker>
-        </div>
-
-        <!-- LADO DERECHO: CONTROL SEGMENTADO DE MÉTRICAS ENTERPRISE -->
-        <div class="toolbar-metrics-section">
-          <div class="toolbar-section-label">
-            <app-huge-icon name="filter" [size]="16" class="text-slate-400 mr-1"></app-huge-icon>
-            <span>Métrica Principal:</span>
-          </div>
-
-          <div class="metric-segmented-control" role="group" aria-label="Seleccionar métrica para el análisis">
-            <!-- TOTAL -->
-            <button
-              type="button"
-              (click)="applyFilter('total')"
-              class="metric-segment-btn"
-              [class.active]="selectedMetric() === 'total'"
-              title="Métricas consolidadas (Vistas, Likes y Comentarios)">
-              <app-huge-icon name="analytics-01" [size]="16" class="segment-icon"></app-huge-icon>
-              <span class="segment-label">Total</span>
-            </button>
-
-            <!-- VISTAS -->
-            <button
-              type="button"
-              (click)="applyFilter('views')"
-              class="metric-segment-btn"
-              [class.active]="selectedMetric() === 'views'"
-              title="Alcance y reproducciones de video">
-              <app-huge-icon name="view" [size]="16" class="segment-icon"></app-huge-icon>
-              <span class="segment-label">Vistas</span>
-            </button>
-
-            <!-- LIKES -->
-            <button
-              type="button"
-              (click)="applyFilter('likes')"
-              class="metric-segment-btn"
-              [class.active]="selectedMetric() === 'likes'"
-              title="Me gusta y reacciones">
-              <app-huge-icon name="favourite" [size]="16" class="segment-icon"></app-huge-icon>
-              <span class="segment-label">Likes</span>
-            </button>
-
-            <!-- COMENTARIOS -->
-            <button
-              type="button"
-              (click)="applyFilter('comments')"
-              class="metric-segment-btn"
-              [class.active]="selectedMetric() === 'comments'"
-              title="Comentarios de la comunidad">
-              <app-huge-icon name="bubble-chat" [size]="16" class="segment-icon"></app-huge-icon>
-              <span class="segment-label">Comentarios</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- ACCESO A GUÍA METODOLÓGICA DESDE LA CABECERA FIJA -->
-        <div class="toolbar-doc-section">
-          <button
-            type="button"
-            class="toolbar-methodology-btn"
-            (click)="openMethodology('overview')"
-            title="Ver documentación metodológica y fórmulas matemáticas">
-            <app-huge-icon name="book-open-01" [size]="15" [strokeWidth]="1.8" class="mr-1"></app-huge-icon>
-            <span>Metodología</span>
-          </button>
-        </div>
-
-      </div>
+    @if (!isLoading() && data().length > 0) {
 
       <!-- TARJETA INTELIGENTE DE INSIGHTS CON GEMINI 3.8 AI -->
       <app-ai-insights-card
@@ -1361,3 +1410,60 @@
   (sendMessageRequested)="sendChatMessage($event)"
   (cancelRequested)="cancelGeminiChat()">
 </app-ai-assistant-drawer>
+
+<!-- MODAL DE CONFIGURACIÓN DEL API TOKEN DE APIFY -->
+@if (showTokenModal()) {
+  <div class="token-modal-backdrop fade-in" (click)="closeTokenModal()">
+    <div class="token-modal-card" (click)="$event.stopPropagation()">
+      <div class="token-modal-header">
+        <div class="modal-title-row">
+          <app-huge-icon name="key-01" [size]="20" class="text-amber-500 mr-2"></app-huge-icon>
+          <h3>Configurar API Token de Apify</h3>
+        </div>
+        <button type="button" (click)="closeTokenModal()" class="modal-close-btn" title="Cerrar modal">✕</button>
+      </div>
+
+      <div class="token-modal-body">
+        <p class="modal-instruction">
+          Ingresa tu Personal API Token de Apify (comienza con <code>apify_api_...</code>).
+          Al configurarlo, el sistema consultará directamente tus Actor Tasks oficiales en Apify sin depender de la Edge Function.
+        </p>
+
+        <div class="token-input-group">
+          <label for="apifyTokenInput">Personal API Token:</label>
+          <input
+            id="apifyTokenInput"
+            type="password"
+            [value]="tokenInputValue()"
+            (input)="tokenInputValue.set($any($event.target).value)"
+            placeholder="apify_api_..."
+            class="token-text-input" />
+        </div>
+
+        <div class="token-status-info">
+          @if (apifyService.apifyToken()) {
+            <span class="token-active-badge">✓ Token activo configurado localmente en este navegador</span>
+          } @else {
+            <span class="token-cloud-badge">ℹ️ Usando credenciales de Supabase Edge Function por defecto</span>
+          }
+        </div>
+      </div>
+
+      <div class="token-modal-footer">
+        @if (apifyService.apifyToken()) {
+          <button type="button" (click)="saveToken('')" class="token-remove-btn">
+            Eliminar Token Local
+          </button>
+        }
+        <div class="footer-right-buttons">
+          <button type="button" (click)="closeTokenModal()" class="token-cancel-btn">
+            Cancelar
+          </button>
+          <button type="button" (click)="saveToken(tokenInputValue())" class="token-save-btn">
+            Guardar y Sincronizar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

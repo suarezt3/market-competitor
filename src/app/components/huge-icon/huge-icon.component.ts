@@ -23,7 +23,9 @@ export type HugeIconName =
   | 'globe-02'
   | 'delete-02'
   | 'trash-01'
-  | 'check';
+  | 'check'
+  | 'key-01'
+  | 'alert-circle';
 
 @Component({
   selector: 'app-huge-icon',
@@ -133,6 +135,14 @@ export type HugeIconName =
         }
         @case ('check') {
           <path d="M5 12.5L9.5 17L19 7.5" />
+        }
+        @case ('key-01') {
+          <path d="M14.5 9.5C14.5 12.2614 12.2614 14.5 9.5 14.5C6.73858 14.5 4.5 12.2614 4.5 9.5C4.5 6.73858 6.73858 4.5 9.5 4.5C12.2614 4.5 14.5 6.73858 14.5 9.5Z" />
+          <path d="M13.5 13.5L20 20M17.5 17.5L19.5 15.5" />
+        }
+        @case ('alert-circle') {
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 8V12M12 16H12.01" />
         }
       }
     </svg>
