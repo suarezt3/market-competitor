@@ -1,33 +1,36 @@
-# Plan de Implementación: Cuota de Mercado a Ancho Completo con Lista Vertical Lateral
+# Plan de Corrección: Contadores y Filtrado Inmediato por Canal
 
-## 1. Reestructuración del Layout
-- **Cuota de Mercado (Fila Superior - Ancho Completo)**:
-  - La tarjeta ocupará el 100% del ancho (`grid-column: 1 / -1` / ancho total).
-  - Altura óptima de 460px para máxima claridad.
-  - **Dona espaciosa a la izquierda** (`center: ['35%', '52%']`, `radius: ['36%', '58%']`): espacio generoso a la izquierda, arriba y abajo para que todas las líneas guía y etiquetas de porcentajes en 2 líneas se desplieguen con holgura sin colisionar con nada.
-  - **Leyenda vertical en lista a la derecha** (`orient: 'vertical'`, `right: 36`, `top: 'middle'`): lista limpia y ordenada de competidores con sus identificadores de color, nombres y tipografía legible.
-  - **Título y Subtítulo**: Ubicados en la esquina superior izquierda (`left: 0`, `top: 0`) con estilo corporativo.
+## Diagnóstico del Problema
 
-- **Comunidad de Marca (Fila Inferior - Ancho Completo)**:
-  - Ocupará también el 100% del ancho por debajo de la cuota de mercado.
-  - La tabla de KPIs y métricas consolidadas se beneficiará del ancho completo, mostrando todas las columnas y competidores con excelente respiración visual.
+1. **Inconsistencia en los Contadores de la Barra Lateral (`getChannelBadge`):**
+   - La función `getChannelBadge(net)` utilizaba `this.data().length` cuando el canal seleccionado coincidía con la red (`this.loadedNetwork() === net`). Como `this.data()` contiene todo el conjunto descargado (660 registros: 514 de TikTok + 146 de YouTube), al hacer clic en YouTube se asignaba el total (660) a la etiqueta de YouTube.
+   - Además, al estar en un canal individual, los otros canales perdían su contador y mostraban la etiqueta genérica "Live", impidiendo al usuario ver la distribución real de publicaciones disponibles por plataforma.
+
+2. **Comportamiento del Dashboard al Seleccionar Canal:**
+   - El usuario requiere que al hacer clic en un canal (ej. TikTok o YouTube), el dashboard filtre inmediatamente las publicaciones de ese canal específico sin mostrar 660 registros en todas partes ni recargar llamadas innecesarias a Apify.
+   - La cabecera del dashboard caía en la rama genérica "Se consolidaron 660 registros", generando confusión visual respecto a si el filtro estaba aplicado.
 
 ---
 
-## 2. Modificaciones de Código
-1. **`src/app/components/apify-viewer/apify-viewer.component.scss`**:
-   - Ajustar `.charts-grid` para que las tarjetas se presenten en filas de ancho completo (`display: flex; flex-direction: column; gap: 1.75rem;`).
-   - Ajustar el padding y responsividad de `.chart-card`.
-2. **`src/app/services/apify-chart.service.ts`**:
-   - Modificar `buildMarketShareChart`:
-     - Título a la izquierda: `left: 8`, `top: 8`.
-     - Centro de la dona: `['35%', '54%']`, radio: `['34%', '56%']`.
-     - Leyenda vertical a la derecha: `orient: 'vertical'`, `right: 28`, `top: 'middle'`, `itemGap: 12`.
-     - Etiquetas (`label`): `show: true`, `formatter: '{b}\n{d}%'`, `fontSize: 11`, `lineHeight: 15`.
-     - Líneas guía (`labelLine`): `show: true`, `length: 12`, `length2: 16`, `smooth: 0.2`.
+## Cambios Propuestos
 
----
+### 1. Corrección de Contadores en la Barra Lateral (`apify-viewer.component.ts`)
+- Modificar `getChannelBadge(net)` para que consulte en tiempo real el desglose de `omnichannelStats()` para el mercado activo (Colombia / México):
+  - **Visión Ecosistema:** Muestra el total consolidado (ej. `660 items`).
+  - **TikTok:** Muestra siempre sus registros reales (ej. `514`).
+  - **YouTube:** Muestra siempre sus registros reales (ej. `146`).
+  - **Instagram / Facebook:** Muestra `Live` o `0` si no tienen ejecuciones aún.
+- Los contadores permanecerán visibles e independientes en todo momento, sin importar qué elemento esté seleccionado en la barra lateral.
 
-## 3. Verificación
-1. Compilar con `compile_applet` para asegurar cero errores de TypeScript/SCSS.
-2. Reiniciar el dev server con `restart_dev_server`.
+### 2. Filtrado Inmediato y Consistente en el Dashboard (`apify-viewer.component.ts` & `apify-viewer.component.html`)
+- Ajustar `filterOrLoadNetwork(net)` y `filteredData` para garantizar que cuando el usuario haga clic en un canal individual (ej. YouTube):
+  - `gridNetworkFilter` se establezca en el canal (`youtube`).
+  - `filteredData` contenga únicamente los 146 registros de YouTube.
+  - El subtítulo principal del dashboard comunique con precisión: *"Mostrando **146 registros** de YouTube (de 660 totales en Colombia)"*.
+  - Las métricas, el grid de publicaciones, los destacados virales y los análisis de Gemini reflejen únicamente los datos del canal activo.
+- Al seleccionar "Visión Ecosistema", se restablece `gridNetworkFilter = 'ALL'` y se visualizan los 660 registros consolidados.
+
+### 3. Verificación y Validación
+- Probar la interacción entre **Visión Ecosistema** (660), **TikTok** (514) y **YouTube** (146).
+- Verificar que los badges numéricos de la barra lateral no se alteren erróneamente al cambiar de selección.
+- Validar la compilación con `compile_applet` para asegurar cero errores de TypeScript o AOT.

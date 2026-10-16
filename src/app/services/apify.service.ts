@@ -79,14 +79,22 @@ export const KNOWN_APIFY_RUNS_MAP: Record<string, {
   apiTaskId: string;
   approxItems: number;
 }> = {
-  // TikTok COL (~390 items)
+  // TikTok COL (~390 - 514 items)
   'BdhLIx2LuYi4CYHya': {
     taskName: 'Tiktok_profile_COL',
     country: 'COL',
     platform: 'tiktok',
     contentType: 'profile',
     apiTaskId: 'suarezt~tiktok-profile-col',
-    approxItems: 390
+    approxItems: 514
+  },
+  'C60mkGXpkuBBq950y': {
+    taskName: 'Tiktok_profile_COL',
+    country: 'COL',
+    platform: 'tiktok',
+    contentType: 'profile',
+    apiTaskId: 'suarezt~tiktok-profile-col',
+    approxItems: 514
   },
   'QpJnfcU017gOurAn9': {
     taskName: 'Tiktok_profile_COL',
@@ -94,11 +102,19 @@ export const KNOWN_APIFY_RUNS_MAP: Record<string, {
     platform: 'tiktok',
     contentType: 'profile',
     apiTaskId: 'suarezt~tiktok-profile-col',
-    approxItems: 390
+    approxItems: 514
   },
 
-  // TikTok MX (~350 items)
+  // TikTok MX (~350 - 440 items)
   '4wbw2tDCUwxHjWOIW': {
+    taskName: 'Tiktok_profile_MX',
+    country: 'MX',
+    platform: 'tiktok',
+    contentType: 'profile',
+    apiTaskId: 'suarezt~tiktok-profile-mx',
+    approxItems: 350
+  },
+  'eovEueonKuklptrjn': {
     taskName: 'Tiktok_profile_MX',
     country: 'MX',
     platform: 'tiktok',
@@ -124,6 +140,14 @@ export const KNOWN_APIFY_RUNS_MAP: Record<string, {
     apiTaskId: 'suarezt~youtube-videos-mx',
     approxItems: 168
   },
+  'vlUy4HUDqJKbva1VN': {
+    taskName: 'Youtube_videos_MX',
+    country: 'MX',
+    platform: 'youtube',
+    contentType: 'videos',
+    apiTaskId: 'suarezt~youtube-videos-mx',
+    approxItems: 168
+  },
   'Pj5dHwzZXXWZhZ20z': {
     taskName: 'Youtube_videos_MX',
     country: 'MX',
@@ -133,14 +157,22 @@ export const KNOWN_APIFY_RUNS_MAP: Record<string, {
     approxItems: 168
   },
 
-  // YouTube COL (~73 items)
+  // YouTube COL (~73 - 146 items)
   'y2E94ckRpl7uFQpJv': {
     taskName: 'Youtube_videos_COL',
     country: 'COL',
     platform: 'youtube',
     contentType: 'videos',
     apiTaskId: 'suarezt~youtube-videos-col',
-    approxItems: 73
+    approxItems: 146
+  },
+  'yZ1y5jaanMHsdprMw': {
+    taskName: 'Youtube_videos_COL',
+    country: 'COL',
+    platform: 'youtube',
+    contentType: 'videos',
+    apiTaskId: 'suarezt~youtube-videos-col',
+    approxItems: 146
   },
   'CeQ5xWcXeOWgrTuxA': {
     taskName: 'Youtube_videos_COL',
@@ -148,7 +180,25 @@ export const KNOWN_APIFY_RUNS_MAP: Record<string, {
     platform: 'youtube',
     contentType: 'videos',
     apiTaskId: 'suarezt~youtube-videos-col',
-    approxItems: 73
+    approxItems: 146
+  },
+
+  // Actor Scrapers IDs
+  '0FXVyOXXEmdGcV88a': {
+    taskName: 'Tiktok_profile_COL',
+    country: 'COL',
+    platform: 'tiktok',
+    contentType: 'profile',
+    apiTaskId: 'suarezt~tiktok-profile-col',
+    approxItems: 514
+  },
+  'h7sDV53CddomktSi5': {
+    taskName: 'Youtube_videos_COL',
+    country: 'COL',
+    platform: 'youtube',
+    contentType: 'videos',
+    apiTaskId: 'suarezt~youtube-videos-col',
+    approxItems: 146
   }
 };
 
@@ -238,6 +288,50 @@ export class ApifyService {
     // 3. Si actorTaskId coincide con algún slug del catálogo
     if (run.actorTaskId) {
       const task = findTaskByApiId(run.actorTaskId);
+      if (task) {
+        return {
+          taskName: task.taskName,
+          country: task.country,
+          platform: task.platform,
+          contentType: task.contentType,
+          apiTaskId: task.apiTaskId
+        };
+      }
+    }
+
+    // 4. Si coincide con actorId del scraper conocido
+    if (run.actorId && KNOWN_APIFY_RUNS_MAP[run.actorId]) {
+      const match = KNOWN_APIFY_RUNS_MAP[run.actorId];
+      const rawCountry = (run.country || '').toString().toLowerCase();
+      const detectedCountry: MarketCountryCode = rawCountry.includes('mex') || rawCountry.includes('mx') ? 'MX' : match.country;
+      return {
+        ...match,
+        country: detectedCountry
+      };
+    }
+
+    // 5. Inferencia heurística por texto
+    const text = `${run.id || ''} ${run.taskName || ''} ${run.actorTaskId || ''} ${run.actorId || ''}`.toLowerCase();
+    const isMx = text.includes('_mx') || text.includes('-mx') || text.includes('mexic') || (run.country === 'MX' || run.country === 'México');
+    const country: MarketCountryCode = isMx ? 'MX' : 'COL';
+
+    if (text.includes('tiktok') || run.actorId === '0FXVyOXXEmdGcV88a') {
+      const taskName = country === 'MX' ? 'Tiktok_profile_MX' : 'Tiktok_profile_COL';
+      const task = findTaskByName(taskName);
+      if (task) {
+        return {
+          taskName: task.taskName,
+          country: task.country,
+          platform: task.platform,
+          contentType: task.contentType,
+          apiTaskId: task.apiTaskId
+        };
+      }
+    }
+
+    if (text.includes('youtube') || run.actorId === 'h7sDV53CddomktSi5') {
+      const taskName = country === 'MX' ? 'Youtube_videos_MX' : 'Youtube_videos_COL';
+      const task = findTaskByName(taskName);
       if (task) {
         return {
           taskName: task.taskName,
@@ -414,30 +508,25 @@ export class ApifyService {
     const token = this.apifyToken();
     const aggregatedItems: any[] = [];
 
-    // ESTRATEGIA A: Si hay token directo de Apify, consultar concurrentemente las tareas
-    if (token) {
-      const fetchPromises = tasks.map(task => this.getTaskItems(task));
-      const results = await Promise.allSettled(fetchPromises);
+    // Estrategia concurrente: consultar getTaskItems para cada tarea del catálogo de este mercado
+    const fetchPromises = tasks.map(task => this.getTaskItems(task));
+    const results = await Promise.allSettled(fetchPromises);
 
-      for (let i = 0; i < results.length; i++) {
-        const res = results[i];
-        if (res.status === 'fulfilled' && Array.isArray(res.value) && res.value.length > 0) {
-          aggregatedItems.push(...res.value);
-        }
+    for (let i = 0; i < results.length; i++) {
+      const res = results[i];
+      if (res.status === 'fulfilled' && Array.isArray(res.value) && res.value.length > 0) {
+        aggregatedItems.push(...res.value);
       }
-    } else {
-      // ESTRATEGIA B: Sin token en el cliente -> Usar la lista de runs de la Edge Function
-      const runs = await this.fetchEdgeFunctionRuns();
+    }
 
-      // Filtrar y clasificar los runs que pertenecen al mercado seleccionado
+    // Fallback: si no hubo items y no hay token directo, inspeccionar runs de Edge Function
+    if (aggregatedItems.length === 0 && !token) {
+      const runs = await this.fetchEdgeFunctionRuns();
       for (const run of runs) {
         if (run.status !== 'SUCCEEDED') continue;
 
         const classified = this.classifyRun(run);
-        if (!classified) continue;
-
-        // Verificar coincidencia estricta con el mercado seleccionado
-        if (classified.country !== marketCode) continue;
+        if (!classified || classified.country !== marketCode) continue;
 
         const taskDef: ApifyTaskDefinition = {
           taskName: classified.taskName,
@@ -449,7 +538,6 @@ export class ApifyService {
 
         const items = await this.getRunItems(run.id, taskDef);
         if (Array.isArray(items) && items.length > 0) {
-          // Detección heurística adicional de país si fuera necesaria
           const enriched = this.enrichItems(items, taskDef);
           aggregatedItems.push(...enriched);
         }
@@ -550,8 +638,10 @@ export class ApifyService {
           const classified = this.classifyRun(rawRun);
           const taskName = classified?.taskName || rawRun.taskName || '';
           const country: MarketCountryCode = classified?.country ||
-            (rawRun.country === 'Colombia' || rawRun.country === 'COL' ? 'COL' : 'MX');
+            (rawRun.country === 'MX' || rawRun.country === 'México' || rawRun.country === 'Mexico' ? 'MX' : 'COL');
           const approxItems = classified?.approxItems || 0;
+          const detectedPlatform: PlatformType = classified?.platform ||
+            (taskName.toLowerCase().includes('tiktok') ? 'tiktok' : (taskName.toLowerCase().includes('youtube') ? 'youtube' : 'tiktok'));
 
           // Solo incluir si coincide con el catálogo oficial
           if (isValidTaskName(taskName)) {
@@ -568,8 +658,8 @@ export class ApifyService {
                 taskName: taskName,
                 country: country,
                 itemsCount: rawRun.itemsCount || approxItems,
-                platform: classified?.platform,
-                contentType: classified?.contentType,
+                platform: detectedPlatform,
+                contentType: classified?.contentType || (taskName.toLowerCase().includes('profile') ? 'profile' : 'videos'),
                 defaultDatasetId: rawRun.defaultDatasetId || rawRun.id
               });
             }

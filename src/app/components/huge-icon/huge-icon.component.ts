@@ -25,7 +25,8 @@ export type HugeIconName =
   | 'trash-01'
   | 'check'
   | 'key-01'
-  | 'alert-circle';
+  | 'alert-circle'
+  | 'info-circle';
 
 @Component({
   selector: 'app-huge-icon',
@@ -143,6 +144,10 @@ export type HugeIconName =
         @case ('alert-circle') {
           <circle cx="12" cy="12" r="9" />
           <path d="M12 8V12M12 16H12.01" />
+        }
+        @case ('info-circle') {
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 11V16M12 8H12.01" />
         }
       }
     </svg>

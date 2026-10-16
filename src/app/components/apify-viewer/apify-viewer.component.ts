@@ -353,33 +353,63 @@ export class ApifyViewerComponent implements OnInit {
     return '/assets/icons/omnichannel.svg';
   }
 
+  // Conteo individual real en tiempo real por canal para el mercado activo
+  channelCounts = computed(() => {
+    const currentData = this.data();
+    const market = this.selectedMarket();
+    let instagram = 0;
+    let tiktok = 0;
+    let youtube = 0;
+    let facebook = 0;
+
+    currentData.forEach(item => {
+      const c = (item.country || item.__country || item.country_code || '').toString().trim().toUpperCase();
+      const matchesCountry = (market === 'MX') ? (c === 'MX') : (c === 'COL');
+      if (!matchesCountry) return;
+
+      const net = (item.__network || item.platform || '').toLowerCase();
+      if (net.includes('instagram')) instagram++;
+      else if (net.includes('tiktok')) tiktok++;
+      else if (net.includes('youtube')) youtube++;
+      else if (net.includes('facebook')) facebook++;
+    });
+
+    return {
+      total: instagram + tiktok + youtube + facebook,
+      instagram,
+      tiktok,
+      youtube,
+      facebook
+    };
+  });
+
+  // Red efectiva activa para títulos, métricas y gráficas
+  effectiveNetwork = computed(() => {
+    const filter = this.gridNetworkFilter();
+    if (filter !== 'ALL') return filter;
+    return this.loadedNetwork() || 'omnicanal';
+  });
+
   isChannelActive(net: string): boolean {
     if (net === 'omnicanal') {
-      return this.loadedNetwork() === 'omnicanal' && this.gridNetworkFilter() === 'ALL';
+      return this.gridNetworkFilter() === 'ALL';
     }
-    if (this.loadedNetwork() === 'omnicanal') {
-      return this.gridNetworkFilter() === net;
-    }
-    return this.loadedNetwork() === net;
+    return this.gridNetworkFilter() === net;
   }
 
   getChannelBadge(net: string): string {
+    const counts = this.channelCounts();
     if (net === 'omnicanal') {
-      if (this.loadedNetwork() === 'omnicanal') {
-        const count = this.data().length;
-        return count > 0 ? `${count} items` : 'Activo';
-      }
-      return 'Ecosistema';
+      return counts.total > 0 ? `${counts.total} items` : 'Ecosistema';
     }
-    if (this.loadedNetwork() === 'omnicanal') {
-      const count = this.data().filter(d => (d.__network || '').toLowerCase().includes(net)).length;
-      return count > 0 ? `${count}` : 'Live';
-    }
-    if (this.loadedNetwork() === net) {
-      const count = this.data().length;
-      return count > 0 ? `${count}` : 'Live';
-    }
-    return 'Live';
+    const n = net.toLowerCase();
+    let count = 0;
+    if (n.includes('tiktok')) count = counts.tiktok;
+    else if (n.includes('youtube')) count = counts.youtube;
+    else if (n.includes('instagram')) count = counts.instagram;
+    else if (n.includes('facebook')) count = counts.facebook;
+
+    return count > 0 ? `${count}` : 'Live';
   }
 
   handleNavSelection(net: string) {
@@ -400,9 +430,13 @@ export class ApifyViewerComponent implements OnInit {
     const market = this.selectedMarket();
     const marketLabel = market === 'MX' ? 'México' : 'Colombia';
 
+    if (this.data().length === 0) {
+      this.fetchOmnichannelData();
+    }
+
     this.gridNetworkFilter.set(net);
-    this.loadedNetwork.set(net);
-    this.error.set(null); // No es un error bloqueante
+    this.loadedNetwork.set('omnicanal');
+    this.error.set(null);
 
     // Contar items válidos de las 16 tareas para esta plataforma y mercado
     const countForNet = this.data().filter(item => {
@@ -412,7 +446,7 @@ export class ApifyViewerComponent implements OnInit {
       return itemNet.includes(net.toLowerCase()) && itemCountry === market && isValidTaskName(taskName);
     }).length;
 
-    if (countForNet === 0) {
+    if (countForNet === 0 && this.data().length > 0) {
       // Localizar la tarea oficial asociada a este canal para mostrarla claramente al usuario
       const countryTasks = getTasksByCountry(market);
       const officialTask = countryTasks.find(t => t.platform.toLowerCase() === net.toLowerCase());
@@ -490,7 +524,7 @@ export class ApifyViewerComponent implements OnInit {
   // ==========================================
   datasetContextPayload = computed<DatasetContextPayload>(() => {
     const currentData = this.filteredData().filter(item => !item._isPageProfile);
-    const platform = this.loadedNetwork() || 'Omnicanal';
+    const platform = this.effectiveNetwork() || 'Omnicanal';
     const start = this.filterStartDate();
     const end = this.filterEndDate();
 
@@ -641,7 +675,7 @@ export class ApifyViewerComponent implements OnInit {
     const sortOption = this.gridSortMetric();
 
     if (networkFilter !== 'ALL') {
-      data = data.filter(item => item.__network === networkFilter);
+      data = data.filter(item => (item.__network || item.platform || '').toLowerCase().includes(networkFilter.toLowerCase()));
     }
 
     if (brandFilter !== 'ALL') {
@@ -693,49 +727,50 @@ export class ApifyViewerComponent implements OnInit {
 
   chartOptions = computed(() => {
     const data = this.filteredData().filter(item => !item._isPageProfile);
-    const net = this.loadedNetwork();
+    const net = this.effectiveNetwork();
     if (!data.length || !net) return null;
     return this.apifyChartService.buildChartOptions(net, data, this.selectedMetric());
   });
 
   marketShareChartOptions = computed(() => {
     const data = this.filteredData().filter(item => !item._isPageProfile);
-    const net = this.loadedNetwork();
+    const net = this.effectiveNetwork();
     if (!data.length || !net) return null;
     return this.apifyChartService.buildMarketShareChart(net, data, this.selectedMetric());
   });
 
   performanceChartOptions = computed(() => {
     const data = this.filteredData().filter(item => !item._isPageProfile);
-    const net = this.loadedNetwork();
+    const net = this.effectiveNetwork();
     if (!data.length || !net || net === 'omnicanal') return null;
     return this.apifyChartService.buildPerformanceScatterChart(net, data);
   });
 
   masterChartOptions = computed(() => {
     const data = this.filteredData().filter(item => !item._isPageProfile);
-    const net = this.loadedNetwork();
+    const net = this.effectiveNetwork();
     if (!data.length || net !== 'omnicanal') return null;
     return this.apifyChartService.buildMasterOmnichannelChart(data, this.selectedMetric());
   });
 
   engagementChartOptions = computed(() => {
     const data = this.filteredData().filter(item => !item._isPageProfile);
-    const net = this.loadedNetwork();
+    const net = this.effectiveNetwork();
     if (!data.length || !net) return null;
     return this.apifyChartService.buildEngagementRateChart(net, data);
   });
 
   formatPerformanceChartOptions = computed(() => {
     const data = this.filteredData().filter(item => !item._isPageProfile);
-    const net = this.loadedNetwork();
+    const net = this.effectiveNetwork();
     if (!data.length || !net) return null;
     return this.apifyChartService.buildContentTypePerformanceChart(net, data);
   });
 
   omnichannelStats = computed(() => {
     const currentData = this.data();
-    if (this.loadedNetwork() !== 'omnicanal' || !currentData.length) return null;
+    if (!currentData.length) return null;
+    const market = this.selectedMarket();
 
     const startStr = this.filterStartDate();
     const endStr = this.filterEndDate();
@@ -748,6 +783,10 @@ export class ApifyViewerComponent implements OnInit {
     let facebook = 0;
 
     currentData.forEach(item => {
+      const c = (item.country || item.__country || item.country_code || '').toString().trim().toUpperCase();
+      const matchesCountry = (market === 'MX') ? (c === 'MX') : (c === 'COL');
+      if (!matchesCountry) return;
+
       const rawDate = item.time || item.timestamp || item.date || item.createTimeISO || item.createdAt || item.videoMeta?.createTime || item.createTime;
       let itemMs = 0;
       if (typeof rawDate === 'number') {
@@ -764,7 +803,7 @@ export class ApifyViewerComponent implements OnInit {
         }
       }
 
-      const net = (item.__network || '').toLowerCase();
+      const net = (item.__network || item.platform || '').toLowerCase();
       if (net.includes('instagram')) instagram++;
       else if (net.includes('tiktok')) tiktok++;
       else if (net.includes('youtube')) youtube++;
@@ -782,7 +821,7 @@ export class ApifyViewerComponent implements OnInit {
 
   omnichannelMatrix = computed(() => {
     const data = this.filteredData();
-    if (this.loadedNetwork() !== 'omnicanal' || !data.length) return [];
+    if (this.effectiveNetwork() !== 'omnicanal' || !data.length) return [];
 
     const matrixMap: Record<string, {
       brand: string;
@@ -1311,7 +1350,7 @@ export class ApifyViewerComponent implements OnInit {
           this.channelEmptyNotice.set({
             taskName: `Tareas oficiales de ${currentCountry}`,
             platform: 'Ecosistema Omnicanal',
-            country: `${currentCountry} (${currentMarket})`
+            country: currentCountry
           });
         }
         this.isLoading.set(false);

@@ -2,7 +2,7 @@ import { Component, Input, Output, EventEmitter, signal, computed } from '@angul
 import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApifyRunRecord } from '../../services/apify.service';
-import { isValidTaskName, isValidApiTaskId } from '../../models/apify-tasks';
+import { isValidTaskName, isValidApiTaskId, MarketCountryCode, PlatformType } from '../../models/apify-tasks';
 import { HugeIconComponent } from '../huge-icon/huge-icon.component';
 
 export type SortableRunColumn = 'platform' | 'period' | 'status' | 'startedAt' | 'duration' | 'usageTotalUsd';
@@ -30,6 +30,14 @@ export class ApifyRunsTableComponent {
   }
   get runsList(): ApifyRunRecord[] {
     return this._rawRuns();
+  }
+
+  marketInput = signal<MarketCountryCode>('COL');
+  @Input() set market(value: MarketCountryCode | null | undefined) {
+    this.marketInput.set(value || 'COL');
+  }
+  get market(): MarketCountryCode {
+    return this.marketInput();
   }
 
   // Mantenido por retrocompatibilidad de interfaz
@@ -65,42 +73,138 @@ export class ApifyRunsTableComponent {
     }
   }
 
-  // Contador por red social
+  // Detección limpia de plataforma
+  getPlatform(run: ApifyRunRecord | null | undefined): string {
+    if (!run) return 'omnicanal';
+    if (run.platform) return run.platform.toLowerCase();
+    const str = `${run.taskName || ''} ${run.actorTaskId || ''} ${run.actorId || ''}`.toLowerCase();
+    if (str.includes('tiktok') || str.includes('0fxvyoxxemd')) return 'tiktok';
+    if (str.includes('youtube') || str.includes('h7sdv53cdd')) return 'youtube';
+    if (str.includes('instagram')) return 'instagram';
+    if (str.includes('facebook')) return 'facebook';
+    return 'omnicanal';
+  }
+
+  getPlatformTitle(run: ApifyRunRecord | null | undefined): string {
+    const net = this.getPlatform(run);
+    switch (net) {
+      case 'tiktok': return 'TikTok';
+      case 'youtube': return 'YouTube';
+      case 'instagram': return 'Instagram';
+      case 'facebook': return 'Facebook';
+      default: return 'Plataforma Digital';
+    }
+  }
+
+  getPlatformSubtitle(run: ApifyRunRecord | null | undefined): string {
+    if (!run) return 'Monitoreo Digital';
+    if (run.contentType === 'profile') return 'Perfiles de Creadores';
+    if (run.contentType === 'videos') return 'Videos y Contenido';
+    if (run.contentType === 'post') return 'Publicaciones y Posts';
+    if (run.contentType === 'shorts') return 'Shorts y Reels';
+    const taskLower = (run.taskName || '').toLowerCase();
+    if (taskLower.includes('profile')) return 'Perfiles de Creadores';
+    if (taskLower.includes('video')) return 'Videos y Contenido';
+    if (taskLower.includes('post')) return 'Publicaciones y Posts';
+    return 'Ecosistema Digital';
+  }
+
+  getPlatformIconByRun(run: ApifyRunRecord | null | undefined): string {
+    const net = this.getPlatform(run);
+    if (net === 'tiktok') return '/assets/icons/tiktok.svg';
+    if (net === 'youtube') return '/assets/icons/youtube.svg';
+    if (net === 'instagram') return '/assets/icons/instagram.svg';
+    if (net === 'facebook') return '/assets/icons/facebook.svg';
+    return '/assets/icons/omnichannel.svg';
+  }
+
+  // Detección limpia de mercado
+  getRunCountry(run: ApifyRunRecord | null | undefined): MarketCountryCode {
+    if (!run) return this.marketInput();
+    if (run.country === 'MX' || run.country === 'COL') return run.country;
+    const taskName = (run.taskName || '').toUpperCase();
+    if (taskName.includes('_MX') || taskName.includes('-MX')) return 'MX';
+    if (taskName.includes('_COL') || taskName.includes('-COL')) return 'COL';
+    const rawCountry = (run['country'] || '').toString().toUpperCase();
+    if (rawCountry.includes('MEX') || rawCountry.includes('MX')) return 'MX';
+    if (rawCountry.includes('COL')) return 'COL';
+    return this.marketInput();
+  }
+
+  getCountryDisplayName(countryCode: string | undefined): string {
+    if (countryCode === 'MX' || countryCode === 'México' || countryCode === 'Mexico') {
+      return 'México';
+    }
+    return 'Colombia';
+  }
+
+  getCountryFlag(countryCode: string | undefined): string {
+    if (countryCode === 'MX' || countryCode === 'México' || countryCode === 'Mexico') {
+      return '🇲🇽';
+    }
+    return '🇨🇴';
+  }
+
+  // Runs oficiales pertenecientes estrictamente al mercado activo ('COL' o 'MX')
+  // Consolidadas para mostrar 1 fila por plataforma activa (1 TikTok y 1 YouTube),
+  // eliminando duplicados o corridas redundantes entre países y plataformas.
+  marketFilteredRuns = computed(() => {
+    const targetMarket = this.marketInput();
+    const raw = this._rawRuns();
+
+    // 1. Filtrar solo runs del catálogo oficial de 16 tareas
+    let runs = raw.filter(run => {
+      const taskName = run.taskName;
+      const taskId = (run.actorTaskId || run.actorId || '').toLowerCase().replace('/', '~');
+      return isValidTaskName(taskName) || isValidApiTaskId(taskId);
+    });
+
+    // 2. Filtrar estrictamente por el país/mercado seleccionado ('COL' o 'MX')
+    runs = runs.filter(run => this.getRunCountry(run) === targetMarket);
+
+    // 3. Deduplicar por plataforma para mostrar exactamente 1 run consolidado y reciente por red social
+    // (1 TikTok y 1 YouTube para el país seleccionado)
+    const latestByPlatform = new Map<string, ApifyRunRecord>();
+    for (const run of runs) {
+      const plat = this.getPlatform(run);
+      const existing = latestByPlatform.get(plat);
+      if (!existing) {
+        latestByPlatform.set(plat, run);
+      } else {
+        const timeRun = new Date(run.startedAt || 0).getTime();
+        const timeExisting = new Date(existing.startedAt || 0).getTime();
+        if (timeRun > timeExisting) {
+          latestByPlatform.set(plat, run);
+        }
+      }
+    }
+
+    return Array.from(latestByPlatform.values());
+  });
+
+  // Contador por red social basado exclusivamente en el mercado activo
   getPlatformCount(platform: string): number {
-    const runs = this._rawRuns();
+    const runs = this.marketFilteredRuns();
     if (platform === 'ALL') return runs.length;
-    return runs.filter(run => {
-      const str = `${run.taskName || ''} ${run.actorTaskId || ''} ${run.actorId || ''}`.toLowerCase();
-      return str.includes(platform.toLowerCase());
-    }).length;
+    return runs.filter(run => this.getPlatform(run) === platform.toLowerCase()).length;
   }
 
   getStatusCount(status: string): number {
-    const runs = this._rawRuns();
+    const runs = this.marketFilteredRuns();
     if (status === 'ALL') return runs.length;
     return runs.filter(r => (r.status || '').toUpperCase() === status).length;
   }
 
   // Filtrado reactivo multidimensional
   filteredRuns = computed(() => {
-    let runs = this._rawRuns();
+    let runs = this.marketFilteredRuns();
     const platform = this.selectedPlatform();
     const status = this.statusFilter();
     const query = this.searchQuery().trim().toLowerCase();
 
-    // 0. Filtro estricto: Omitir cualquier run antiguo que no provenga de las 16 Actor Tasks oficiales
-    runs = runs.filter(run => {
-      const taskName = run.taskName;
-      const taskId = (run.actorTaskId || run.actorId || '').toLowerCase().replace('/', '~');
-      return isValidTaskName(taskName) || isValidApiTaskId(taskId);
-    });
-
     // 1. Filtro por Plataforma
     if (platform !== 'ALL') {
-      runs = runs.filter(run => {
-        const str = `${run.taskName || ''} ${run.actorTaskId || ''} ${run.actorId || ''}`.toLowerCase();
-        return str.includes(platform.toLowerCase());
-      });
+      runs = runs.filter(run => this.getPlatform(run) === platform.toLowerCase());
     }
 
     // 2. Filtro por Estado
@@ -108,25 +212,28 @@ export class ApifyRunsTableComponent {
       runs = runs.filter(run => (run.status || '').toUpperCase() === status);
     }
 
-    // 3. Búsqueda en vivo global (ID, plataforma, actor, mercado, estado, fechas)
+    // 3. Búsqueda en vivo global (ID, plataforma, mercado, estado, fechas)
     if (query) {
       runs = runs.filter(run => {
         const id = (run.id || '').toLowerCase();
-        const actor = (run.actorId || '').toLowerCase();
-        const readableName = this.getPlatformName(run.actorId).toLowerCase();
+        const readableName = this.getPlatformTitle(run).toLowerCase();
+        const subtitle = this.getPlatformSubtitle(run).toLowerCase();
+        const countryCode = this.getRunCountry(run).toLowerCase();
+        const countryName = this.getCountryDisplayName(this.getRunCountry(run)).toLowerCase();
         const st = (run.status || '').toLowerCase();
         const start = (run.startedAt || '').toLowerCase();
         const inputStart = (run.inputStartDate || '').toLowerCase();
         const inputEnd = (run.inputEndDate || '').toLowerCase();
 
         return id.includes(query) ||
-               actor.includes(query) ||
                readableName.includes(query) ||
+               subtitle.includes(query) ||
+               countryCode.includes(query) ||
+               countryName.includes(query) ||
                st.includes(query) ||
                start.includes(query) ||
                inputStart.includes(query) ||
-               inputEnd.includes(query) ||
-               'colombia'.includes(query);
+               inputEnd.includes(query);
       });
     }
 
@@ -143,8 +250,8 @@ export class ApifyRunsTableComponent {
     runs.sort((a, b) => {
       switch (col) {
         case 'platform': {
-          const nameA = this.getPlatformName(a.actorId).toLowerCase();
-          const nameB = this.getPlatformName(b.actorId).toLowerCase();
+          const nameA = this.getPlatformTitle(a).toLowerCase();
+          const nameB = this.getPlatformTitle(b).toLowerCase();
           return nameA.localeCompare(nameB) * multiplier;
         }
         case 'period': {
@@ -382,18 +489,18 @@ export class ApifyRunsTableComponent {
     if (id.includes('instagram')) return 'Instagram';
     if (id.includes('tiktok') && id.includes('profile')) return 'TikTok (Perfiles)';
     if (id.includes('tiktok') && id.includes('post')) return 'TikTok (Posts)';
-    if (id.includes('tiktok')) return 'TikTok';
+    if (id.includes('tiktok') || id.includes('0fxvyoxxemd')) return 'TikTok';
     if (id.includes('youtube') && id.includes('shorts')) return 'YouTube (Shorts)';
     if (id.includes('youtube') && id.includes('videos')) return 'YouTube (Videos)';
-    if (id.includes('youtube')) return 'YouTube';
+    if (id.includes('youtube') || id.includes('h7sdv53cdd')) return 'YouTube';
     return identifier;
   }
 
   getPlatformIcon(identifier: string): string {
     if (!identifier) return '/assets/icons/omnichannel.svg';
     const id = identifier.toLowerCase();
-    if (id.includes('youtube')) return '/assets/icons/youtube.svg';
-    if (id.includes('tiktok')) return '/assets/icons/tiktok.svg';
+    if (id.includes('youtube') || id.includes('h7sdv53cdd')) return '/assets/icons/youtube.svg';
+    if (id.includes('tiktok') || id.includes('0fxvyoxxemd')) return '/assets/icons/tiktok.svg';
     if (id.includes('instagram')) return '/assets/icons/instagram.svg';
     if (id.includes('facebook')) return '/assets/icons/facebook.svg';
     return '/assets/icons/omnichannel.svg';

@@ -149,23 +149,6 @@
             }
             <span>{{ isLoading() ? 'Cargando...' : 'Sincronizar Mercado' }}</span>
           </button>
-
-          <button type="button"
-                  (click)="purgeAndSync()"
-                  [disabled]="isLoading()"
-                  class="purge-compact-btn"
-                  title="Eliminar datos viejos de scrapers directos en Supabase y localmente, y re-sincronizar">
-            <app-huge-icon name="delete-02" [size]="14" class="mr-1 text-rose-500"></app-huge-icon>
-            <span>Limpiar Caché y Sincronizar</span>
-          </button>
-
-          <button type="button"
-                  (click)="openTokenModal()"
-                  class="token-compact-btn"
-                  title="Configurar o cambiar el Token de API de Apify">
-            <app-huge-icon name="key-01" [size]="14" class="mr-1 text-amber-500"></app-huge-icon>
-            <span>Configurar Token Apify</span>
-          </button>
         </div>
       </div>
 
@@ -208,9 +191,9 @@
             (click)="onMarketChange('COL')"
             class="market-segment-btn"
             [class.active]="selectedMarket() === 'COL'"
-            title="Filtrar datos exclusivamente de Colombia (COL)">
+            title="Filtrar datos exclusivamente de Colombia">
             <span class="flag-icon">🇨🇴</span>
-            <span class="segment-label">Colombia (COL)</span>
+            <span class="segment-label">Colombia</span>
           </button>
 
           <button
@@ -218,31 +201,18 @@
             (click)="onMarketChange('MX')"
             class="market-segment-btn"
             [class.active]="selectedMarket() === 'MX'"
-            title="Filtrar datos exclusivamente de México (MX)">
+            title="Filtrar datos exclusivamente de México">
             <span class="flag-icon">🇲🇽</span>
-            <span class="segment-label">México (MX)</span>
+            <span class="segment-label">México</span>
           </button>
         </div>
-      </div>
-
-      <!-- ACCIÓN RÁPIDA DE PURGA Y SINCRONIZACIÓN LIMPIA -->
-      <div class="toolbar-purge-section">
-        <button
-          type="button"
-          (click)="purgeAndSync()"
-          [disabled]="isLoading()"
-          class="toolbar-purge-btn"
-          title="Limpiar datos antiguos de scrapers directos y sincronizar únicamente las 16 tareas oficiales de Apify">
-          <app-huge-icon name="delete-02" [size]="14" class="mr-1 text-rose-500"></app-huge-icon>
-          <span>Limpiar Caché & Sincronizar</span>
-        </button>
       </div>
 
       <!-- SELECTOR DE FECHAS DESPLEGABLE -->
       <div class="toolbar-date-section">
         <div class="toolbar-section-label">
           <app-huge-icon name="calendar-03" [size]="16" class="text-slate-400 mr-1"></app-huge-icon>
-          <span>Segmentar Fechas:</span>
+          <span>Fechas:</span>
         </div>
 
         <app-date-range-picker
@@ -257,7 +227,7 @@
       <div class="toolbar-metrics-section">
         <div class="toolbar-section-label">
           <app-huge-icon name="filter" [size]="16" class="text-slate-400 mr-1"></app-huge-icon>
-          <span>Métrica Principal:</span>
+          <span>Métrica:</span>
         </div>
 
         <div class="metric-segmented-control" role="group" aria-label="Seleccionar métrica para el análisis">
@@ -307,15 +277,15 @@
         </div>
       </div>
 
-      <!-- ACCESO A GUÍA METODOLÓGICA DESDE LA CABECERA FIJA -->
+      <!-- ACCESO A GUÍA METODOLÓGICA (SOLO ICONO DE INFORMACIÓN PARA MÁXIMA COMPACIDAD) -->
       <div class="toolbar-doc-section">
         <button
           type="button"
-          class="toolbar-methodology-btn"
+          class="toolbar-methodology-btn icon-only"
           (click)="openMethodology('overview')"
-          title="Ver documentación metodológica y fórmulas matemáticas">
-          <app-huge-icon name="book-open-01" [size]="15" [strokeWidth]="1.8" class="mr-1"></app-huge-icon>
-          <span>Metodología</span>
+          title="Ver documentación metodológica y fórmulas matemáticas"
+          aria-label="Metodología y Guía Matemática">
+          <app-huge-icon name="info-circle" [size]="18" [strokeWidth]="1.9" class="text-indigo-600"></app-huge-icon>
         </button>
       </div>
 
@@ -350,7 +320,7 @@
             </button>
             <button type="button" (click)="onMarketChange(selectedMarket() === 'COL' ? 'MX' : 'COL')" class="notice-btn outline">
               <app-huge-icon name="globe-02" [size]="14" class="mr-1"></app-huge-icon>
-              Cambiar a {{ selectedMarket() === 'COL' ? 'México (MX)' : 'Colombia (COL)' }}
+              Cambiar a {{ selectedMarket() === 'COL' ? 'México' : 'Colombia' }}
             </button>
           </div>
         </div>
@@ -381,7 +351,13 @@
       </div>
 
       <div class="fade-in">
-       <app-apify-runs-table [runsList]="runsList()" [isAdmin]="true" (runSelected)="loadSpecificRun($event.runId, $event.actorInternalId)" (countryChanged)="onRunCountryChanged($event)"></app-apify-runs-table>
+       <app-apify-runs-table
+         [runsList]="runsList()"
+         [market]="selectedMarket()"
+         [isAdmin]="true"
+         (runSelected)="loadSpecificRun($event.runId, $event.actorInternalId)"
+         (countryChanged)="onRunCountryChanged($event)">
+       </app-apify-runs-table>
       </div>
     }
 
@@ -400,36 +376,32 @@
       <div class="results-header fade-in enterprise-header" style="margin-top: 1rem;">
         <div>
           <h3 class="network-title" style="display: flex; align-items: center; gap: 0.6rem;">
-            <img [src]="getNetworkIcon(gridNetworkFilter() !== 'ALL' && loadedNetwork() === 'omnicanal' ? gridNetworkFilter() : loadedNetwork())" referrerpolicy="no-referrer"
+            <img [src]="getNetworkIcon(effectiveNetwork())" referrerpolicy="no-referrer"
                  style="width: 28px; height: 28px; object-fit: contain; flex-shrink: 0;"
-                 [alt]="loadedNetwork()">
+                 [alt]="effectiveNetwork()">
             <span>
-              @if (loadedNetwork() === 'omnicanal') {
-                @if (gridNetworkFilter() === 'ALL') {
-                  Visión Consolidada del Ecosistema Digital
-                } @else {
-                  Ecosistema Digital: {{ getNetworkLabel(gridNetworkFilter()) }}
-                }
+              @if (effectiveNetwork() === 'omnicanal') {
+                Visión Consolidada del Ecosistema Digital
               } @else {
-                Insights de Mercado en {{ loadedNetwork() | titlecase }}
+                Insights de Mercado en {{ getNetworkLabel(effectiveNetwork()) }}
               }
             </span>
           </h3>
           <p class="subtitle" style="display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
-            @if (loadedNetwork() === 'omnicanal' && gridNetworkFilter() !== 'ALL') {
-              <span>Mostrando <strong>{{ filteredData().length }} registros</strong> filtrados por {{ getNetworkLabel(gridNetworkFilter()) }} (de {{ omnichannelStats()?.total || data().length }} totales)</span>
+            @if (gridNetworkFilter() !== 'ALL') {
+              <span>Mostrando <strong>{{ filteredData().length }} registros</strong> de {{ getNetworkLabel(gridNetworkFilter()) }} (de {{ omnichannelStats()?.total || data().length }} totales en {{ selectedMarket() === 'MX' ? 'México' : 'Colombia' }})</span>
               <button type="button"
                       (click)="gridNetworkFilter.set('ALL')"
                       style="background: #e0e7ff; color: #4338ca; border: 1px solid #c7d2fe; padding: 0.25rem 0.65rem; border-radius: 9999px; font-size: 0.72rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem; transition: all 0.15s ease;">
                 <span>✕</span> Ver todas las plataformas
               </button>
             } @else {
-              <span>Se consolidaron <strong>{{ filteredData().length }} registros</strong>.</span>
+              <span>Se consolidaron <strong>{{ filteredData().length }} registros</strong> en el ecosistema digital.</span>
             }
 
             @if (loadedCountry() || selectedMarket()) {
               <span class="date-badge" style="background-color: #f3f4f6; color: #374151; border: 1px solid #e5e7eb; font-weight: 600;">
-                📍 Mercado Activo: {{ selectedMarket() === 'MX' ? '🇲🇽 México (MX)' : '🇨🇴 Colombia (COL)' }}
+                📍 Mercado Activo: {{ selectedMarket() === 'MX' ? '🇲🇽 México' : '🇨🇴 Colombia' }}
               </span>
             }
 
@@ -443,7 +415,7 @@
       </div>
 
       <!-- DESGLOSE DE REDES (MODO OMNICANAL) -->
-      @if (loadedNetwork() === 'omnicanal' && omnichannelStats(); as stats) {
+      @if (omnichannelStats(); as stats) {
         <div class="omnichannel-summary-banner fade-in" style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
           <div (click)="gridNetworkFilter.set(gridNetworkFilter() === 'instagram' ? 'ALL' : 'instagram')"
                [style.border-color]="gridNetworkFilter() === 'instagram' ? '#ec4899' : '#e2e8f0'"
@@ -504,7 +476,7 @@
       }
 
       <!-- MATRIZ DE CRUCE ECOSISTEMA OMNICANAL -->
-      @if (loadedNetwork() === 'omnicanal' && omnichannelMatrix().length > 0) {
+      @if (effectiveNetwork() === 'omnicanal' && omnichannelMatrix().length > 0) {
         <div class="omnichannel-matrix-card fade-in" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 2rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.5rem;">
             <div>
@@ -787,7 +759,7 @@
                     <div style="display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.4rem;">
 
                       <span style="background: #eff6ff; color: #1d4ed8; padding: 0.15rem 0.4rem; border-radius: 9999px; font-size: 0.7rem; font-weight: 700; border: 1px solid #bfdbfe; white-space: nowrap;">
-                        👥 {{ comp.followersStr }} {{ loadedNetwork() === 'youtube' ? 'Subs' : (loadedNetwork() === 'omnicanal' ? 'Comunidad' : 'Segs') }}
+                        👥 {{ comp.followersStr }} {{ effectiveNetwork() === 'youtube' ? 'Subs' : (effectiveNetwork() === 'omnicanal' ? 'Comunidad' : 'Segs') }}
                       </span>
 
                       @if (comp.accountViews > 0) {
@@ -804,7 +776,7 @@
 
                       @if (comp.accountPosts > 0) {
                         <span style="background: #f0fdf4; color: #15803d; padding: 0.15rem 0.4rem; border-radius: 9999px; font-size: 0.7rem; font-weight: 700; border: 1px solid #bbf7d0; white-space: nowrap;">
-                          {{ loadedNetwork() === 'youtube' ? '▶️' : '📝' }} {{ comp.postsStr }} {{ loadedNetwork() === 'youtube' ? 'Videos' : (loadedNetwork() === 'omnicanal' ? 'Publicaciones' : 'Posts') }}
+                          {{ effectiveNetwork() === 'youtube' ? '▶️' : '📝' }} {{ comp.postsStr }} {{ effectiveNetwork() === 'youtube' ? 'Videos' : (effectiveNetwork() === 'omnicanal' ? 'Publicaciones' : 'Posts') }}
                         </span>
                       }
 
@@ -817,7 +789,7 @@
         }
 
         @if (chartOptions()) {
-          <div class="chart-card" style="min-height: 420px;" [style.grid-column]="loadedNetwork() === 'omnicanal' ? '1 / -1' : 'auto'">
+          <div class="chart-card" style="min-height: 420px;" [style.grid-column]="effectiveNetwork() === 'omnicanal' ? '1 / -1' : 'auto'">
             <div class="chart-card-top-action">
               <app-metric-info-tooltip
                 [title]="'Evolución y Tendencia Temporal'"
@@ -848,7 +820,7 @@
           </div>
         }
 
-        @if (performanceChartOptions() && loadedNetwork() !== 'omnicanal') {
+        @if (performanceChartOptions() && effectiveNetwork() !== 'omnicanal') {
           <div class="chart-card" style="grid-column: 1 / -1; height: 500px;">
             <div class="chart-card-top-action">
               <app-metric-info-tooltip
@@ -901,7 +873,7 @@
       <app-viral-highlights
         [data]="filteredData()"
         [activeMetric]="selectedMetric()"
-        [loadedNetwork]="loadedNetwork()"
+        [loadedNetwork]="effectiveNetwork()"
         (openMethodology)="openMethodology($event)">
       </app-viral-highlights>
 
@@ -1377,7 +1349,7 @@
       </div>
 
       <div class="fade-in">
-        <app-apify-data-grid [data]="gridDisplayData()" [network]="loadedNetwork()"></app-apify-data-grid>
+        <app-apify-data-grid [data]="gridDisplayData()" [network]="effectiveNetwork()"></app-apify-data-grid>
       </div>
     }
 

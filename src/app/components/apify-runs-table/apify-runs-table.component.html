@@ -127,7 +127,7 @@
       <!-- Indicador de total coincidente -->
       <div class="records-pill">
         <span class="records-highlight">{{ sortedRuns().length }}</span>
-        <span class="records-label">de {{ runsList.length }} corridas</span>
+        <span class="records-label">de {{ marketFilteredRuns().length }} corridas</span>
       </div>
     </div>
   </div>
@@ -272,22 +272,25 @@
             [class.row-failed]="run.status !== 'SUCCEEDED' && !run.id.startsWith('HYBRID|')"
             title="Clic en la fila para cargar este reporte en el Dashboard">
 
-            <!-- 1. MERCADO (Fijo: Colombia) -->
+            <!-- 1. MERCADO -->
             <td class="td-market">
-              <span class="market-fixed-text">Colombia</span>
+              <div class="market-pill" [class.market-mx]="getRunCountry(run) === 'MX'" [class.market-col]="getRunCountry(run) === 'COL'">
+                <span class="market-flag">{{ getCountryFlag(getRunCountry(run)) }}</span>
+                <span class="market-name">{{ getCountryDisplayName(getRunCountry(run)) }}</span>
+              </div>
             </td>
 
-            <!-- 2. PLATAFORMA / ACTOR -->
+            <!-- 2. PLATAFORMA (Extracción amigable sin códigos crípticos) -->
             <td class="td-platform">
               <div class="platform-cell">
                 <img
-                  [src]="getPlatformIcon(run.actorId)"
+                  [src]="getPlatformIconByRun(run)"
                   referrerpolicy="no-referrer"
                   class="platform-icon"
-                  [alt]="getPlatformName(run.actorId)">
+                  [alt]="getPlatformTitle(run)">
                 <div class="platform-meta">
-                  <span class="platform-title">{{ getPlatformName(run.actorId) }}</span>
-                  <span class="platform-id" [title]="run.actorId">{{ run.actorId }}</span>
+                  <span class="platform-title">{{ getPlatformTitle(run) }}</span>
+                  <span class="platform-format-pill">{{ getPlatformSubtitle(run) }}</span>
                 </div>
               </div>
             </td>
@@ -505,12 +508,12 @@
         <div class="drawer-header-top">
           <div class="drawer-header-brand">
             <div class="drawer-platform-badge">
-              <img [src]="getPlatformIcon(run.actorId)" referrerpolicy="no-referrer" class="platform-icon-clean" alt="">
+              <img [src]="getPlatformIconByRun(run)" referrerpolicy="no-referrer" class="platform-icon-clean" alt="">
             </div>
             <div class="drawer-header-titles">
               <div class="drawer-badge-row">
                 <span class="drawer-tag">DETALLE DE EJECUCIÓN APIFY</span>
-                <span class="drawer-platform-tag">{{ getPlatformName(run.actorId) }}</span>
+                <span class="drawer-platform-tag">{{ getPlatformTitle(run) }}</span>
                 @if (isHybrid(run.id)) {
                   <span class="drawer-hybrid-tag">HÍBRIDO CONSOLIDADO</span>
                 }
@@ -578,7 +581,7 @@
           <div class="metric-card">
             <span class="metric-label">Mercado</span>
             <div class="metric-value font-semibold text-slate-800">
-              {{ run.country || 'Colombia' }}
+              {{ getCountryFlag(getRunCountry(run)) }} {{ getCountryDisplayName(getRunCountry(run)) }}
             </div>
           </div>
         </div>
@@ -650,16 +653,16 @@
               }
 
               <div class="detail-row">
-                <span class="detail-key">Identificador de Actor:</span>
-                <span class="detail-val font-mono">{{ run.actorId }}</span>
+                <span class="detail-key">Tarea Oficial:</span>
+                <span class="detail-val font-mono">{{ run.taskName || 'Tarea Apify' }}</span>
               </div>
               <div class="detail-row">
-                <span class="detail-key">Plataforma Normalizada:</span>
-                <span class="detail-val font-semibold text-slate-800">{{ getPlatformName(run.actorId) }}</span>
+                <span class="detail-key">Plataforma:</span>
+                <span class="detail-val font-semibold text-slate-800">{{ getPlatformTitle(run) }} ({{ getPlatformSubtitle(run) }})</span>
               </div>
               <div class="detail-row">
-                <span class="detail-key">Mercado Asignado:</span>
-                <span class="detail-val font-semibold text-slate-800">{{ run.country || 'Colombia' }}</span>
+                <span class="detail-key">Mercado:</span>
+                <span class="detail-val font-semibold text-slate-800">{{ getCountryFlag(getRunCountry(run)) }} {{ getCountryDisplayName(getRunCountry(run)) }}</span>
               </div>
               <div class="detail-row">
                 <span class="detail-key">Estado de Ejecución:</span>
@@ -758,7 +761,7 @@
             <div class="detail-list">
               <div class="detail-row">
                 <span class="detail-key">Mercado Objetivo:</span>
-                <span class="detail-val font-semibold text-slate-800">{{ run.country || 'Colombia' }}</span>
+                <span class="detail-val font-semibold text-slate-800">{{ getCountryFlag(getRunCountry(run)) }} {{ getCountryDisplayName(getRunCountry(run)) }}</span>
               </div>
               <div class="detail-row">
                 <span class="detail-key">Inicio Temporal Solicitado:</span>

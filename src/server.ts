@@ -115,11 +115,16 @@ app.get('/api/apify/tasks/:apiTaskId/items', async (req, res) => {
       };
 
       const matchedTask = knownTaskMap[targetSlug];
-      const run = runs.find((r: any) =>
-        (matchedTask && (r.id === matchedTask.runId || r.actorTaskId === matchedTask.actorTaskId)) ||
-        r.actorTaskId === apiTaskId ||
-        r.taskName === apiTaskId
-      );
+      let run: any = null;
+      if (matchedTask?.runId) {
+        run = runs.find((r: any) => r.id === matchedTask.runId);
+      }
+      if (!run && matchedTask?.actorTaskId) {
+        run = runs.find((r: any) => r.actorTaskId === matchedTask.actorTaskId);
+      }
+      if (!run) {
+        run = runs.find((r: any) => r.actorTaskId === apiTaskId || r.taskName === apiTaskId);
+      }
 
       if (run && run.id) {
         const dataRes = await fetch('https://mhfablbqwbjjgkmoyipd.supabase.co/functions/v1/apify-runner', {
