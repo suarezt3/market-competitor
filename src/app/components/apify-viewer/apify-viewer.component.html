@@ -354,9 +354,11 @@
        <app-apify-runs-table
          [runsList]="runsList()"
          [market]="selectedMarket()"
+         [selectedPlatform]="gridNetworkFilter()"
          [isAdmin]="true"
          (runSelected)="loadSpecificRun($event.runId, $event.actorInternalId)"
-         (countryChanged)="onRunCountryChanged($event)">
+         (countryChanged)="onRunCountryChanged($event)"
+         (resetPlatform)="handleNavSelection('omnicanal')">
        </app-apify-runs-table>
       </div>
     }

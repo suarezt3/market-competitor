@@ -45,10 +45,18 @@ export class ApifyRunsTableComponent {
 
   @Output() runSelected = new EventEmitter<{ runId: string; actorInternalId: string }>();
   @Output() countryChanged = new EventEmitter<{ runId: string; newCountry: string }>();
+  @Output() resetPlatform = new EventEmitter<void>();
 
   // Estados de control y filtrado
   searchQuery = signal<string>('');
   selectedPlatform = signal<string>('ALL');
+
+  @Input('selectedPlatform') set selectedPlatformInput(value: string | null | undefined) {
+    const raw = (value || 'ALL').trim().toLowerCase();
+    this.selectedPlatform.set(raw === 'omnicanal' ? 'ALL' : (raw === 'all' ? 'ALL' : raw));
+    this.currentPage.set(1);
+  }
+
   statusFilter = signal<string>('ALL');
 
   // Ordenamiento
@@ -381,6 +389,17 @@ export class ApifyRunsTableComponent {
     this.selectedPlatform.set('ALL');
     this.statusFilter.set('ALL');
     this.currentPage.set(1);
+    this.resetPlatform.emit();
+  }
+
+  getPlatformTitleByName(net: string): string {
+    switch ((net || '').toLowerCase()) {
+      case 'tiktok': return 'TikTok';
+      case 'youtube': return 'YouTube';
+      case 'instagram': return 'Instagram';
+      case 'facebook': return 'Facebook';
+      default: return 'este canal';
+    }
   }
 
   setPageSize(size: number) {

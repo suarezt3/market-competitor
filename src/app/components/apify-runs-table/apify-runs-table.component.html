@@ -2,74 +2,8 @@
 <div class="enterprise-runs-wrapper fade-in">
 
   <!-- ======================================================== -->
-  <!-- 1. BARRA SUPERIOR: SELECTOR DE RED SOCIAL CON CONTADORES -->
-  <!-- ======================================================== -->
-  <div class="platform-bar">
-    <div class="platform-bar-label">
-      <app-huge-icon name="menu-02" [size]="16" class="text-slate-400 mr-1"></app-huge-icon>
-      <span>Canal Digital:</span>
-    </div>
-
-    <div class="platform-chips">
-      <!-- TODAS -->
-      <button
-        type="button"
-        (click)="filterPlatform('ALL')"
-        class="chip-btn"
-        [class.active]="selectedPlatform() === 'ALL'">
-        <img src="/assets/icons/omnichannel.svg" referrerpolicy="no-referrer" class="chip-icon" alt="Todas">
-        <span class="chip-text">Todas</span>
-        <span class="chip-count">{{ getPlatformCount('ALL') }}</span>
-      </button>
-
-      <!-- INSTAGRAM -->
-      <button
-        type="button"
-        (click)="filterPlatform('instagram')"
-        class="chip-btn chip-instagram"
-        [class.active]="selectedPlatform() === 'instagram'">
-        <img src="/assets/icons/instagram.svg" referrerpolicy="no-referrer" class="chip-icon" alt="Instagram">
-        <span class="chip-text">Instagram</span>
-        <span class="chip-count">{{ getPlatformCount('instagram') }}</span>
-      </button>
-
-      <!-- FACEBOOK -->
-      <button
-        type="button"
-        (click)="filterPlatform('facebook')"
-        class="chip-btn chip-facebook"
-        [class.active]="selectedPlatform() === 'facebook'">
-        <img src="/assets/icons/facebook.svg" referrerpolicy="no-referrer" class="chip-icon" alt="Facebook">
-        <span class="chip-text">Facebook</span>
-        <span class="chip-count">{{ getPlatformCount('facebook') }}</span>
-      </button>
-
-      <!-- TIKTOK -->
-      <button
-        type="button"
-        (click)="filterPlatform('tiktok')"
-        class="chip-btn chip-tiktok"
-        [class.active]="selectedPlatform() === 'tiktok'">
-        <img src="/assets/icons/tiktok.svg" referrerpolicy="no-referrer" class="chip-icon" alt="TikTok">
-        <span class="chip-text">TikTok</span>
-        <span class="chip-count">{{ getPlatformCount('tiktok') }}</span>
-      </button>
-
-      <!-- YOUTUBE -->
-      <button
-        type="button"
-        (click)="filterPlatform('youtube')"
-        class="chip-btn chip-youtube"
-        [class.active]="selectedPlatform() === 'youtube'">
-        <img src="/assets/icons/youtube.svg" referrerpolicy="no-referrer" class="chip-icon" alt="YouTube">
-        <span class="chip-text">YouTube</span>
-        <span class="chip-count">{{ getPlatformCount('youtube') }}</span>
-      </button>
-    </div>
-  </div>
-
-  <!-- ======================================================== -->
-  <!-- 2. TOOLBAR ENTERPRISE: BUSCADOR EN VIVO Y FILTROS RÁPIDOS -->
+  <!-- TOOLBAR ENTERPRISE: BUSCADOR EN VIVO Y FILTROS RÁPIDOS   -->
+  <!-- (Canal Digital controlado por el menú lateral izquierdo) -->
   <!-- ======================================================== -->
   <div class="table-toolbar">
     <!-- Buscador en tiempo real -->
@@ -384,10 +318,18 @@
           <line x1="8" y1="11" x2="14" y2="11"></line>
         </svg>
       </div>
-      <h4 class="empty-title">No se encontraron ejecuciones</h4>
+      <h4 class="empty-title">
+        @if (selectedPlatform() !== 'ALL') {
+          Sin ejecuciones en {{ getPlatformTitleByName(selectedPlatform()) }}
+        } @else {
+          No se encontraron ejecuciones
+        }
+      </h4>
       <p class="empty-subtitle">
         @if (searchQuery()) {
           No hay registros que coincidan con la búsqueda "<strong>{{ searchQuery() }}</strong>".
+        } @else if (selectedPlatform() !== 'ALL') {
+          No se encontraron corridas activas para <strong>{{ getPlatformTitleByName(selectedPlatform()) }}</strong> en <strong>{{ getCountryDisplayName(marketInput()) }}</strong>.
         } @else {
           No hay ejecuciones registradas con los filtros actuales seleccionados.
         }
@@ -396,7 +338,7 @@
         type="button"
         (click)="resetAllFilters()"
         class="btn-empty-reset">
-        Restablecer todos los filtros
+        Ver todas las plataformas (Visión Ecosistema)
       </button>
     </div>
   }
