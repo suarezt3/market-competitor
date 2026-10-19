@@ -43,7 +43,12 @@ export class ApifyRunsTableComponent {
   // Mantenido por retrocompatibilidad de interfaz
   @Input() isAdmin: boolean = true;
 
-  @Output() runSelected = new EventEmitter<{ runId: string; actorInternalId: string }>();
+  activeRunId = signal<string | null>(null);
+  @Input('activeRunId') set activeRunIdInput(value: string | null | undefined) {
+    this.activeRunId.set(value || null);
+  }
+
+  @Output() runSelected = new EventEmitter<{ runId: string; actorInternalId: string; platform?: string }>();
   @Output() countryChanged = new EventEmitter<{ runId: string; newCountry: string }>();
   @Output() resetPlatform = new EventEmitter<void>();
 
@@ -446,18 +451,46 @@ export class ApifyRunsTableComponent {
     if (run.status !== 'SUCCEEDED' && !run.id.startsWith('HYBRID')) {
       return;
     }
-    this.runSelected.emit({ runId: run.id, actorInternalId: run.actorId });
+    const plat = this.getPlatform(run);
+    this.selectedPlatform.set(plat);
+    this.activeRunId.set(run.id);
+    this.runSelected.emit({ runId: run.id, actorInternalId: run.actorId, platform: plat });
     this.closeDrawer();
   }
 
-  // Clic en cualquier parte de la fila: carga los datos en el Dashboard
+  // Clic en cualquier parte de la fila: carga los datos en el Dashboard y sincroniza la selección
   onSelectRun(run: ApifyRunRecord) {
     if (run.status !== 'SUCCEEDED' && !run.id.startsWith('HYBRID')) {
       // Si la corrida no es exitosa, abrimos el drawer para inspeccionar por qué falló
       this.openDrawer(run);
       return;
     }
-    this.runSelected.emit({ runId: run.id, actorInternalId: run.actorId });
+    const plat = this.getPlatform(run);
+    this.selectedPlatform.set(plat);
+    this.activeRunId.set(run.id);
+    this.runSelected.emit({ runId: run.id, actorInternalId: run.actorId, platform: plat });
+  }
+
+  isActiveRow(run: ApifyRunRecord): boolean {
+    if (this.activeRunId() && run.id === this.activeRunId()) return true;
+    const currentPlat = this.selectedPlatform();
+    if (currentPlat !== 'ALL' && this.getPlatform(run) === currentPlat.toLowerCase()) return true;
+    return false;
+  }
+
+  resetToAllPlatforms() {
+    this.selectedPlatform.set('ALL');
+    this.activeRunId.set(null);
+    this.resetPlatform.emit();
+  }
+
+  getPlatformIconByName(plat: string): string {
+    const p = (plat || '').toLowerCase();
+    if (p.includes('tiktok')) return '/assets/icons/tiktok.svg';
+    if (p.includes('youtube')) return '/assets/icons/youtube.svg';
+    if (p.includes('instagram')) return '/assets/icons/instagram.svg';
+    if (p.includes('facebook')) return '/assets/icons/facebook.svg';
+    return '/assets/icons/omnichannel.svg';
   }
 
   copyToClipboard(text: string, fieldKey: string) {

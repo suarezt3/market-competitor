@@ -282,6 +282,70 @@
   animation: fadeIn 0.2s ease-in-out;
 }
 
+// Banner de plataforma activa seleccionada
+.active-platform-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 1rem;
+  background: #f0fdf4;
+  border-bottom: 1px solid #bbf7d0;
+  flex-wrap: wrap;
+
+  .active-platform-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.82rem;
+    color: #166534;
+
+    .active-platform-icon-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 0.35rem;
+      background: #ffffff;
+      border: 1px solid #86efac;
+    }
+
+    .active-platform-mini-icon {
+      width: 14px;
+      height: 14px;
+      object-fit: contain;
+    }
+
+    strong {
+      color: #14532d;
+      font-weight: 700;
+    }
+  }
+
+  .btn-view-all-platforms {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #15803d;
+    background: #ffffff;
+    border: 1px solid #86efac;
+    border-radius: 9999px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+
+    &:hover {
+      background: #15803d;
+      color: #ffffff;
+      border-color: #15803d;
+      box-shadow: 0 1px 3px rgba(22, 163, 74, 0.2);
+    }
+  }
+}
+
 // ==========================================
 // 4. TABLA CON SCROLL Y ENCABEZADOS FIJOS
 // ==========================================
@@ -385,6 +449,21 @@
 
       &:hover {
         background-color: #f8fafc;
+      }
+
+      &.row-selected {
+        background-color: #f0fdf4 !important;
+        border-left: 4px solid #16a34a !important;
+        position: relative;
+
+        &:hover {
+          background-color: #dcfce7 !important;
+        }
+
+        .platform-title {
+          color: #15803d;
+          font-weight: 700;
+        }
       }
 
       &.row-hybrid {
@@ -617,6 +696,28 @@
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
+
+  .active-run-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.55rem;
+    border-radius: 9999px;
+    background: #dcfce7;
+    border: 1px solid #86efac;
+    color: #15803d;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+
+    .active-run-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 9999px;
+      background: #16a34a;
+      box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.2);
+    }
+  }
 }
 
 .btn-action {

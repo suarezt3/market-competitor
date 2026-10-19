@@ -1,6 +1,6 @@
 {
-  "summary": "Plan de corrección para sincronización precisa de contadores por canal en la barra lateral y filtrado inmediato de publicaciones y métricas en el dashboard para TikTok, YouTube y Visión Ecosistema.",
-  "updatedAt": "2026-10-16T14:28:26.857439759Z",
+  "summary": "Plan de sincronización bidireccional entre la tabla de ejecuciones y el menú lateral de Market Intelligence, filtrado dinámico de la tabla por plataforma activa y carga automática de datasets al seleccionar un canal.",
+  "updatedAt": "2026-10-19T01:51:39.570304998Z",
   "requestFeedback": true,
   "userFacing": true
 }

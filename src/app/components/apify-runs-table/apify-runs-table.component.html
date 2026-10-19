@@ -66,6 +66,26 @@
     </div>
   </div>
 
+  <!-- Banner informativo cuando la tabla está filtrada por plataforma específica -->
+  @if (selectedPlatform() !== 'ALL') {
+    <div class="active-platform-banner">
+      <div class="active-platform-info">
+        <span class="active-platform-icon-wrap">
+          <img [src]="getPlatformIconByName(selectedPlatform())" class="active-platform-mini-icon" alt="">
+        </span>
+        <span>Mostrando únicamente <strong>{{ getPlatformTitleByName(selectedPlatform()) }}</strong> para el mercado de <strong>{{ getCountryDisplayName(marketInput()) }}</strong>.</span>
+      </div>
+      <button
+        type="button"
+        (click)="resetToAllPlatforms()"
+        class="btn-view-all-platforms"
+        title="Mostrar todas las plataformas activas de este mercado">
+        <app-huge-icon name="layers-01" [size]="14"></app-huge-icon>
+        <span>Ver todas las plataformas (Visión Ecosistema)</span>
+      </button>
+    </div>
+  }
+
   <!-- ======================================================== -->
   <!-- 3. TABLA CON ENCABEZADOS FIJOS (STICKY) Y DATOS TABULARES -->
   <!-- ======================================================== -->
@@ -202,6 +222,7 @@
           <tr
             (click)="onSelectRun(run)"
             class="table-row clickable-row"
+            [class.row-selected]="isActiveRow(run)"
             [class.row-hybrid]="run.id.startsWith('HYBRID|')"
             [class.row-failed]="run.status !== 'SUCCEEDED' && !run.id.startsWith('HYBRID|')"
             title="Clic en la fila para cargar este reporte en el Dashboard">
@@ -288,6 +309,12 @@
             <!-- 8. ACCIONES RÁPIDAS (Solo botón Detalles con parada de propagación) -->
             <td class="td-actions text-center" (click)="$event.stopPropagation()">
               <div class="action-buttons-group">
+                @if (isActiveRow(run)) {
+                  <span class="active-run-pill" title="Ejecución actualmente activa en el Dashboard">
+                    <span class="active-run-dot"></span>
+                    <span>Activa</span>
+                  </span>
+                }
                 <button
                   type="button"
                   (click)="openDrawer(run, $event)"

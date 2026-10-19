@@ -344,10 +344,10 @@
     }
 
     <!-- TABLA DE HISTORIALES (Punto de entrada principal) -->
-    @if (!isLoading() && runsList().length > 0) {
+    @if (runsList().length > 0) {
       <div class="results-header fade-in" style="margin-bottom: 1.5rem;">
         <h3>Historial de Ejecuciones (Nube)</h3>
-        <p>Haz clic en el botón de la tabla para analizar una ejecución específica sin latencia ni consumo de créditos.</p>
+        <p>Haz clic en la fila de una plataforma para analizarla individualmente o navega desde el menú lateral de Market Intelligence.</p>
       </div>
 
       <div class="fade-in">
@@ -355,8 +355,9 @@
          [runsList]="runsList()"
          [market]="selectedMarket()"
          [selectedPlatform]="gridNetworkFilter()"
+         [activeRunId]="activeRunId()"
          [isAdmin]="true"
-         (runSelected)="loadSpecificRun($event.runId, $event.actorInternalId)"
+         (runSelected)="loadSpecificRun($event.runId, $event.actorInternalId, $event.platform)"
          (countryChanged)="onRunCountryChanged($event)"
          (resetPlatform)="handleNavSelection('omnicanal')">
        </app-apify-runs-table>
